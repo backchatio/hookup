@@ -1,0 +1,9 @@
+target
+project/boot
+project/target
+project/plugins/target
+
+blacklist.txt
+.idea
+.idea_modules
+node_modules
