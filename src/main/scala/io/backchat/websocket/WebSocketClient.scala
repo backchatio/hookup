@@ -14,19 +14,19 @@ import org.jboss.netty.util.CharsetUtil
 
 
 /**
- * Usage of the simple websocket client:
- *
- * <pre>
- *   WebSocketClient(new URI("ws://localhost:8080/thesocket")) {
- *     case Connected(client) => println("Connection has been established to: " + client.url.toASCIIString)
- *     case Disconnected(client, _) => println("The websocket to " + client.url.toASCIIString + " disconnected.")
- *     case TextMessage(client, message) => {
- *       println("RECV: " + message)
- *       client send ("ECHO: " + message)
- *     }
- *   }
- * </pre>
- */
+* Usage of the simple websocket client:
+*
+* <pre>
+*   WebSocketClient(new URI("ws://localhost:8080/thesocket")) {
+*     case Connected(client) => println("Connection has been established to: " + client.url.toASCIIString)
+*     case Disconnected(client, _) => println("The websocket to " + client.url.toASCIIString + " disconnected.")
+*     case TextMessage(client, message) => {
+*       println("RECV: " + message)
+*       client send ("ECHO: " + message)
+*     }
+*   }
+* </pre>
+*/
 object WebSocketClient {
 
   object Messages {
@@ -96,8 +96,8 @@ object WebSocketClient {
       version: WebSocketVersion,
       private[this] val _handler: Handler,
       val reader: FrameReader = defaultFrameReader) extends WebSocketClient {
-    val normalized = url.normalize()
-    val tgt = if (normalized.getPath == null || normalized.getPath.trim().isEmpty) {
+    private[this] val normalized = url.normalize()
+    private[this] val tgt = if (normalized.getPath == null || normalized.getPath.trim().isEmpty) {
       new URI(normalized.getScheme, normalized.getAuthority,"/", normalized.getQuery, normalized.getFragment)
     } else normalized
 
