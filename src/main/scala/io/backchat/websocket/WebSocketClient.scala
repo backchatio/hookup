@@ -75,6 +75,7 @@ object WebSocketClient {
           throw new WebSocketException("Unexpected HttpResponse (status=" + resp.getStatus + ", content="
                               + resp.getContent.toString(CharsetUtil.UTF_8) + ")")
         case resp: HttpResponse =>
+          println("got completion response I hope: %s" format e.getMessage)
           handshaker.finishHandshake(ctx.getChannel, e.getMessage.asInstanceOf[HttpResponse])
           client.handler(Connected(client))
 
