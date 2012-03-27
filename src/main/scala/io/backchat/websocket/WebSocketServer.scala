@@ -18,14 +18,11 @@ import org.jboss.netty.handler.codec.http._
 import java.net.{SocketAddress, InetSocketAddress}
 import scala.collection.JavaConverters._
 import java.util.concurrent.{ConcurrentLinkedQueue, TimeUnit, Executors}
-import io.backchat.websocket.WebSocketServer.{WebSocketServerClientHandler, WebSocketServerClient, Include}
-import collection.mutable.{Buffer, SynchronizedBuffer, ListBuffer}
-import actors.Futures
-import akka.dispatch.{ExecutionContext, Promise, Future}
-import org.jboss.netty.handler.execution.OrderedMemoryAwareThreadPoolExecutor
-import akka.jsr166y.ForkJoinPool
-import akka.jsr166y.ForkJoinPool.ForkJoinWorkerThreadFactory
-import java.lang.Thread.UncaughtExceptionHandler
+import io.backchat.websocket.WebSocketServer.WebSocketServerClient
+import collection.mutable.ListBuffer
+import akka.dispatch.{Promise, Future}
+import akka.util.Timeout
+import akka.util.duration._
 
 trait ServerCapability
 case class SslSupport(
@@ -35,6 +32,7 @@ case class SslSupport(
 
 case class ContentCompression(level: Int = 6) extends ServerCapability
 case class SubProtocols(protocol: String, protocols: String*) extends ServerCapability
+case class Ping(timeout: Timeout)
 
 case class ServerInfo(
               name: String,
@@ -61,6 +59,10 @@ case class ServerInfo(
   val subProtocols = (capabilities collect {
     case sp: SubProtocols if sp.protocols.nonEmpty => sp.protocol :+ sp.protocols
   }).headOption
+
+  val pingTimeout = (capabilities collect {
+    case Ping(timeout) => timeout
+  }).headOption | Timeout(90 seconds)
 }
 
 
@@ -73,7 +75,7 @@ case class ServerInfo(
 *   val server = WebSocketServer(ServerInfo("MyWebSocketServer")) {
 *     new WebSocketServerClient {
 *       protected val receive = {
-*         case Connect => println("got a client connection")
+*         case Connected$ => println("got a client connection")
 *         case TextMessage(text) => send("ECHO: " + text)
 *         case Disconnected(_) => println("client disconnected")
 *       }
@@ -87,14 +89,9 @@ case class ServerInfo(
 object WebSocketServer {
 
 //  type WebSocketHandler = PartialFunction[WebSocketMessage, Unit]
-  type WebSocketReceive = PartialFunction[WebSocketServerClientMessage, Unit]
 
-  sealed trait WebSocketServerClientMessage
-  case object Connect extends WebSocketServerClientMessage
-  case class TextMessage(content: String) extends WebSocketServerClientMessage
-  case class BinaryMessage(content: Array[Byte]) extends WebSocketServerClientMessage
-  case class Error(cause: Option[Throwable]) extends WebSocketServerClientMessage
-  case class Disconnected(cause: Option[Throwable]) extends WebSocketServerClientMessage
+
+  import WebSocket.{ executionContext, Receive }
 
   trait BroadcastFilter extends (BroadcastChannel => Boolean) with NotNull
 
@@ -113,39 +110,19 @@ object WebSocketServer {
     def apply(v1: BroadcastChannel) = !clients.exists(_.id == v1.id)
   }
 
-  trait BroadcastChannel {
-    def id: Int
-    def send(msg: String): Future[OperationResult]
-    def close(): Future[OperationResult]
-  }
-
-  private implicit def nettyChannel2BroadcastChannel(ch: Channel): BroadcastChannel =
-    new { val id: Int = ch.getId } with BroadcastChannel {
-      def send(msg: String) = ch.write(msg).toAkkaFuture
-      def close() = ch.close().toAkkaFuture
-    }
 
 //  private implicit def wsServerClient2BroadcastChannel(ch: WebSocketServerClientHandler): BroadcastChannel =
 //    new { val id = ch.id } with BroadcastChannel { def send(msg: String) { ch.send(msg) } }
 //
 
   trait Broadcast {
-    def apply(message: String, allowsOnly: BroadcastFilter): Future[OperationResult]
+    def apply(message: WebSocketOutMessage, allowsOnly: BroadcastFilter): Future[OperationResult]
   }
 
-  private[WebSocketServer] implicit val executionContext =
-    ExecutionContext.fromExecutorService(new ForkJoinPool(
-      Runtime.getRuntime.availableProcessors(),
-      ForkJoinPool.defaultForkJoinWorkerThreadFactory,
-      new UncaughtExceptionHandler {
-        def uncaughtException(t: Thread, e: Throwable) {
-          e.printStackTrace()
-        }
-      },
-      true))
+
 
   private implicit def nettyChannelGroup2Broadcaster(allChannels: ChannelGroup): Broadcast = new Broadcast {
-    def apply(message: String, matchingOnly: BroadcastFilter) = {
+    def apply(message: WebSocketOutMessage, matchingOnly: BroadcastFilter) = {
       val lst = allChannels.asScala map (x => x: BroadcastChannel) filter matchingOnly map (_ send message)
       Future.sequence(lst) map (l => ResultList(l.toList))
     }
@@ -158,19 +135,18 @@ object WebSocketServer {
     final def remoteAddress = if (_handler != null) _handler.remoteAddress else null
 
     private[WebSocketServer] var _handler: WebSocketServerClientHandler = null
-    private val _buffer = new ConcurrentLinkedQueue[String]()
-    private val _broadcastBuffer = new ConcurrentLinkedQueue[(String, BroadcastFilter)]()
+    private val _buffer = new ConcurrentLinkedQueue[WebSocketOutMessage]()
+    private val _broadcastBuffer = new ConcurrentLinkedQueue[(WebSocketOutMessage, BroadcastFilter)]()
 
     /**
      * Send a text message to this client
      * @param message the message to send
      */
-    final def send(message: String): Future[OperationResult] = {
+    final def send(message: WebSocketOutMessage): Future[OperationResult] = {
       if (_handler != null) {
         val futures = new ListBuffer[Future[OperationResult]]
         while(!_buffer.isEmpty) {
-          val msg = _buffer.poll().blankOption
-          msg foreach (m => futures += _handler.send(m))
+          futures += _handler.send(_buffer.poll())
         }
         futures += _handler send message
         Future.sequence(futures).map(r => ResultList(r.toList))
@@ -183,9 +159,9 @@ object WebSocketServer {
     /**
      * alias for [[send]] @see send
      */
-    final def !(msg: String) { send(msg) }
+    final def !(msg: WebSocketOutMessage) { send(msg) }
 
-    final def broadcast(msg: String, onlyTo: BroadcastFilter = SkipSelf): Future[OperationResult] = {
+    final def broadcast(msg: WebSocketOutMessage, onlyTo: BroadcastFilter = SkipSelf): Future[OperationResult] = {
       if (_handler != null) {
         val futures = new ListBuffer[Future[OperationResult]]
         while(!_broadcastBuffer.isEmpty) {
@@ -198,9 +174,9 @@ object WebSocketServer {
         Promise.successful(Success)
       }
     }
-    final def ><(msg: String, onlyTo: BroadcastFilter = SkipSelf): Future[OperationResult] = broadcast(msg, onlyTo)
+    final def ><(msg: WebSocketOutMessage, onlyTo: BroadcastFilter = SkipSelf): Future[OperationResult] = broadcast(msg, onlyTo)
 
-    def receive: WebSocketReceive
+    def receive: Receive
 
     final def close() = {
       if (_handler != null) _handler.close()
@@ -230,20 +206,20 @@ object WebSocketServer {
      * Send a text message to this client
      * @param message the message to send
      */
-    final def send(message: String) = channel.send(message)
+    final def send(message: WebSocketOutMessage) = channel.send(message)
 
     /**
      * alias for [[send]] @see send
      */
-    def !(msg: String) { send(msg) }
+    def !(msg: WebSocketOutMessage) { send(msg) }
 
-    final def broadcast(msg: String, matchingOnly: BroadcastFilter) = broadcaster(msg, matchingOnly)
+    final def broadcast(msg: WebSocketOutMessage, matchingOnly: BroadcastFilter) = broadcaster(msg, matchingOnly)
 
-    final def ><(msg: String, matchingOnly: BroadcastFilter) { broadcaster(msg, matchingOnly) }
+    final def ><(msg: WebSocketOutMessage, matchingOnly: BroadcastFilter) { broadcaster(msg, matchingOnly) }
 
-    def receive: WebSocketReceive = client.receive orElse defaultReceive
+    def receive: Receive = client.receive orElse defaultReceive
 
-    private val defaultReceive: WebSocketReceive = {
+    private val defaultReceive: Receive = {
       case Error(Some(ex)) =>
         logger.error("Received an error.", ex)
       case Error(_) =>
@@ -252,8 +228,7 @@ object WebSocketServer {
     }
 
     def close() = {
-      channel.send("ws-do-the-close")
-      channel.close()
+      channel.send(Disconnect)
     };
   }
 
@@ -302,8 +277,7 @@ object WebSocketServer {
   }
 
   private[this] object OneHundredContinueResponse extends DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE)
-  private final class WebSocketClientFactoryHandler(
-                                                    logger: InternalLogger,
+  private final class WebSocketClientFactoryHandler(logger: InternalLogger,
                                                     allChannels: ChannelGroup,
                                                     factory: => WebSocketServerClient,
                                                     subProtocols: Traversable[String] = Nil) extends SimpleChannelUpstreamHandler {
@@ -313,6 +287,8 @@ object WebSocketServer {
     private[this] var handshaker: WebSocketServerHandshaker = _
 
     private[this] var client: WebSocketServerClientHandler = null
+
+    private[this] var receivedCloseFrame: Boolean = false
 
     private[this] def clientFrom(ctx: ChannelHandlerContext): WebSocketServerClientHandler = {
       (Option(ctx.getAttachment) collect {
@@ -349,9 +325,8 @@ object WebSocketServer {
           }
 
         case f: CloseWebSocketFrame ⇒
-          val cl = client
+          receivedCloseFrame = true
           if (handshaker != null) handshaker.close(ctx.getChannel, f)
-          cl.receive lift Disconnected(None)
 
         case _: PingWebSocketFrame ⇒ e.getChannel.write(new PongWebSocketFrame)
 
@@ -366,6 +341,7 @@ object WebSocketServer {
 
 
     override def channelClosed(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
+      client.receive lift Disconnected(None)
       client = null
       ctx.setAttachment(null)
     }
@@ -378,7 +354,6 @@ object WebSocketServer {
     }
 
     private def handleUpgrade(ctx: ChannelHandlerContext, httpRequest: HttpRequest) {
-      println("is upgrade")
       val protos = if (subProtocols.isEmpty) null else subProtocols.mkString(",")
       val handshakerFactory = new WebSocketServerHandshakerFactory(websocketLocation(httpRequest), protos, false)
       handshaker = handshakerFactory.newHandshaker(httpRequest)
@@ -386,7 +361,7 @@ object WebSocketServer {
       else {
         handshaker.handshake(ctx.getChannel, httpRequest)
         client = clientFrom(ctx)
-        client.receive.lift(Connect)
+        client.receive.lift(Connected)
       }
     }
 
@@ -408,18 +383,13 @@ object WebSocketServer {
   class WebSocketMessageAdapter(logger: InternalLogger) extends SimpleChannelDownstreamHandler {
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
-        case "ws-do-the-close" => {
-           ctx.getChannel.write(new CloseWebSocketFrame()).addListener(ChannelFutureListener.CLOSE)
-        }
-        case text: String => {
-          ctx.getChannel.write(new TextWebSocketFrame(text))
-        }
         case TextMessage(text) => {
           ctx.getChannel.write(new TextWebSocketFrame(text))
         }
         case BinaryMessage(bytes) => {
           ctx.getChannel.write(new BinaryWebSocketFrame(ChannelBuffers.copiedBuffer(bytes)))
         }
+        case Disconnect => ctx.getChannel.write(new CloseWebSocketFrame()).addListener(ChannelFutureListener.CLOSE)
         case _ => {
           ctx.sendDownstream(e)
         }
