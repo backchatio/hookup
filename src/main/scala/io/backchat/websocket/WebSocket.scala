@@ -344,6 +344,8 @@ trait WebSocket extends WebSocketLike with Connectable {
 
   def isConnected = channel.isConnected
 
+  final def !(message: WebSocketOutMessage) = send(message)
+
   final def connect(): Future[OperationResult] = channel.connect()
 
   final def close(): Future[OperationResult] = channel.close()
