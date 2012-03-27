@@ -9,14 +9,19 @@ import websocketx._
 import java.net.{InetSocketAddress, URI}
 import java.nio.charset.Charset
 import org.jboss.netty.buffer.ChannelBuffers
-import org.jboss.netty.util.CharsetUtil
 import akka.util.duration._
 import java.util.concurrent.{ConcurrentSkipListSet, Executors}
 import akka.dispatch.{ExecutionContext, Await, Promise, Future}
 import akka.jsr166y.ForkJoinPool
 import java.lang.Thread.UncaughtExceptionHandler
 import org.jboss.netty.handler.logging.LoggingHandler
-import org.jboss.netty.logging.{InternalLogLevel, InternalLoggerFactory}
+import akka.util.Timeout
+import org.jboss.netty.util.{HashedWheelTimer, CharsetUtil}
+import org.jboss.netty.handler.timeout.{IdleStateAwareChannelHandler, IdleStateEvent, IdleState, IdleStateHandler}
+import org.jboss.netty.logging.{InternalLogger, InternalLogLevel, InternalLoggerFactory}
+import java.util.concurrent.atomic.AtomicLong
+import net.liftweb.json.{DefaultFormats, Formats}
+import io.backchat.websocket.WebSocketServer.MessageAckingHandler
 
 
 /**
@@ -49,17 +54,27 @@ object WebSocket {
 
   private val logger = InternalLoggerFactory.getInstance("WebSocket")
 
-  class WebSocketClientHostHandler(handshaker: WebSocketClientHandshaker, host: WebSocketHost) extends SimpleChannelHandler {
+  class WebSocketClientHostHandler(handshaker: WebSocketClientHandshaker, host: WebSocketHost)(implicit formats: Formats) extends SimpleChannelHandler {
+    import net.liftweb.json._
+    import JsonDSL._
+    private val msgCount = new AtomicLong(0)
+
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
         case resp: HttpResponse if handshaker.isHandshakeComplete =>
           throw new WebSocketException("Unexpected HttpResponse (status=" + resp.getStatus + ", content="
                               + resp.getContent.toString(CharsetUtil.UTF_8) + ")")
         case resp: HttpResponse =>
-          handshaker.finishHandshake(ctx.getChannel, e.getMessage.asInstanceOf[HttpResponse])
+          handshaker.finishHandshake(ctx.getChannel, resp)
           host.receive lift Connected
 
-        case f: TextWebSocketFrame => host.receive lift TextMessage(f.getText)
+        case f: TextWebSocketFrame =>
+          val inferred = inferMessageTypeFromContent(f.getText)
+          inferred match {
+            case a: Ack => Channels.fireMessageReceived(ctx, a)
+            case a: AckRequest => Channels.fireMessageReceived(ctx, a)
+            case r => host.receive lift r
+          }
         case f: BinaryWebSocketFrame => host.receive lift BinaryMessage(f.getBinaryData.array())
         case f: ContinuationWebSocketFrame =>
           logger warn "Got a continuation frame this is not (yet) supported"
@@ -69,6 +84,31 @@ object WebSocket {
       }
     }
 
+    private def inferMessageTypeFromContent(content: String): WebSocketInMessage = {
+      val possiblyJson = content.trim.startsWith("{") || content.trim.startsWith("[")
+      if (!possiblyJson) TextMessage(content)
+      else parseOpt(content) map inferJsonMessageFromContent getOrElse TextMessage(content)
+    }
+
+    private def inferJsonMessageFromContent(content: JValue): WebSocketInMessage = {
+      val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
+      (contentType) match {
+        case "ack_request" => AckRequest(inferContentMessage(content \ "message"), (content \ "id").extract[Long])
+        case "ack" => Ack((content \ "id").extract[Long])
+        case "text" => TextMessage((content \ "content").extract[String])
+        case "json" => JsonMessage((content \ "content"))
+        case _ => JsonMessage(content)
+      }
+    }
+
+    private def inferContentMessage(content: JValue): Ackable = {
+      val contentType = (content \ "type").extractOrElse("none")
+      (contentType) match {
+        case "text" => TextMessage((content \ "content").extract[String])
+        case "json" => JsonMessage((content \ "content"))
+        case "none" => JsonMessage(content)
+      }
+    }
 
     override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
       host.receive.lift(Error(Option(e.getCause))) getOrElse logger.error("Oops, something went amiss", e.getCause)
@@ -78,17 +118,27 @@ object WebSocket {
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
         case content: String => e.getChannel.write(new TextWebSocketFrame(content))
-        case TextMessage(content) => e.getChannel.write(new TextWebSocketFrame(content))
+        case m: JsonMessage => sendOutMessage(m, e.getChannel)
+        case m: TextMessage => sendOutMessage(m, e.getChannel)
         case BinaryMessage(content) => e.getChannel.write(new BinaryWebSocketFrame(ChannelBuffers.copiedBuffer(content)))
+//        case NeedsAck(m, timeout) =>
         case Disconnect => // ignore here
         case _: WebSocketOutMessage =>
         case _ => ctx.sendDownstream(e)
       }
     }
 
+    private def sendOutMessage(msg: WebSocketOutMessage with Ackable, channel: Channel) {
+      msg match {
+        case TextMessage(content) => channel.write(new TextWebSocketFrame(content))
+        case JsonMessage(content) =>
+          channel.write(new TextWebSocketFrame(compact(render(("type" -> "json") ~ ("content" -> content)))))
+      }
+    }
+
   }
 
-  private final class WebSocketHost(val client: WebSocket)(implicit executionContext: ExecutionContext) extends WebSocketLike with BroadcastChannel with Connectable {
+  private final class WebSocketHost(val client: WebSocket)(implicit executionContext: ExecutionContext, formats: Formats) extends WebSocketLike with BroadcastChannel with Connectable {
 
     private[this] val normalized = client.uri.normalize()
     private[this] val tgt = if (normalized.getPath == null || normalized.getPath.trim().isEmpty) {
@@ -98,18 +148,23 @@ object WebSocket {
 
     private[this] var bootstrap: ClientBootstrap = null
     private[this] val handshaker = new WebSocketClientHandshakerFactory().newHandshaker(tgt, client.version, protos, false, client.initialHeaders.asJava)
-
+    private[this] val timer = new HashedWheelTimer()
     private[this] var channel: Channel = null
     private[this] var _isConnected: Promise[OperationResult] = Promise[OperationResult]()
     private[this] var _messageBuffer = new ConcurrentSkipListSet[WebSocketOutMessage]()
 
     def isConnected = channel != null && channel.isConnected && _isConnected.isCompleted
 
+
+
     private def configureBootstrap() {
       val self = this
+      val ping = client.ping.duration.toSeconds.toInt
       bootstrap.setPipelineFactory(new ChannelPipelineFactory {
         def getPipeline = {
           val pipeline = Channels.pipeline()
+          pipeline.addLast("timeouts", new IdleStateHandler(timer, ping, 0, 0))
+          pipeline.addLast("pingpong", new PingPongHandler(logger))
           if (client.version == WebSocketVersion.V00)
             pipeline.addLast("decoder", new WebSocketHttpResponseDecoder)
           else
@@ -117,6 +172,18 @@ object WebSocket {
 
           pipeline.addLast("encoder", new HttpRequestEncoder)
           pipeline.addLast("ws-handler", new WebSocketClientHostHandler(handshaker, self))
+          pipeline.addLast("acking", new MessageAckingHandler(logger, client.raiseEvents))
+          if (client.raiseEvents) {
+          pipeline.addLast("eventsHook", new SimpleChannelHandler {
+                  override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
+                    e.getMessage match {
+                      case m: Ack => client.receive lift m
+                      case m: AckRequest => client.receive lift m
+                      case _ => ctx.sendUpstream(e)
+                    }
+                  }
+                })
+          }
           pipeline
         }
       })
@@ -231,6 +298,17 @@ object WebSocket {
     def this(s: String) = this(s, null)
   }
 
+  class PingPongHandler(logger: InternalLogger) extends IdleStateAwareChannelHandler {
+
+    override def channelIdle(ctx: ChannelHandlerContext, e: IdleStateEvent) {
+      if (e.getState == IdleState.READER_IDLE || e.getState == IdleState.WRITER_IDLE) {
+        logger.debug("Sending ping")
+        e.getChannel.write(new PingWebSocketFrame())
+      }
+    }
+  }
+
+
 }
 
 trait Connectable { self: BroadcastChannelLike =>
@@ -255,7 +333,12 @@ trait WebSocket extends WebSocketLike with Connectable {
 
   def initialHeaders: Map[String, String] = Map.empty[String, String]
 
+  def ping = Timeout(60 seconds)
+
+  private[websocket] def raiseEvents: Boolean = false
+
   implicit protected def executionContext = WebSocket.executionContext
+  implicit protected def formats: Formats = DefaultFormats
 
   private[websocket] lazy val channel: BroadcastChannel with Connectable = new WebSocketHost(this)
 

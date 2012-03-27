@@ -1,35 +1,10 @@
 package io.backchat
 
 import akka.dispatch.{ExecutionContext, Await, Promise, Future}
+import akka.util.duration._
 import org.jboss.netty.channel.{Channel, ChannelFutureListener, ChannelFuture}
-
-package websocket {
-  sealed trait OperationResult
-  case object Success extends OperationResult
-  case object Cancelled extends OperationResult
-  case class ResultList(results: List[OperationResult]) extends OperationResult
-
-  trait BroadcastChannel extends BroadcastChannelLike {
-    def id: Int
-  }
-
-  trait BroadcastChannelLike {
-    def send(message: WebSocketOutMessage): Future[OperationResult]
-    def close(): Future[OperationResult]
-  }
-
-  sealed trait WebSocketInMessage
-  sealed trait WebSocketOutMessage
-
-  case object Connected extends WebSocketInMessage
-  case class TextMessage(content: String) extends WebSocketInMessage with WebSocketOutMessage
-  case class BinaryMessage(content: Array[Byte]) extends WebSocketInMessage with WebSocketOutMessage
-  case class Error(cause: Option[Throwable]) extends WebSocketInMessage
-  case class Disconnected(cause: Option[Throwable]) extends WebSocketInMessage
-  case object Disconnect extends WebSocketOutMessage
-
-
-}
+import java.util.concurrent.atomic.AtomicLong
+import net.liftweb.json.JsonAST.JValue
 
 package object websocket {
 
@@ -50,8 +25,6 @@ package object websocket {
   }
 
 
-
-
   implicit def channelFutureToAkkaFuture(fut: ChannelFuture) = new {
 
     def toAkkaFuture(implicit context: ExecutionContext): Future[OperationResult] = {
@@ -70,6 +43,10 @@ package object websocket {
       res
     }
   }
+
+  implicit def string2TextMessage(content: String): WebSocketOutMessage with Ackable = TextMessage(content)
+  implicit def jvalue2JsonMessage(content: JValue): WebSocketOutMessage with Ackable = JsonMessage(content)
+
 
 
   private[websocket] implicit def nettyChannel2BroadcastChannel(ch: Channel)(implicit executionContext: ExecutionContext): BroadcastChannel =

@@ -12,6 +12,9 @@ import org.specs2.time.NoTimeConversions
 import java.util.concurrent.{TimeUnit, CountDownLatch, TimeoutException, Executors}
 import org.specs2.execute.Result
 import java.net.{URI, ServerSocket, SocketAddress, InetSocketAddress}
+import akka.util.Timeout
+import net.liftweb.json._
+import JsonDSL._
 
 class WebSocketServerSpec extends Specification with NoTimeConversions { def is = sequential ^
   "A WebSocketServer should" ^
@@ -21,16 +24,15 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       "with subprotocols" ! webSocketServerContext("irc", "minutes").acceptsWithSubProtocols ^ bt(2) ^
     "perform messaging and" ^ t^
       "receive a message from a client" ! webSocketServerContext().receivesClientMessages ^
+      "detect when a json message is received" ! webSocketServerContext().receivesJsonClientMessages ^
+      "detect when a json message is sent" ! webSocketServerContext().sendsJsonClientMessages ^
       "send a message to a client" ! webSocketServerContext().canSendMessagesToTheClient ^ bt(2) ^
-    "closing the connection" ^ t^
-      "server can close a connection" ! webSocketServerContext().notifiesClientOfClose ^
-      "client can close a connection" ! webSocketServerContext().removesClientOnClose ^ bt(2) ^
-    "ping pong" ^ t^
-      "initiated by the server if the client is idle for a while" ! pending ^
-      "initiated by the client if the connection is idle for a while" ! pending ^ bt(2) ^
+    "close the connection" ^ t^
+      "initiated by the server" ! webSocketServerContext().notifiesClientOfClose ^
+      "initiated by the client" ! webSocketServerContext().removesClientOnClose ^ bt(2) ^
     "provide acking by" ^ t ^
-      "expecting an ack" ! pending ^
-      "acking a message" ! pending ^ bt(3) ^
+      "expecting an ack on the server" ! webSocketServerContext().serverExpectsAnAck ^
+      "expecting an ack on the client" ! webSocketServerContext().clientExpectsAnAck ^ bt(3) ^
   "When the server connection goes away, a WebSocket should " ^ t ^
     "reconnect according to a schedule" ! pending ^
     "buffer messages in a file while reconnecting" ! pending ^
@@ -47,23 +49,30 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       val s = new ServerSocket(0); try { s.getLocalPort } finally { s.close() }
     }
     var messages = List.empty[String]
+    var jsonMessages = List.empty[JValue]
     var client = Promise[WebSocketServerClient]()
     val disconnectionLatch = new CountDownLatch(1)
+    val ackRequest = new CountDownLatch(2)
     class WsClient extends WebSocketServerClient {
       def receive = {
         case Connected => client.complete(Right(this))
         case TextMessage(text) => {
-          println("got text message")
           messages ::= text
+        }
+        case JsonMessage(json) => {
+          jsonMessages ::= json
         }
         case Disconnected(_) =>
           disconnectionLatch.countDown()
-          println("server client disconnected")
-        case e => println(e)
+        case m: AckRequest => ackRequest.countDown()
+        case m: Ack => ackRequest.countDown()
+        case e =>
+          println("unhandled server")
+          println(e)
       }
     }
     val server = {
-      val fn = if (protocols.isEmpty) WebSocketServer("127.0.0.1", serverAddress)_
+      val fn = if (protocols.isEmpty) WebSocketServer("127.0.0.1", serverAddress, Ping(Timeout(2 seconds)), RaiseAckEvents)_
       else WebSocketServer("127.0.0.1", serverAddress, SubProtocols(protocols.head, protocols.tail:_*))_
       fn(new WsClient)
     }
@@ -78,12 +87,14 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       val cl = new WebSocket {
         val uri = new URI("ws://127.0.0.1:"+serverAddress.toString+"/")
 
+        override private[websocket] def raiseEvents = true
+
         override val protocols = protos
 
         def receive = handler
       }
       try {
-        Await.ready(cl.connect.onSuccess({case x => println(x)}), 3 seconds)
+        Await.ready(cl.connect, 3 seconds)
         thunk(cl)
       } finally {
         cl.close
@@ -127,6 +138,30 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       }
     }
 
+    def receivesJsonClientMessages = this {
+      val txt = "this is some text you know"
+      val toSend: JValue = ("data" -> txt)
+      var rcvd: JValue = null
+      withClient({
+        case JsonMessage(text) => rcvd = text
+      }) { c =>
+        c send toSend
+        jsonMessages.contains(toSend) must beTrue.eventually
+      }
+    }
+
+    def sendsJsonClientMessages = this {
+      val txt = "this is some text you know"
+      val toSend: JValue = ("data" -> txt)
+      var rcvd: JValue = null
+      withClient({
+        case JsonMessage(text) => rcvd = text
+      }) { c =>
+        client.onSuccess({ case c => c ! toSend })
+        rcvd must be_==(toSend).eventually
+      }
+    }
+
     def notifiesClientOfClose = this {
       val toSend = TextMessage("this is some text you know")
       var rcvd: String = null
@@ -148,6 +183,38 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
         disconnectionLatch.await(2, TimeUnit.SECONDS) must beTrue and (c.isConnected must beFalse.eventually)
       }
 
+    }
+
+    def serverExpectsAnAck = this {
+      val toSend: JValue = ("data" -> "this is some text you know")
+      withClient({
+        case _ =>
+       }) { _ =>
+        client.onSuccess({ case c => c ! toSend.needsAck(within = 5 seconds) })
+        ackRequest.await(3, TimeUnit.SECONDS) must beTrue
+      }
+    }
+
+    def clientExpectsAnAck = this {
+      val txt = "this is some text you know"
+      val toSend: JValue = ("data" -> txt)
+      val latch = new CountDownLatch(1)
+      withClient({
+        case m: AckRequest => latch.countDown
+        case m: Ack => latch.countDown
+      }) { c =>
+        c send toSend.needsAck(within = 5 seconds)
+        latch.await(3, TimeUnit.SECONDS) must beTrue
+      }
+
+    }
+
+    def serverSendsAck = this {
+      pending
+    }
+
+    def clientSendsAck = this {
+      pending
     }
   }
 }
