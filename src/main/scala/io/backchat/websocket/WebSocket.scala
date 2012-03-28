@@ -7,15 +7,13 @@ import org.jboss.netty.handler.codec.http._
 import collection.JavaConverters._
 import websocketx._
 import java.net.{InetSocketAddress, URI}
-import java.nio.charset.Charset
 import org.jboss.netty.buffer.ChannelBuffers
 import akka.util.duration._
 import akka.dispatch.{ExecutionContext, Await, Promise, Future}
 import akka.jsr166y.ForkJoinPool
 import java.lang.Thread.UncaughtExceptionHandler
-import org.jboss.netty.handler.logging.LoggingHandler
 import org.jboss.netty.handler.timeout.{IdleStateAwareChannelHandler, IdleStateEvent, IdleState, IdleStateHandler}
-import org.jboss.netty.logging.{InternalLogger, InternalLogLevel, InternalLoggerFactory}
+import org.jboss.netty.logging.{InternalLogger, InternalLoggerFactory}
 import java.util.concurrent.atomic.AtomicLong
 import net.liftweb.json.{DefaultFormats, Formats}
 import io.backchat.websocket.WebSocketServer.MessageAckingHandler
@@ -23,6 +21,8 @@ import java.util.concurrent.{TimeUnit, ConcurrentSkipListSet, Executors}
 import org.jboss.netty.util.{Timeout => NettyTimeout, TimerTask, HashedWheelTimer, CharsetUtil}
 import akka.util.{Duration, Timeout}
 import java.io.File
+import collection.mutable.Buffer
+import io.backchat.websocket.WebSocket.ActiveThrottle
 
 
 /**
@@ -139,8 +139,6 @@ object WebSocket {
   private val logger = InternalLoggerFactory.getInstance("WebSocket")
 
   class WebSocketClientHostHandler(handshaker: WebSocketClientHandshaker, host: WebSocketHost)(implicit formats: Formats) extends SimpleChannelHandler {
-    import net.liftweb.json._
-    import JsonDSL._
     private val msgCount = new AtomicLong(0)
 
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
@@ -486,6 +484,7 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
 
 trait BufferedWebSocket { self: WebSocket =>
 
+  override def throttle = ActiveThrottle(500 millis, 30 minutes)
   override def buffered = true
 
 }

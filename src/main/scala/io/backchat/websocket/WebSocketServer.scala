@@ -243,27 +243,27 @@ object WebSocketServer {
 
   val DefaultServerName = "BackChatWebSocketServer"
 
-  def apply(capabilities: ServerCapability*)(factory: => WebSocketServerClient): WebSocketServer = {
+  def apply(capabilities: ServerCapability*)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, capabilities = capabilities))(factory)
   }
 
-  def apply(port: Int,  capabilities: ServerCapability*)(factory: => WebSocketServerClient): WebSocketServer = {
+  def apply(port: Int,  capabilities: ServerCapability*)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, port = port, capabilities = capabilities))(factory)
   }
 
-  def apply(listenOn: String,  capabilities: ServerCapability*)(factory: => WebSocketServerClient): WebSocketServer = {
+  def apply(listenOn: String,  capabilities: ServerCapability*)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, capabilities = capabilities))(factory)
   }
 
-  def apply(listenOn: String, port: Int,  capabilities: ServerCapability*)(factory: => WebSocketServerClient): WebSocketServer = {
+  def apply(listenOn: String, port: Int,  capabilities: ServerCapability*)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, port = port, capabilities = capabilities))(factory)
   }
 
-  def apply(name: String, listenOn: String, port: Int,  capabilities: ServerCapability*)(factory: => WebSocketServerClient): WebSocketServer = {
+  def apply(name: String, listenOn: String, port: Int,  capabilities: ServerCapability*)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, port = port, capabilities = capabilities))(factory)
   }
 
-  def apply(info: ServerInfo)(factory: => WebSocketServerClient): WebSocketServer = {
+  def apply(info: ServerInfo)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     new WebSocketServer(info, factory)
   }
 
@@ -506,13 +506,7 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
   private[this] val boss = Executors.newCachedThreadPool()
   private[this] val worker = Executors.newCachedThreadPool()
   private[this] val timer = new HashedWheelTimer()
-  private[this] val server = {
-    val bs = new ServerBootstrap(new NioServerSocketChannelFactory(boss, worker))
-    bs.setOption("soLinger", 0)
-    bs.setOption("reuseAddress", true)
-    bs.setOption("child.tcpNoDelay", true)
-    bs
-  }
+  private[this] var server: ServerBootstrap = null
 
   private[this] val allChannels = new DefaultChannelGroup
 
@@ -562,6 +556,10 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
   def onStop(thunk: => Any) = stopCallbacks += { () => thunk }
 
   final def start = synchronized {
+    server = new ServerBootstrap(new NioServerSocketChannelFactory(boss, worker))
+    server.setOption("soLinger", 0)
+    server.setOption("reuseAddress", true)
+    server.setOption("child.tcpNoDelay", true)
     server.setPipeline(getPipeline)
     val addr = config.listenOn.blankOption.map(l =>new InetSocketAddress(l, config.port) ) | new InetSocketAddress(config.port)
     val sc = server.bind(addr)
@@ -576,9 +574,11 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
     allChannels.close().awaitUninterruptibly()
     val thread = new Thread {
       override def run = {
-        server.releaseExternalResources()
-        boss.awaitTermination(5, TimeUnit.SECONDS)
-        worker.awaitTermination(5, TimeUnit.SECONDS)
+        if (server != null) {
+          server.releaseExternalResources()
+          boss.awaitTermination(5, TimeUnit.SECONDS)
+          worker.awaitTermination(5, TimeUnit.SECONDS)
+        }
       }
     }
     thread.setDaemon(false)

@@ -34,11 +34,12 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       "expecting an ack on the server" ! webSocketServerContext().serverExpectsAnAck ^
       "expecting an ack on the client" ! webSocketServerContext().clientExpectsAnAck ^ bt(3) ^
   "When the server connection goes away, a WebSocket should " ^ t ^
-    "reconnect according to a schedule" ! pending ^
+    "reconnect according to a schedule" ! webSocketServerContext().reconnectsOnServerDisconnection ^
     "buffer messages in a file while reconnecting" ! pending ^
     "buffer messages in memory while draining file buffer" ! pending ^
   end
 
+  implicit val formats: Formats = DefaultFormats
   implicit val executionContext = ExecutionContext.fromExecutorService(Executors.newCachedThreadPool())
   override def map(fs: => Fragments) = super.map(fs) ^ Step(executionContext.shutdown())
 
@@ -72,9 +73,9 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       }
     }
     val server = {
-      val fn = if (protocols.isEmpty) WebSocketServer("127.0.0.1", serverAddress, Ping(Timeout(2 seconds)), RaiseAckEvents)_
-      else WebSocketServer("127.0.0.1", serverAddress, SubProtocols(protocols.head, protocols.tail:_*))_
-      fn(new WsClient)
+      if (protocols.isEmpty) WebSocketServer("127.0.0.1", serverAddress, Ping(Timeout(2 seconds)), RaiseAckEvents)(new WsClient)
+      else WebSocketServer("127.0.0.1", serverAddress, SubProtocols(protocols.head, protocols.tail:_*))(new WsClient)
+
     }
 
     server.start
@@ -88,6 +89,9 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
         val uri = new URI("ws://127.0.0.1:"+serverAddress.toString+"/")
 
         override private[websocket] def raiseEvents = true
+
+
+        override def throttle = WebSocket.ActiveThrottle(1 second, 1 second)
 
         override val protocols = protos
 
@@ -206,11 +210,25 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
         c send toSend.needsAck(within = 5 seconds)
         latch.await(3, TimeUnit.SECONDS) must beTrue
       }
-
     }
 
     def reconnectsOnServerDisconnection = this {
-      pending
+      val latch = new CountDownLatch(3)
+      val connLatch = new CountDownLatch(2)
+      val disconnLatch = new CountDownLatch(2)
+      withClient({
+        case Reconnecting => latch.countDown
+        case Disconnected(_) => disconnLatch.countDown()
+        case Connected => connLatch.countDown()
+      }) { _ =>
+        server.stop
+        latch.await(5, TimeUnit.SECONDS) must beTrue.eventually and {
+          server.start
+          connLatch.await(2, TimeUnit.SECONDS) must beTrue.eventually and {
+            disconnLatch.getCount must be_>(0L)
+          }
+        }
+      }
     }
 
     def buffersToFileWhileDisconnected = this {
