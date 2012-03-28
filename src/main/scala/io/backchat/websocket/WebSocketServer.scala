@@ -411,7 +411,7 @@ object WebSocketServer {
 
     private def isHttps(req: HttpRequest) = {
       val h1 = Option(req.getHeader("REQUEST_URI")).filter(_.trim.nonEmpty)
-      val h2 = Option(req.getHeader("REQUEST_URI")).filter(_.trim.nonEmpty)
+      val h2 = Option(req.getHeader("X-Forwarded-Proto")).filter(_.trim.nonEmpty)
       (h1.isDefined && h1.forall(_.toUpperCase(ENGLISH).startsWith("HTTPS"))) ||
         (h2.isDefined && h2.forall(_.toUpperCase(ENGLISH) startsWith "HTTPS"))
     }
@@ -497,7 +497,9 @@ object WebSocketServer {
         ("id" -> id)
 
       val to: NettyTimeout = ackScavenger.newTimeout(new TimerTask {
-        def run(timeout: NettyTimeout) { Channels.fireMessageReceived(ctx, AckFailed(message.asInstanceOf[WebSocketOutMessage])) }
+        def run(timeout: NettyTimeout) {
+          if (!timeout.isCancelled) Channels.fireMessageReceived(ctx, AckFailed(message.asInstanceOf[WebSocketOutMessage]))
+        }
       }, timeout.duration.toMillis, TimeUnit.MILLISECONDS)
       val exp = new WebSocketCancellable(to)
       while(expectedAcks.put(id, exp) != null) { // spin until we've updated
@@ -562,7 +564,7 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
     val raiseEvents = capabilities.contains(RaiseAckEvents)
     pipe.addLast("websockethandler", new WebSocketClientFactoryHandler(logger, allChannels, factory, raiseEvents = raiseEvents))
     pipe.addLast("websocketoutput", new WebSocketMessageAdapter(logger))
-    pipe.addLast("acking", new MessageAckingHandler(logger, true)) // capabilities.contains(RaiseAckEvents)))
+    pipe.addLast("acking", new MessageAckingHandler(logger, capabilities.contains(RaiseAckEvents)))
     if (raiseEvents) {
       pipe.addLast("eventsHook", new SimpleChannelHandler {
         var theclient: WebSocketServerClientHandler = null

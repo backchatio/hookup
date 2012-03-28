@@ -10,7 +10,7 @@ trait Ackable { self: WebSocketOutMessage =>
   def needsAck(within: Duration = 1 second) = NeedsAck(this, within)
 }
 case object Connected extends WebSocketInMessage
-
+case object Reconnecting extends WebSocketInMessage
 case class JsonMessage(content: JValue) extends WebSocketInMessage with WebSocketOutMessage with Ackable
 case class TextMessage(content: String) extends WebSocketInMessage with WebSocketOutMessage with Ackable
 case class BinaryMessage(content: Array[Byte]) extends WebSocketInMessage with WebSocketOutMessage

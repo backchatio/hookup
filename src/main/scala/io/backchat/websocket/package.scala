@@ -5,6 +5,8 @@ import akka.util.duration._
 import org.jboss.netty.channel.{Channel, ChannelFutureListener, ChannelFuture}
 import java.util.concurrent.atomic.AtomicLong
 import net.liftweb.json.JsonAST.JValue
+import akka.util.Duration
+import java.util.concurrent.TimeUnit
 
 package object websocket {
 
@@ -17,6 +19,12 @@ package object websocket {
   private[websocket] implicit def option2richerOption[T](opt: Option[T]) = new {
     def `|`(other: => T): T = opt getOrElse other
   }
+
+  private[websocket] implicit def richerDuration(duration: Duration) = new {
+      def doubled = Duration(duration.toMillis * 2, TimeUnit.MILLISECONDS)
+
+      def max(upperBound: Duration) = if (duration > upperBound) upperBound else duration
+    }
 
   implicit def fn2BroadcastFilter(fn: BroadcastChannel => Boolean): WebSocketServer.BroadcastFilter = {
     new WebSocketServer.BroadcastFilter {

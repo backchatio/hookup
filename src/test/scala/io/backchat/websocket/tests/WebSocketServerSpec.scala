@@ -209,11 +209,11 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
 
     }
 
-    def serverSendsAck = this {
+    def reconnectsOnServerDisconnection = this {
       pending
     }
 
-    def clientSendsAck = this {
+    def buffersToFileWhileDisconnected = this {
       pending
     }
   }
