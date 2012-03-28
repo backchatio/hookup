@@ -323,7 +323,7 @@ object WebSocketServer {
         case httpRequest: HttpRequest if isWebSocketUpgrade(httpRequest) ⇒ handleUpgrade(ctx, httpRequest)
 
         case m: TextWebSocketFrame => {
-          inferMessageTypeFromContent(m.getText) match {
+          WebSocket.ParseToWebSocketInMessage(m.getText) match {
             case a: Ack => Channels.fireMessageReceived(ctx, a)
             case a: AckRequest => Channels.fireMessageReceived(ctx, a)
             case r => client.receive lift r
@@ -348,32 +348,6 @@ object WebSocketServer {
         case _: PingWebSocketFrame ⇒ e.getChannel.write(new PongWebSocketFrame)
 
         case _ ⇒ ctx.sendUpstream(e)
-      }
-    }
-
-    private def inferMessageTypeFromContent(content: String): WebSocketInMessage = {
-      val possiblyJson = content.trim.startsWith("{") || content.trim.startsWith("[")
-      if (!possiblyJson) TextMessage(content)
-      else parseOpt(content) map inferJsonMessageFromContent getOrElse TextMessage(content)
-    }
-
-    private def inferJsonMessageFromContent(content: JValue): WebSocketInMessage = {
-      val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
-      (contentType) match {
-        case "ack_request" => AckRequest(inferContentMessage(content \ "message"), (content \ "id").extract[Long])
-        case "ack" => Ack((content \ "id").extract[Long])
-        case "text" => TextMessage((content \ "content").extract[String])
-        case "json" => JsonMessage((content \ "content"))
-        case _ => JsonMessage(content)
-      }
-    }
-
-    private def inferContentMessage(content: JValue): Ackable = {
-      val contentType = (content \ "type").extractOrElse("none")
-      (contentType) match {
-        case "text" => TextMessage((content \ "content").extract[String])
-        case "json" => JsonMessage((content \ "content"))
-        case "none" => JsonMessage(content)
       }
     }
 
@@ -427,19 +401,20 @@ object WebSocketServer {
   class WebSocketMessageAdapter(logger: InternalLogger)(implicit formats: Formats) extends SimpleChannelDownstreamHandler {
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
-        case JsonMessage(content) =>
-          ctx.getChannel.write(new TextWebSocketFrame(compact(render(("type" -> "json") ~ ("content" -> content)))))
-        case TextMessage(text) => {
-          ctx.getChannel.write(new TextWebSocketFrame(text))
-        }
+        case m: JsonMessage => writeOutMessage(ctx, m)
+        case m: TextMessage => writeOutMessage(ctx, m)
+        case Disconnect => ctx.getChannel.write(new CloseWebSocketFrame()).addListener(ChannelFutureListener.CLOSE)
         case BinaryMessage(bytes) => {
           ctx.getChannel.write(new BinaryWebSocketFrame(ChannelBuffers.copiedBuffer(bytes)))
         }
-        case Disconnect => ctx.getChannel.write(new CloseWebSocketFrame()).addListener(ChannelFutureListener.CLOSE)
         case _ => {
           ctx.sendDownstream(e)
         }
       }
+    }
+
+    private def writeOutMessage(ctx: ChannelHandlerContext, msg: WebSocketOutMessage) {
+      ctx.getChannel.write(new TextWebSocketFrame(WebSocket.RenderOutMessage(msg)))
     }
   }
 
@@ -476,9 +451,8 @@ object WebSocketServer {
 
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
-        case Ack(id) =>
-          val msg: JValue = ("type" -> "ack") ~ ("id" -> id)
-          ctx.getChannel.write(new TextWebSocketFrame(compact(render(msg))))
+        case m: Ack =>
+          ctx.getChannel.write(new TextWebSocketFrame(WebSocket.RenderOutMessage(m)))
         case NeedsAck(m, timeout) =>
           val id = createAck(ctx, m, timeout)
           if (raiseEvents) Channels.fireMessageReceived(ctx, AckRequest(m, id))

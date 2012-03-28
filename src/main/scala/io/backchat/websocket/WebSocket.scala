@@ -22,6 +22,7 @@ import io.backchat.websocket.WebSocketServer.MessageAckingHandler
 import java.util.concurrent.{TimeUnit, ConcurrentSkipListSet, Executors}
 import org.jboss.netty.util.{Timeout => NettyTimeout, TimerTask, HashedWheelTimer, CharsetUtil}
 import akka.util.{Duration, Timeout}
+import java.io.File
 
 
 /**
@@ -49,6 +50,89 @@ import akka.util.{Duration, Timeout}
 */
 object WebSocket {
 
+  object ParseToWebSocketInMessage {
+    import net.liftweb.json._
+    def apply(message: String)(implicit format: Formats) = inferMessageTypeFromContent(message)
+
+    private def inferMessageTypeFromContent(content: String)(implicit format: Formats): WebSocketInMessage = {
+      val possiblyJson = content.trim.startsWith("{") || content.trim.startsWith("[")
+      if (!possiblyJson) TextMessage(content)
+      else parseOpt(content) map inferJsonMessageFromContent getOrElse TextMessage(content)
+    }
+
+    private def inferJsonMessageFromContent(content: JValue)(implicit format: Formats): WebSocketInMessage = {
+      val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
+      (contentType) match {
+        case "ack_request" => AckRequest(inferContentMessage(content \ "message"), (content \ "id").extract[Long])
+        case "ack" => Ack((content \ "id").extract[Long])
+        case "text" => TextMessage((content \ "content").extract[String])
+        case "json" => JsonMessage((content \ "content"))
+        case _ => JsonMessage(content)
+      }
+    }
+
+    private def inferContentMessage(content: JValue)(implicit format: Formats): Ackable = {
+      val contentType = (content \ "type").extractOrElse("none")
+      (contentType) match {
+        case "text" => TextMessage((content \ "content").extract[String])
+        case "json" => JsonMessage((content \ "content"))
+        case "none" => JsonMessage(content)
+      }
+    }
+  }
+
+  object ParseToWebSocketOutMessage {
+    import net.liftweb.json._
+    def apply(message: String)(implicit format: Formats): WebSocketOutMessage = inferMessageTypeFromContent(message)
+
+    private def inferMessageTypeFromContent(content: String)(implicit format: Formats): WebSocketOutMessage = {
+      val possiblyJson = content.trim.startsWith("{") || content.trim.startsWith("[")
+      if (!possiblyJson) TextMessage(content)
+      else parseOpt(content) map inferJsonMessageFromContent getOrElse TextMessage(content)
+    }
+
+    private def inferJsonMessageFromContent(content: JValue)(implicit format: Formats): WebSocketOutMessage = {
+      val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
+      (contentType) match {
+        case "needs_ack" => NeedsAck(inferContentMessage(content \ "content"), (content \ "timeout").extract[Long].millis )
+        case "text" => TextMessage((content \ "content").extract[String])
+        case "json" => JsonMessage((content \ "content"))
+        case _ => JsonMessage(content)
+      }
+    }
+
+    private def inferContentMessage(content: JValue)(implicit format: Formats): Ackable = content match {
+      case JString(text) => TextMessage(text)
+      case _ =>
+        val contentType = (content \ "type").extractOrElse("none")
+        (contentType) match {
+          case "text" => TextMessage((content \ "content").extract[String])
+          case "json" => JsonMessage((content \ "content"))
+          case "none" => JsonMessage(content)
+        }
+    }
+  }
+
+  object RenderOutMessage {
+    import net.liftweb.json._
+    import JsonDSL._
+
+    def apply(message: WebSocketOutMessage): String = {
+      message match {
+        case TextMessage(text) => text
+        case JsonMessage(json) => compact(render(("type" -> "json") ~ ("content" -> json)))
+        case NeedsAck(msg, timeout) =>
+          compact(render(("type" -> "needs_ack") ~ ("timeout" -> timeout.toMillis) ~ ("content" -> contentFrom(msg))))
+        case Ack(id) => compact(render(("type" -> "ack") ~ ("id" -> id)))
+        case x => sys.error(x.getClass.getName + " is an unsupported message type")
+      }
+    }
+
+    private[this] def contentFrom(message: Ackable): (String, JValue) = message match {
+      case TextMessage(text) => ("text", JString(text))
+      case JsonMessage(json) => ("json", json)
+    }
+  }
 
   type Receive = PartialFunction[WebSocketInMessage, Unit]
 
@@ -69,7 +153,7 @@ object WebSocket {
           host.receive lift Connected
 
         case f: TextWebSocketFrame =>
-          val inferred = inferMessageTypeFromContent(f.getText)
+          val inferred = ParseToWebSocketInMessage(f.getText)
           inferred match {
             case a: Ack => Channels.fireMessageReceived(ctx, a)
             case a: AckRequest => Channels.fireMessageReceived(ctx, a)
@@ -84,31 +168,7 @@ object WebSocket {
       }
     }
 
-    private def inferMessageTypeFromContent(content: String): WebSocketInMessage = {
-      val possiblyJson = content.trim.startsWith("{") || content.trim.startsWith("[")
-      if (!possiblyJson) TextMessage(content)
-      else parseOpt(content) map inferJsonMessageFromContent getOrElse TextMessage(content)
-    }
 
-    private def inferJsonMessageFromContent(content: JValue): WebSocketInMessage = {
-      val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
-      (contentType) match {
-        case "ack_request" => AckRequest(inferContentMessage(content \ "message"), (content \ "id").extract[Long])
-        case "ack" => Ack((content \ "id").extract[Long])
-        case "text" => TextMessage((content \ "content").extract[String])
-        case "json" => JsonMessage((content \ "content"))
-        case _ => JsonMessage(content)
-      }
-    }
-
-    private def inferContentMessage(content: JValue): Ackable = {
-      val contentType = (content \ "type").extractOrElse("none")
-      (contentType) match {
-        case "text" => TextMessage((content \ "content").extract[String])
-        case "json" => JsonMessage((content \ "content"))
-        case "none" => JsonMessage(content)
-      }
-    }
 
     override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
       host.receive.lift(Error(Option(e.getCause))) getOrElse logger.error("Oops, something went amiss", e.getCause)
@@ -128,11 +188,7 @@ object WebSocket {
     }
 
     private def sendOutMessage(msg: WebSocketOutMessage with Ackable, channel: Channel) {
-      msg match {
-        case TextMessage(content) => channel.write(new TextWebSocketFrame(content))
-        case JsonMessage(content) =>
-          channel.write(new TextWebSocketFrame(compact(render(("type" -> "json") ~ ("content" -> content)))))
-      }
+      channel.write(new TextWebSocketFrame(RenderOutMessage(msg)))
     }
 
     override def channelDisconnected(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
@@ -156,6 +212,7 @@ object WebSocket {
     private[this] var channel: Channel = null
     private[this] var _isConnected: Promise[OperationResult] = Promise[OperationResult]()
     private[this] var _messageBuffer = new ConcurrentSkipListSet[WebSocketOutMessage]()
+    private[this] val buffer = new FileBuffer(client.bufferPath, logger)
 
     def isConnected = channel != null && channel.isConnected && _isConnected.isCompleted
 
@@ -192,7 +249,7 @@ object WebSocket {
     }
 
     var throttle = client.throttle
-
+    var isClosing = false
 
     def connect(): Future[OperationResult] = synchronized {
       throttle = client.throttle
@@ -209,7 +266,9 @@ object WebSocket {
           case x => Promise.successful(x)
         }
         try {
-          Await.ready(af flatMap (_  =>_isConnected), 5 seconds)
+          val fut = af flatMap (_ => _isConnected)
+          if (client.buffered) fut onSuccess { case _ => buffer.open() }
+          Await.ready(fut, 5 seconds)
         } catch {
           case ex => {
             bootstrap.releaseExternalResources()
@@ -219,8 +278,14 @@ object WebSocket {
       }
     }
 
-    var isClosing = false
-    def reconnect() = close() andThen { case _ => delay { connect() } }
+    def reconnect() = {
+      client.receive lift Reconnecting
+      val fut = close() andThen { case _ => delay { connect() } }
+      fut onSuccess {
+        case Success => buffer drain channel.send
+      }
+      fut
+    }
 
 
     def delay(thunk: => Future[OperationResult]): Future[OperationResult] = {
@@ -237,7 +302,7 @@ object WebSocket {
                 case Right(x) => promise.success(Success)
                 case Left(ex) => promise.failure(ex)
               }
-            }
+            } else promise.success(Cancelled)
           }
         }, theDelay.toMillis, TimeUnit.MILLISECONDS)
         promise
@@ -273,17 +338,20 @@ object WebSocket {
             channel.write(message).toAkkaFuture
           } else {
             logger debug "buffering message until fully connected"
-            _messageBuffer add message
+            buffer write message
             Promise.successful(Success)
           }
-        case x => Promise.successful(x)
+        case x => {
+          buffer.write(message)
+          Promise.successful(x)
+        }
+      } recoverWith  {
+        case e =>
+          buffer.write(message)
+          Promise.failed(e)
       }
-    }
 
-    def drainBuffer() = {
-      while(!_messageBuffer.isEmpty) {
-        channel write _messageBuffer.pollFirst()
-      }
+
     }
 
     def receive: Receive = internalReceive orElse client.receive
@@ -390,6 +458,10 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
 
   def throttle: Throttle = NoThrottle
 
+  def bufferPath = new File("./work/buffer.log")
+
+  def buffered = false
+
   private[websocket] def raiseEvents: Boolean = false
 
   implicit protected def executionContext = WebSocket.executionContext
@@ -409,5 +481,11 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
   final def close(): Future[OperationResult] = channel.close()
 
   final def send(message: WebSocketOutMessage): Future[OperationResult] = channel.send(message)
+
+}
+
+trait BufferedWebSocket { self: WebSocket =>
+
+  override def buffered = true
 
 }

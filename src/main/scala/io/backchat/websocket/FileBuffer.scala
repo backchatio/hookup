@@ -2,7 +2,11 @@ package io.backchat.websocket
 
 import java.io._
 import java.util.concurrent.ConcurrentLinkedQueue
-
+import io.backchat.websocket.WebSocket.ParseToWebSocketOutMessage
+import collection.mutable
+import org.jboss.netty.logging.InternalLogger
+import akka.dispatch.{Promise, ExecutionContext, Future}
+import net.liftweb.json.Formats
 
 object FileBuffer {
   private object State extends Enumeration {
@@ -17,9 +21,12 @@ trait BackupBuffer {
   def drain(readLine: String => Unit)
 }
 
-class FileBuffer(file: File) extends Closeable {
+class FileBuffer(file: File, logger: InternalLogger)(implicit format: Formats) extends Closeable {
 
   import FileBuffer._
+  import net.liftweb.json._
+  import JsonDSL._
+
   @volatile private[this] var output: PrintWriter = _
   private[this] val memoryBuffer = new ConcurrentLinkedQueue[String]()
   @volatile private[this] var state = State.Closed
@@ -31,34 +38,46 @@ class FileBuffer(file: File) extends Closeable {
     state = State.Open
   }
 
-  def write(line: String) = state match {
-    case State.Open => output.println(line)
-    case State.Closed | State.Draining => while(!memoryBuffer.offer(line)) {} // just loop until it's in please
+  def write(message: WebSocketOutMessage) = state match {
+    case State.Open => serializeAndSave(message)(output.println _)
+    case State.Closed | State.Draining =>
+      serializeAndSave(message)(line => while(!memoryBuffer.offer(line)) {}) // just loop until it's in please
   }
 
-  def drain(readLine: (String => Unit)) = synchronized {
+  private[this] def serializeAndSave(message: WebSocketOutMessage)(save: String => Unit) = {
+    save(WebSocket.RenderOutMessage(message))
+  }
+
+  def drain(readLine: (WebSocketOutMessage => Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult] = synchronized {
     state = State.Draining
+    var futures = mutable.ListBuffer[Future[OperationResult]]()
     close()
     var input: BufferedReader = null
+    var append = true
     try {
       input = new BufferedReader(new FileReader(file))
       var line = input.readLine()
-      while(line.blankOption.isDefined) {
-        readLine(line)
+      while(line != null) {
+        if (line.nonBlank) {
+          futures += readLine(ParseToWebSocketOutMessage(line))
+        }
         line = input.readLine()
       }
       while(!memoryBuffer.isEmpty) {
         val line = memoryBuffer.poll()
-        if (line.nonBlank) readLine(line)
+        if (line.nonBlank) futures += readLine(ParseToWebSocketOutMessage(line))
       }
+      val res = Future.sequence(futures.toList).map(ResultList(_))
+      append = false
+      res
     } catch {
       case e =>
-        System.err.println()
+        Promise.failed(e)
     } finally {
       if (input != null) {
         input.close()
       }
-      openFile(false)
+      openFile(append)
     }
   }
 
