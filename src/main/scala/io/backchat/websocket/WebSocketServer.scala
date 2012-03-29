@@ -508,43 +508,45 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
 
   private[this] val allChannels = new DefaultChannelGroup
 
-  protected def getPipeline = {
-    val pipe = Channels.pipeline()
-    pipe.addLast("connection-tracker", new ConnectionTracker(allChannels))
-    config.sslContext foreach { ctxt =>
-      val engine = ctxt.createSSLEngine()
-      engine.setUseClientMode(false)
-      pipe.addLast("ssl", new SslHandler(engine))
-    }
-    val ping = config.pingTimeout.duration.toSeconds.toInt
-    if (ping > 0) {
-      pipe.addLast("timeouts", new IdleStateHandler(timer, 0, ping, 0))
-      pipe.addLast("connection-reaper", new WebSocket.PingPongHandler(logger))
-    }
-    pipe.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192))
-    pipe.addLast("aggregator", new HttpChunkAggregator(64 * 1024))
-    pipe.addLast("encoder", new HttpResponseEncoder)
-    config.contentCompression foreach { ctx =>
-      pipe.addLast("deflater", new HttpContentCompressor(ctx.level))
-    }
-    val raiseEvents = capabilities.contains(RaiseAckEvents)
-    pipe.addLast("websockethandler", new WebSocketClientFactoryHandler(logger, allChannels, factory, raiseEvents = raiseEvents))
-    pipe.addLast("websocketoutput", new WebSocketMessageAdapter(logger))
-    pipe.addLast("acking", new MessageAckingHandler(logger, capabilities.contains(RaiseAckEvents)))
-    if (raiseEvents) {
-      pipe.addLast("eventsHook", new SimpleChannelHandler {
-        var theclient: WebSocketServerClientHandler = null
-        override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
-          e.getMessage match {
-            case ("client", c: WebSocketServerClientHandler) => theclient = c
-            case m: Ack => theclient.receive lift m
-            case m: AckRequest => theclient.receive lift m
-            case _ => ctx.sendUpstream(e)
+  protected def getPipeline = new ChannelPipelineFactory {
+    def getPipeline = {
+      val pipe = Channels.pipeline()
+      pipe.addLast("connection-tracker", new ConnectionTracker(allChannels))
+      config.sslContext foreach { ctxt =>
+        val engine = ctxt.createSSLEngine()
+        engine.setUseClientMode(false)
+        pipe.addLast("ssl", new SslHandler(engine))
+      }
+      val ping = config.pingTimeout.duration.toSeconds.toInt
+      if (ping > 0) {
+        pipe.addLast("timeouts", new IdleStateHandler(timer, 0, ping, 0))
+        pipe.addLast("connection-reaper", new WebSocket.PingPongHandler(logger))
+      }
+      pipe.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192))
+      pipe.addLast("aggregator", new HttpChunkAggregator(64 * 1024))
+      pipe.addLast("encoder", new HttpResponseEncoder)
+      config.contentCompression foreach { ctx =>
+        pipe.addLast("deflater", new HttpContentCompressor(ctx.level))
+      }
+      val raiseEvents = capabilities.contains(RaiseAckEvents)
+      pipe.addLast("websockethandler", new WebSocketClientFactoryHandler(logger, allChannels, factory, raiseEvents = raiseEvents))
+      pipe.addLast("websocketoutput", new WebSocketMessageAdapter(logger))
+      pipe.addLast("acking", new MessageAckingHandler(logger, capabilities.contains(RaiseAckEvents)))
+      if (raiseEvents) {
+        pipe.addLast("eventsHook", new SimpleChannelHandler {
+          var theclient: WebSocketServerClientHandler = null
+          override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
+            e.getMessage match {
+              case ("client", c: WebSocketServerClientHandler) => theclient = c
+              case m: Ack => theclient.receive lift m
+              case m: AckRequest => theclient.receive lift m
+              case _ => ctx.sendUpstream(e)
+            }
           }
-        }
-      })
+        })
+      }
+      pipe
     }
-    pipe
   }
 
   private[this] val startCallbacks = new ListBuffer[() => Any]()
@@ -558,7 +560,7 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
     server.setOption("soLinger", 0)
     server.setOption("reuseAddress", true)
     server.setOption("child.tcpNoDelay", true)
-    server.setPipeline(getPipeline)
+    server.setPipelineFactory(getPipeline)
     val addr = config.listenOn.blankOption.map(l =>new InetSocketAddress(l, config.port) ) | new InetSocketAddress(config.port)
     val sc = server.bind(addr)
     allChannels add sc

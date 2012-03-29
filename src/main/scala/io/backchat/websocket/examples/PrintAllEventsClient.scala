@@ -16,7 +16,7 @@ object PrintAllEventsClient {
 
   def main(args: Array[String]) {
 
-    val system = ActorSystem("PrintingEchoClient")
+    val system = ActorSystem("PrintAllEventsClient")  // the actor system is only for the scheduler in the example
     var timeout: Cancellable = null
 
     new WebSocket with BufferedWebSocket {
@@ -37,14 +37,15 @@ object PrintAllEventsClient {
 
       connect() onSuccess {
         case _ =>
+          // At this point we're fully connected and the handshake has completed
           println("connected to: %s" format uri.toASCIIString)
           timeout = system.scheduler.schedule(0 seconds, 1 second) {
-            if (isConnected) {
+            if (isConnected) {  // if we are still connected when this executes then just send a message to the socket
               val newCount = messageCounter.incrementAndGet()
               if (newCount <= 10) {
                 if(newCount % 2 != 0) send("message " + newCount.toString)  // send a text message
                 else send((("data" -> ("message" -> newCount))) : JValue)  // send a json message
-              } else  {
+              } else  { // if we reach 10 messages disconnect from the server
                 println("Disconnecting after 10 messages")
                 if (timeout != null) timeout.cancel()
                 close() onComplete {
@@ -54,6 +55,8 @@ object PrintAllEventsClient {
                 }
               }
             } else {
+              // we've lost connection from the server so buffer messages and
+              // employ a backoff strategy until the server comes back
               val newCount = bufferedCounter.incrementAndGet()
               if(newCount % 2 != 0) send("buffered message " + newCount.toString)  // send a text message
               else send((("data" -> (("message" -> newCount) ~ ("extra" -> "buffered")))) : JValue)  // send a json message

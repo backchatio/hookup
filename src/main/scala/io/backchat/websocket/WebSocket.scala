@@ -364,12 +364,13 @@ object WebSocket {
             })
           }
         })
-      } else if (!isReconnecting) {
-        buffer.close()
-        client.receive lift Disconnected(None)
-
+      } else {
+        if (!isReconnecting) {
+          buffer.close()
+          client.receive lift Disconnected(None)
+        }
         disconnected.success(Success)
-      } else disconnected.success(Success)
+      }
 
 
       disconnected onComplete {
@@ -453,8 +454,7 @@ object WebSocket {
 
     override def channelIdle(ctx: ChannelHandlerContext, e: IdleStateEvent) {
       if (e.getState == IdleState.READER_IDLE || e.getState == IdleState.WRITER_IDLE) {
-        logger.debug("Sending ping")
-        e.getChannel.write(new PingWebSocketFrame())
+        if (e.getChannel.isConnected) e.getChannel.write(new PingWebSocketFrame())
       }
     }
   }

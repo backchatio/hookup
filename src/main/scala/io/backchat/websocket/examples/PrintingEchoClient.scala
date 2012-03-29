@@ -1,7 +1,7 @@
-package io.backchat.websocket.examples
+package io.backchat.websocket
+package examples
 
 import java.net.URI
-import io.backchat.websocket.{TextMessage, BufferedWebSocket, WebSocket}
 import net.liftweb.json.{DefaultFormats, Formats}
 import akka.actor.ActorSystem
 import akka.util.duration._
