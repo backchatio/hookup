@@ -1,0 +1,24 @@
+{
+  "author": "Ivan Porto Carrero <ivan@backchat.io> (https://backchat.io)",
+  "name": "backchat-websocket",
+  "description": "Provides a reliable messaging layer on top of websockets",
+  "version": "0.1.0",
+  "homepage": "https://backchat.io",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mojolly/backchat-websocket.git"
+  },
+  "engines": {
+    "node": "~0.6.13"
+  },
+  "dependencies":
+    { "underscore": ""
+    , "faye-websocket": ""
+    , "dateformat": ""
+    , "mkdirp": "" },
+  "devDependencies":
+    { "vows": "0.6.x"
+    , "sinon": "" }
+  , "main": "./lib/backchat-websocket.js"
+  , "scripts": { "test": "vows --spec --isolate" }
+}
