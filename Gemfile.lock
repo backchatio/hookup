@@ -1,0 +1,62 @@
+GIT
+  remote: git://github.com/mihu/idn
+  revision: d15e1b9867ad9b3c72db98fa75db95f33e29fb54
+  specs:
+    idn (0.0.2)
+
+PATH
+  remote: .
+  specs:
+    backchat-websocket (0.1.0)
+      eventmachine
+      faye-websocket
+      yajl-ruby
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    addressable (2.2.7)
+    callsite (0.0.11)
+    crack (0.3.1)
+    diff-lcs (1.1.3)
+    em-ventually (0.1.3)
+      callsite (~> 0.0.5)
+      eventmachine
+    eventmachine (0.12.10)
+    faye-websocket (0.4.4)
+      eventmachine (>= 0.12.0)
+    kgio (2.7.4)
+    rack (1.4.1)
+    rainbows (4.3.1)
+      kgio (~> 2.5)
+      rack (~> 1.1)
+      unicorn (~> 4.1)
+    raindrops (0.8.0)
+    rspec (2.8.0)
+      rspec-core (~> 2.8.0)
+      rspec-expectations (~> 2.8.0)
+      rspec-mocks (~> 2.8.0)
+    rspec-core (2.8.0)
+    rspec-expectations (2.8.0)
+      diff-lcs (~> 1.1.2)
+    rspec-mocks (2.8.0)
+    unicorn (4.2.1)
+      kgio (~> 2.6)
+      rack
+      raindrops (~> 0.7)
+    webmock (1.8.4)
+      addressable (>= 2.2.7)
+      crack (>= 0.1.7)
+    yajl-ruby (1.1.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  backchat-websocket!
+  em-ventually
+  idn (~> 0.0.2)!
+  rack
+  rainbows (>= 1.0.0)
+  rspec (~> 2.8.0)
+  webmock
