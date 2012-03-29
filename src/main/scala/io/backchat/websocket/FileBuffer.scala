@@ -35,6 +35,8 @@ class FileBuffer(file: File, logger: InternalLogger)(implicit format: Formats) e
   def open() = if (state == State.Closed) openFile(true)
 
   @inline private[this] def openFile(append: Boolean) {
+    val dir = file.getAbsoluteFile.getParentFile
+    if (!dir.exists()) dir.mkdirs()
     output = new PrintWriter(new BufferedOutputStream(new FileOutputStream(file, append)), true)
     state = State.Open
   }

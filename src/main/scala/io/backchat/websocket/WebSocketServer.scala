@@ -27,7 +27,7 @@ import JsonDSL._
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue, TimeUnit, Executors}
 import org.jboss.netty.util.{Timeout => NettyTimeout, TimerTask, HashedWheelTimer}
 import akka.actor.{DefaultCancellable, Cancellable}
-import io.backchat.websocket.WebSocketServer.{WebSocketCancellable, WebSocketServerClient}
+import io.backchat.websocket.WebSocketServer.{WebSocketCancellable}
 import akka.util.{Index, Timeout}
 import annotation.switch
 
@@ -503,8 +503,6 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
 
   import WebSocketServer._
   protected val logger = InternalLoggerFactory.getInstance(name)
-  private[this] val boss = Executors.newCachedThreadPool()
-  private[this] val worker = Executors.newCachedThreadPool()
   private[this] val timer = new HashedWheelTimer()
   private[this] var server: ServerBootstrap = null
 
@@ -556,7 +554,7 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
   def onStop(thunk: => Any) = stopCallbacks += { () => thunk }
 
   final def start = synchronized {
-    server = new ServerBootstrap(new NioServerSocketChannelFactory(boss, worker))
+    server = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool()))
     server.setOption("soLinger", 0)
     server.setOption("reuseAddress", true)
     server.setOption("child.tcpNoDelay", true)
@@ -564,8 +562,8 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
     val addr = config.listenOn.blankOption.map(l =>new InetSocketAddress(l, config.port) ) | new InetSocketAddress(config.port)
     val sc = server.bind(addr)
     allChannels add sc
-    startCallbacks foreach (_.apply())
     sys.addShutdownHook(stop)
+    startCallbacks foreach (_.apply())
     logger info "Started %s on [%s:%d]".format(config.name, config.listenOn, config.port)
   }
 
@@ -576,8 +574,6 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
       override def run = {
         if (server != null) {
           server.releaseExternalResources()
-          boss.awaitTermination(5, TimeUnit.SECONDS)
-          worker.awaitTermination(5, TimeUnit.SECONDS)
         }
       }
     }

@@ -1,9 +1,7 @@
 package io.backchat
 
-import akka.dispatch.{ExecutionContext, Await, Promise, Future}
-import akka.util.duration._
+import akka.dispatch.{ExecutionContext, Promise, Future}
 import org.jboss.netty.channel.{Channel, ChannelFutureListener, ChannelFuture}
-import java.util.concurrent.atomic.AtomicLong
 import net.liftweb.json.JsonAST.JValue
 import akka.util.Duration
 import java.util.concurrent.TimeUnit
@@ -55,7 +53,7 @@ package object websocket {
   implicit def string2TextMessage(content: String): WebSocketOutMessage with Ackable = TextMessage(content)
   implicit def jvalue2JsonMessage(content: JValue): WebSocketOutMessage with Ackable = JsonMessage(content)
 
-
+  type WebSocketServerClient = WebSocketServer.WebSocketServerClient
 
   private[websocket] implicit def nettyChannel2BroadcastChannel(ch: Channel)(implicit executionContext: ExecutionContext): BroadcastChannel =
     new { val id: Int = ch.getId } with BroadcastChannel {

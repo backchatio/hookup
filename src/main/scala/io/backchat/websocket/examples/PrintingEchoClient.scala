@@ -17,7 +17,7 @@ object PrintingEchoClient {
     val system = ActorSystem("PrintingEchoClient")
 
     new WebSocket with BufferedWebSocket {
-      val uri = URI.create("ws://localhost:8124/")
+      val uri = URI.create("ws://localhost:8125/")
 
       def receive = {
         case TextMessage(text) =>

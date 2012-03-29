@@ -1,9 +1,7 @@
 package io.backchat.websocket
 package examples
 
-import io.backchat.websocket.WebSocketServer
-import io.backchat.websocket.WebSocketServer.WebSocketServerClient
-import net.liftweb.json.{Formats, DefaultFormats}
+import net.liftweb.json._
 
 object PrintingEchoServer {
 
@@ -19,7 +17,9 @@ object PrintingEchoServer {
         }
       }
     }
-    sys.addShutdownHook(server.stop)
+    server onStop {
+      println("Server is stopped")
+    }
     server.start
   }
 }

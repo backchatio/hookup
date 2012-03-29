@@ -91,7 +91,7 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
         override private[websocket] def raiseEvents = true
 
 
-        override def throttle = WebSocket.ActiveThrottle(1 second, 1 second)
+        override def throttle = WebSocket.IndefiniteThrottle(1 second, 1 second)
 
         override val protocols = protos
 

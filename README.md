@@ -65,11 +65,11 @@ new WebSocket with BufferedWebSocket {
 }
 ```
 
-check out the [examples](https://github.com/casualjim/scala-websocket/tree/master/src/main/scala/io/backchat/websocket/examples) in the source tree to see the complete code.
+check out the [examples](https://github.com/mojolly/backchat-websocket/tree/master/src/main/scala/io/backchat/websocket/examples) in the source tree to see the complete code.
 
 ## Patches
 Patches are gladly accepted from their original author. Along with any patches, please state that the patch is your original work and that you license the work to the *rl* project under the MIT License.
 
 ## License
-MIT licensed. check the [LICENSE](https://github.com/casualjim/scala-websocket/blob/master/LICENSE) file
+MIT licensed. check the [LICENSE](https://github.com/mojolly/backchat-websocket/blob/master/LICENSE) file
 
