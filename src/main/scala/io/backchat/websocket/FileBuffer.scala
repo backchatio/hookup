@@ -65,21 +65,23 @@ class FileBuffer(file: File, logger: InternalLogger)(implicit format: Formats) e
     var input: BufferedReader = null
     var append = true
     try {
-      input = new BufferedReader(new FileReader(file))
-      var line = input.readLine()
-      while(line != null) {
-        if (line.nonBlank) {
-          readLine(ParseToWebSocketOutMessage(line))
+      if (file != null) {
+        input = new BufferedReader(new FileReader(file))
+        var line = input.readLine()
+        while(line != null) {
+          if (line.nonBlank) {
+            readLine(ParseToWebSocketOutMessage(line))
+          }
+          line = input.readLine()
         }
-        line = input.readLine()
-      }
-      while(!memoryBuffer.isEmpty) {
-        val line = memoryBuffer.poll()
-        if (line.nonBlank) readLine(ParseToWebSocketOutMessage(line))
-      }
-      val res = Future.sequence(futures.toList).map(ResultList(_))
-      append = false
-      res
+        while(!memoryBuffer.isEmpty) {
+          val line = memoryBuffer.poll()
+          if (line.nonBlank) readLine(ParseToWebSocketOutMessage(line))
+        }
+        val res = Future.sequence(futures.toList).map(ResultList(_))
+        append = false
+        res
+      } else Promise.successful(Success)
     } catch {
       case e =>
         e.printStackTrace()

@@ -35,7 +35,7 @@ object BackchatMinutesBuild extends Build {
     })
 
   lazy val root =
-    (Project("scala-websocket", file("."), settings = projectSettings)
+    (Project("backchat-websocket", file("."), settings = projectSettings)
       settings (VersionGenPlugin.allSettings:_*))
 
 

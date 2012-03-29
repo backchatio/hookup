@@ -2,16 +2,13 @@ package io.backchat.websocket
 package tests
 
 import org.specs2.Specification
-import java.nio.charset.Charset
-import io.backchat.websocket.WebSocketServer.{WebSocketServerClient}
 import org.specs2.specification.{Step, Fragments, After}
-import akka.testkit._
 import akka.util.duration._
 import akka.dispatch.{Await, ExecutionContext, Promise}
 import org.specs2.time.NoTimeConversions
-import java.util.concurrent.{TimeUnit, CountDownLatch, TimeoutException, Executors}
+import java.util.concurrent.{TimeUnit, CountDownLatch, Executors}
 import org.specs2.execute.Result
-import java.net.{URI, ServerSocket, SocketAddress, InetSocketAddress}
+import java.net.{URI, ServerSocket}
 import akka.util.Timeout
 import net.liftweb.json._
 import JsonDSL._
@@ -33,10 +30,6 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
     "provide acking by" ^ t ^
       "expecting an ack on the server" ! webSocketServerContext().serverExpectsAnAck ^
       "expecting an ack on the client" ! webSocketServerContext().clientExpectsAnAck ^ bt(3) ^
-  "When the server connection goes away, a WebSocket should " ^ t ^
-    "reconnect according to a schedule" ! webSocketServerContext().reconnectsOnServerDisconnection ^
-    "buffer messages in a file while reconnecting" ! pending ^
-    "buffer messages in memory while draining file buffer" ! pending ^
   end
 
   implicit val formats: Formats = DefaultFormats
@@ -85,13 +78,13 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
 
     def withClient[T <% Result](handler: WebSocket.Receive, protocols: String*)(thunk: WebSocket => T): T = {
       val protos = protocols
-      val cl = new WebSocket {
+      val cl = new WebSocket with BufferedWebSocket {
         val uri = new URI("ws://127.0.0.1:"+serverAddress.toString+"/")
 
         override private[websocket] def raiseEvents = true
 
 
-        override def throttle = WebSocket.IndefiniteThrottle(1 second, 1 second)
+        override def throttle = IndefiniteThrottle(1 second, 1 second)
 
         override val protocols = protos
 
@@ -212,27 +205,5 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       }
     }
 
-    def reconnectsOnServerDisconnection = this {
-      val latch = new CountDownLatch(3)
-      val connLatch = new CountDownLatch(2)
-      val disconnLatch = new CountDownLatch(2)
-      withClient({
-        case Reconnecting => latch.countDown
-        case Disconnected(_) => disconnLatch.countDown()
-        case Connected => connLatch.countDown()
-      }) { _ =>
-        server.stop
-        latch.await(5, TimeUnit.SECONDS) must beTrue.eventually and {
-          server.start
-          connLatch.await(2, TimeUnit.SECONDS) must beTrue.eventually and {
-            disconnLatch.getCount must be_>(0L)
-          }
-        }
-      }
-    }
-
-    def buffersToFileWhileDisconnected = this {
-      pending
-    }
   }
 }

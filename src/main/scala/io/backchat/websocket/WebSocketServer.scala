@@ -8,7 +8,6 @@ import org.jboss.netty.handler.codec.http.websocketx._
 import org.jboss.netty.handler.codec.http.HttpHeaders.Values
 import org.jboss.netty.handler.codec.http.HttpHeaders.Names
 import java.util.Locale.ENGLISH
-import org.jboss.netty.buffer.ChannelBuffers
 import org.jboss.netty.logging.{InternalLogger, InternalLoggerFactory}
 import java.security.KeyStore
 import java.io.{FileInputStream, File}
@@ -25,13 +24,23 @@ import java.util.concurrent.atomic.AtomicLong
 import net.liftweb.json._
 import JsonDSL._
 import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue, TimeUnit, Executors}
-import org.jboss.netty.util.{Timeout => NettyTimeout, TimerTask, HashedWheelTimer}
 import akka.actor.{DefaultCancellable, Cancellable}
 import io.backchat.websocket.WebSocketServer.{WebSocketCancellable}
 import akka.util.{Index, Timeout}
 import annotation.switch
+import org.jboss.netty.handler.codec.frame.FrameDecoder
+import org.jboss.netty.buffer.{ChannelBuffer, ChannelBuffers}
+import org.jboss.netty.util.{CharsetUtil, Timeout => NettyTimeout, TimerTask, HashedWheelTimer}
 
 trait ServerCapability
+
+/**
+ * Configuration for adding ssl support to the server
+ *
+ * @param keystorePath path to the keystore, by default it looks for the system property keystore.file.path
+ * @param keystorePassword path to the keystore, by default it looks for the system property keystore.file.path
+ * @param algorithm path to the keystore, by default it looks for the system property keystore.file.path
+ */
 case class SslSupport(
              keystorePath: String = sys.props("keystore.file.path"),
              keystorePassword: String = sys.props("keystore.file.password"),
@@ -40,9 +49,19 @@ case class SslSupport(
 case class ContentCompression(level: Int = 6) extends ServerCapability
 case class SubProtocols(protocol: String, protocols: String*) extends ServerCapability
 case class Ping(timeout: Timeout) extends ServerCapability
+case class FlashPolicy(domain: String, port: Seq[Int]) extends ServerCapability
 private[websocket] case object RaiseAckEvents extends ServerCapability
 private[websocket] case object RaisePingEvents extends ServerCapability
 
+/**
+ * Main configuration object for a server
+ *
+ * @param name The name of this server, defaults to BackchatWebSocketServer
+ * @param version The version of the server
+ * @param listenOn Which address the server should listen on
+ * @param port The port the server should listen on
+ * @param capabilities A varargs of extra capabilities of this server
+ */
 case class ServerInfo(
               name: String,
               version: String = Version.version,
@@ -72,6 +91,17 @@ case class ServerInfo(
   val pingTimeout = (capabilities collect {
     case Ping(timeout) => timeout
   }).headOption | Timeout(90 seconds)
+
+  val flashPolicy = (capabilities collect {
+    case FlashPolicy(domain, policyPorts) =>
+      (<cross-domain-policy>
+         <allow-access-from domain={ domain } to-ports={ policyPorts.mkString(",") }/>
+       </cross-domain-policy>).toString()
+  }).headOption getOrElse {
+    (<cross-domain-policy>
+       <allow-access-from domain="*" to-ports="*" />
+     </cross-domain-policy>).toString()
+  }
 }
 
 
@@ -283,6 +313,45 @@ object WebSocketServer {
       ctx.sendUpstream(e)
     }
 
+  }
+
+  private[this] val PolicyXml = <cross-domain-policy><allow-access-from domain="*" to-ports="*" /></cross-domain-policy>
+  private val AllowAllPolicy = ChannelBuffers.copiedBuffer(PolicyXml.toString(), CharsetUtil.UTF_8)
+
+
+  class FlashPolicyHandler(policyResponse: ChannelBuffer = AllowAllPolicy) extends FrameDecoder {
+
+
+    def decode(ctx: ChannelHandlerContext, channel: Channel, buffer: ChannelBuffer) = {
+      if (buffer.readableBytes > 1) {
+
+        val magic1 = buffer.getUnsignedByte(buffer.readerIndex());
+        val magic2 = buffer.getUnsignedByte(buffer.readerIndex() + 1);
+        val isFlashPolicyRequest = (magic1 == '<' && magic2 == 'p');
+
+        if (isFlashPolicyRequest) {
+          // Discard everything
+          buffer.skipBytes(buffer.readableBytes())
+
+          // Make sure we don't have any downstream handlers interfering with our injected write of policy request.
+          removeAllPipelineHandlers(channel.getPipeline)
+          channel.write(policyResponse).addListener(ChannelFutureListener.CLOSE)
+          null
+        } else {
+
+          // Remove ourselves, important since the byte length check at top can hinder frame decoding
+          // down the pipeline
+          ctx.getPipeline.remove(this)
+          buffer.readBytes(buffer.readableBytes())
+        }
+      } else null
+    }
+
+    private def removeAllPipelineHandlers(pipe: ChannelPipeline) {
+      while (pipe.getFirst != null) {
+        pipe.removeFirst();
+      }
+    }
   }
 
   private[this] object OneHundredContinueResponse extends DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE)
@@ -508,45 +577,68 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
 
   private[this] val allChannels = new DefaultChannelGroup
 
-  protected def getPipeline = new ChannelPipelineFactory {
-    def getPipeline = {
-      val pipe = Channels.pipeline()
-      pipe.addLast("connection-tracker", new ConnectionTracker(allChannels))
-      config.sslContext foreach { ctxt =>
-        val engine = ctxt.createSSLEngine()
-        engine.setUseClientMode(false)
-        pipe.addLast("ssl", new SslHandler(engine))
-      }
-      val ping = config.pingTimeout.duration.toSeconds.toInt
-      if (ping > 0) {
-        pipe.addLast("timeouts", new IdleStateHandler(timer, 0, ping, 0))
-        pipe.addLast("connection-reaper", new WebSocket.PingPongHandler(logger))
-      }
-      pipe.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192))
-      pipe.addLast("aggregator", new HttpChunkAggregator(64 * 1024))
-      pipe.addLast("encoder", new HttpResponseEncoder)
-      config.contentCompression foreach { ctx =>
-        pipe.addLast("deflater", new HttpContentCompressor(ctx.level))
-      }
-      val raiseEvents = capabilities.contains(RaiseAckEvents)
-      pipe.addLast("websockethandler", new WebSocketClientFactoryHandler(logger, allChannels, factory, raiseEvents = raiseEvents))
-      pipe.addLast("websocketoutput", new WebSocketMessageAdapter(logger))
-      pipe.addLast("acking", new MessageAckingHandler(logger, capabilities.contains(RaiseAckEvents)))
-      if (raiseEvents) {
-        pipe.addLast("eventsHook", new SimpleChannelHandler {
-          var theclient: WebSocketServerClientHandler = null
-          override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
-            e.getMessage match {
-              case ("client", c: WebSocketServerClientHandler) => theclient = c
-              case m: Ack => theclient.receive lift m
-              case m: AckRequest => theclient.receive lift m
-              case _ => ctx.sendUpstream(e)
-            }
-          }
-        })
-      }
-      pipe
+  /**
+   * If you want to override the entire Netty Channel Pipeline that gets created override this method.
+   *
+   * @return the created [[org.jboss.netty.channel.ChannelPipeline]]
+   */
+  protected def getPipeline: ChannelPipeline = {
+    val pipe = Channels.pipeline()
+    pipe.addLast("flash-policy", new FlashPolicyHandler(ChannelBuffers.copiedBuffer(config.flashPolicy, CharsetUtil.UTF_8)))
+    pipe.addLast("connection-tracker", new ConnectionTracker(allChannels))
+    addFirstInPipeline(pipe)
+    config.sslContext foreach { ctxt =>
+      val engine = ctxt.createSSLEngine()
+      engine.setUseClientMode(false)
+      pipe.addLast("ssl", new SslHandler(engine))
     }
+    val ping = config.pingTimeout.duration.toSeconds.toInt
+    if (ping > 0) {
+      pipe.addLast("timeouts", new IdleStateHandler(timer, 0, ping, 0))
+      pipe.addLast("connection-reaper", new WebSocket.PingPongHandler(logger))
+    }
+    pipe.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192))
+    pipe.addLast("aggregator", new HttpChunkAggregator(64 * 1024))
+    pipe.addLast("encoder", new HttpResponseEncoder)
+    config.contentCompression foreach { ctx =>
+      pipe.addLast("deflater", new HttpContentCompressor(ctx.level))
+    }
+    val raiseEvents = capabilities.contains(RaiseAckEvents)
+    configurePipeline(pipe)
+    pipe.addLast("websockethandler", new WebSocketClientFactoryHandler(logger, allChannels, factory, raiseEvents = raiseEvents))
+    pipe.addLast("websocketoutput", new WebSocketMessageAdapter(logger))
+    pipe.addLast("acking", new MessageAckingHandler(logger, capabilities.contains(RaiseAckEvents)))
+    if (raiseEvents) {
+      pipe.addLast("eventsHook", new SimpleChannelHandler {
+        var theclient: WebSocketServerClientHandler = null
+        override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
+          e.getMessage match {
+            case ("client", c: WebSocketServerClientHandler) => theclient = c
+            case m: Ack => theclient.receive lift m
+            case m: AckRequest => theclient.receive lift m
+            case _ => ctx.sendUpstream(e)
+          }
+        }
+      })
+    }
+    addLastInPipeline(pipe)
+    pipe
+  }
+
+  protected def addFirstInPipeline(pipe: ChannelPipeline) {
+
+  }
+
+  protected def configurePipeline(pipe: ChannelPipeline) {
+
+  }
+
+  protected def addLastInPipeline(pipe: ChannelPipeline) {
+
+  }
+
+  private[this] def pipelineFactory = new ChannelPipelineFactory {
+    def getPipeline = WebSocketServer.this.getPipeline
   }
 
   private[this] val startCallbacks = new ListBuffer[() => Any]()
@@ -560,7 +652,7 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
     server.setOption("soLinger", 0)
     server.setOption("reuseAddress", true)
     server.setOption("child.tcpNoDelay", true)
-    server.setPipelineFactory(getPipeline)
+    server.setPipelineFactory(pipelineFactory)
     val addr = config.listenOn.blankOption.map(l =>new InetSocketAddress(l, config.port) ) | new InetSocketAddress(config.port)
     val sc = server.bind(addr)
     allChannels add sc

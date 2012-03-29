@@ -3,8 +3,8 @@
 A scala based client for websockets based on netty and akka futures.
 It draws its inspiration from finagle, faye-websocket, zeromq, akka, ...
 
-The aim of this project is to provide a websocket client aimed to be used in non-browser applications.
-This client should be reliable by making a best effort to not lose any messages and gracefully recover from disconnections.
+The aim of this project is to provide a websocket client to be used in non-browser applications.
+This client should be reliable by making a best effort not to lose any messages and gracefully recover from disconnections.
 
 The server should serve regular websocket applications but can be configured for more reliability too.
 
@@ -72,7 +72,7 @@ There are [code examples](https://github.com/mojolly/backchat-websocket/tree/mas
 * Chat ([server](https://github.com/mojolly/backchat-websocket/blob/master/src/main/scala/io/backchat/websocket/examples/ChatServer.scala) | [client](https://github.com/mojolly/backchat-websocket/blob/master/src/main/scala/io/backchat/websocket/examples/ChatClient.scala))
 
 ## Patches
-Patches are gladly accepted from their original author. Along with any patches, please state that the patch is your original work and that you license the work to the *rl* project under the MIT License.
+Patches are gladly accepted from their original author. Along with any patches, please state that the patch is your original work and that you license the work to the *backchat-websocket* project under the MIT License.
 
 ## License
 MIT licensed. check the [LICENSE](https://github.com/mojolly/backchat-websocket/blob/master/LICENSE) file
