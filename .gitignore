@@ -7,3 +7,4 @@ blacklist.txt
 .idea
 .idea_modules
 node_modules
+*.log

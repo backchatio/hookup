@@ -6,7 +6,6 @@ import socket.nio.NioClientSocketChannelFactory
 import org.jboss.netty.handler.codec.http._
 import collection.JavaConverters._
 import websocketx._
-import java.net.{InetSocketAddress, URI}
 import org.jboss.netty.buffer.ChannelBuffers
 import akka.util.duration._
 import akka.dispatch.{ExecutionContext, Await, Promise, Future}
@@ -17,12 +16,12 @@ import org.jboss.netty.logging.{InternalLogger, InternalLoggerFactory}
 import java.util.concurrent.atomic.AtomicLong
 import net.liftweb.json.{DefaultFormats, Formats}
 import io.backchat.websocket.WebSocketServer.MessageAckingHandler
-import java.util.concurrent.{TimeUnit, ConcurrentSkipListSet, Executors}
+import java.util.concurrent.{TimeUnit, Executors}
 import org.jboss.netty.util.{Timeout => NettyTimeout, TimerTask, HashedWheelTimer, CharsetUtil}
 import akka.util.{Duration, Timeout}
 import java.io.File
-import collection.mutable.Buffer
 import io.backchat.websocket.WebSocket.ActiveThrottle
+import java.net.{ConnectException, InetSocketAddress, URI}
 
 
 /**
@@ -169,8 +168,12 @@ object WebSocket {
 
 
     override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
-      host.receive.lift(Error(Option(e.getCause))) getOrElse logger.error("Oops, something went amiss", e.getCause)
-      e.getChannel.close()
+      (host.isReconnecting, e.getCause) match {
+        case (true, ex: ConnectException) => // this is expected
+        case (false, ex) =>
+          host.receive.lift(Error(Option(e.getCause))) getOrElse logger.error("Oops, something went amiss", e.getCause)
+          e.getChannel.close()
+      }
     }
 
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
@@ -190,7 +193,7 @@ object WebSocket {
     }
 
     override def channelDisconnected(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
-      if (!host.isClosing) {
+      if (!host.isClosing||host.isReconnecting) {
         host.reconnect()
       }
     }
@@ -205,11 +208,10 @@ object WebSocket {
     private[this] val protos = if (client.protocols.isEmpty) null else client.protocols.mkString(",")
 
     private[this] var bootstrap: ClientBootstrap = null
-    private[this] val handshaker = new WebSocketClientHandshakerFactory().newHandshaker(tgt, client.version, protos, false, client.initialHeaders.asJava)
+    private[this] var handshaker: WebSocketClientHandshaker = null
     private[this] val timer = new HashedWheelTimer()
     private[this] var channel: Channel = null
     private[this] var _isConnected: Promise[OperationResult] = Promise[OperationResult]()
-    private[this] var _messageBuffer = new ConcurrentSkipListSet[WebSocketOutMessage]()
     private[this] val buffer = new FileBuffer(client.bufferPath, logger)
 
     def isConnected = channel != null && channel.isConnected && _isConnected.isCompleted
@@ -250,25 +252,34 @@ object WebSocket {
     var isClosing = false
 
     def connect(): Future[OperationResult] = synchronized {
-      throttle = client.throttle
+      handshaker = new WebSocketClientHandshakerFactory().newHandshaker(tgt, client.version, protos, false, client.initialHeaders.asJava)
       isClosing = false
       bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(Executors.newCachedThreadPool, Executors.newCachedThreadPool))
       configureBootstrap()
-      if (channel != null && channel.isConnected) Promise.successful(Success)
+      if (isConnected) Promise.successful(Success)
       else {
         val fut = bootstrap.connect(new InetSocketAddress(client.uri.getHost, client.uri.getPort))
         val af = fut.toAkkaFuture flatMap {
           case Success =>
+            if (isReconnecting) throttle = client.throttle
             channel = fut.getChannel
             handshaker.handshake(channel).toAkkaFuture
           case x => Promise.successful(x)
         }
         try {
-          val fut = af flatMap (_ => _isConnected)
-          if (client.buffered) fut onSuccess { case _ => buffer.open() }
+          val fut = af flatMap { _ =>
+            isReconnecting = false
+            buffer.drain(channel.send(_)) flatMap { _ =>
+              _isConnected.success(Success)
+              _isConnected
+            }
+
+          }
+          if (client.buffered) buffer.open()
           Await.ready(fut, 5 seconds)
         } catch {
           case ex => {
+            logger.error("Couldn't connect, killing all")
             bootstrap.releaseExternalResources()
             Promise.failed(ex)
           }
@@ -276,13 +287,16 @@ object WebSocket {
       }
     }
 
-    def reconnect() = {
-      client.receive lift Reconnecting
-      val fut = close() andThen { case _ => delay { connect() } }
-      fut onSuccess {
-        case Success => buffer drain channel.send
+    var isReconnecting = false
+
+    def reconnect(): Future[OperationResult] = {
+      if (!isReconnecting) client.receive lift Reconnecting
+      isReconnecting = true
+      close() andThen { case _ =>
+        delay {
+          connect()
+        }
       }
-      fut
     }
 
 
@@ -291,74 +305,73 @@ object WebSocket {
         val promise = Promise[OperationResult]()
         val theDelay = throttle.delay
         throttle = throttle.next()
-        timer.newTimeout(new TimerTask {
-          def run(timeout: NettyTimeout) {
-            if (!timeout.isCancelled) {
-              thunk andThen {
-                case Right(Cancelled) => promise.success(Cancelled)
-                case Right(x: ResultList) => promise.success(x)
-                case Right(x) => promise.success(Success)
-                case Left(ex) => promise.failure(ex)
-              }
-            } else promise.success(Cancelled)
-          }
-        }, theDelay.toMillis, TimeUnit.MILLISECONDS)
+        timer.newTimeout(task(promise, theDelay, thunk), theDelay.toMillis, TimeUnit.MILLISECONDS)
         promise
-      } else thunk
+      } else Promise.successful(Cancelled)
+    }
+
+    private def task(promise: Promise[OperationResult], theDelay: Duration, thunk: => Future[OperationResult]): TimerTask = {
+      logger info "Connection to host [%s] lost, reconnecting in %s".format(client.uri.toASCIIString, theDelay)
+      new TimerTask {
+        def run(timeout: NettyTimeout) {
+          if (!timeout.isCancelled) {
+            val rr = thunk
+            rr onComplete {
+              case Left(ex) => delay(thunk)
+              case Right(x) => promise.success(x)
+            }
+          } else promise.success(Cancelled)
+        }
+      }
     }
 
     def close(): Future[OperationResult] = synchronized {
       isClosing = true;
-      channel.write(new CloseWebSocketFrame()).awaitUninterruptibly()
-      val fut = if (channel == null) Promise.successful(Success) else channel.close().toAkkaFuture
-      fut flatMap {
-        case Success =>
-          val kill = new Thread() {
-            override def run = {
+      val closing = Promise[OperationResult]()
+      if (_isConnected.isCompleted) _isConnected = Promise[OperationResult]()
+      if(isConnected) {
+        channel.write(new CloseWebSocketFrame()).awaitUninterruptibly()
+        channel.close().awaitUninterruptibly(5000L)
+      }
+
+      try {
+        val kill = new Thread() {
+          override def run = {
+            try {
+              if (!isReconnecting) buffer.close()
               if (bootstrap != null) bootstrap.releaseExternalResources()
+            } catch {
+              case e => logger.error("error while closing the connection", e)
+            } finally {
+              if (!closing.isCompleted) closing.success(Success)
             }
           }
-          kill.setDaemon(false)
-          kill.start()
-          kill.join()
-          _isConnected = Promise[OperationResult]()
-          Promise.successful(Success)
-        case x => Promise.successful(x)
+        }
+        kill.setDaemon(false)
+        kill.start()
+        kill.join()
+      } catch {
+        case _ => if (!closing.isCompleted) closing.success(Success)
       }
+
+
+      closing
     }
 
     def id = if (channel == null) 0 else channel.id
 
     def send(message: WebSocketOutMessage): Future[OperationResult] = {
-      connect() flatMap {
-        case Success =>
-          if (_isConnected.isCompleted) {
-            channel.write(message).toAkkaFuture
-          } else {
-            logger debug "buffering message until fully connected"
-            buffer write message
-            Promise.successful(Success)
-          }
-        case x => {
-          buffer.write(message)
-          Promise.successful(x)
-        }
-      } recoverWith  {
-        case e =>
-          buffer.write(message)
-          Promise.failed(e)
+      if (isConnected) {
+        channel.write(message).toAkkaFuture
+      } else {
+        logger info "buffering message until fully connected"
+        buffer write message
+        Promise.successful(Success)
       }
-
-
     }
 
-    def receive: Receive = internalReceive orElse client.receive
+    def receive: Receive = client.receive
 
-    private[this] def internalReceive: Receive = {
-      case Connected =>
-        _isConnected.success(Success)
-        client.receive lift Connected
-    }
   }
 
   /**
@@ -422,7 +435,7 @@ object WebSocket {
   case class ActiveThrottle(delay: Duration, maxWait: Duration) extends Throttle {
 
     def next(): Throttle = {
-      copy(delay = delay.doubled max maxWait)
+      copy(delay = delay.doubled min maxWait)
     }
   }
 }
@@ -456,7 +469,7 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
 
   def throttle: Throttle = NoThrottle
 
-  def bufferPath = new File("./work/buffer.log")
+  def bufferPath: File = null
 
   def buffered = false
 
@@ -485,6 +498,8 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
 trait BufferedWebSocket { self: WebSocket =>
 
   override def throttle = ActiveThrottle(500 millis, 30 minutes)
+
+  override def bufferPath = new File("./work/buffer.log")
   override def buffered = true
 
 }

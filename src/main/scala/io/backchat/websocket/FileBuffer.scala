@@ -7,6 +7,7 @@ import collection.mutable
 import org.jboss.netty.logging.InternalLogger
 import akka.dispatch.{Promise, ExecutionContext, Future}
 import net.liftweb.json.Formats
+import collection.JavaConverters._
 
 object FileBuffer {
   private object State extends Enumeration {
@@ -34,14 +35,21 @@ class FileBuffer(file: File, logger: InternalLogger)(implicit format: Formats) e
   def open() = if (state == State.Closed) openFile(true)
 
   @inline private[this] def openFile(append: Boolean) {
-    output = new PrintWriter(new BufferedOutputStream(new FileOutputStream(file, append)))
+    output = new PrintWriter(new BufferedOutputStream(new FileOutputStream(file, append)), true)
     state = State.Open
   }
 
-  def write(message: WebSocketOutMessage) = state match {
-    case State.Open => serializeAndSave(message)(output.println _)
-    case State.Closed | State.Draining =>
-      serializeAndSave(message)(line => while(!memoryBuffer.offer(line)) {}) // just loop until it's in please
+  def write(message: WebSocketOutMessage): Unit = {
+    val msg = WebSocket.RenderOutMessage(message)
+    state match {
+      case State.Open => {
+        output.println(msg)
+      }
+      case State.Closed => openFile(true); output.println(msg)
+      case State.Draining =>
+        memoryBuffer.offer(msg)
+        memoryBuffer.asScala.toSeq
+    }
   }
 
   private[this] def serializeAndSave(message: WebSocketOutMessage)(save: String => Unit) = {
@@ -49,9 +57,9 @@ class FileBuffer(file: File, logger: InternalLogger)(implicit format: Formats) e
   }
 
   def drain(readLine: (WebSocketOutMessage => Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult] = synchronized {
-    state = State.Draining
     var futures = mutable.ListBuffer[Future[OperationResult]]()
     close()
+    state = State.Draining
     var input: BufferedReader = null
     var append = true
     try {
@@ -59,19 +67,20 @@ class FileBuffer(file: File, logger: InternalLogger)(implicit format: Formats) e
       var line = input.readLine()
       while(line != null) {
         if (line.nonBlank) {
-          futures += readLine(ParseToWebSocketOutMessage(line))
+          readLine(ParseToWebSocketOutMessage(line))
         }
         line = input.readLine()
       }
       while(!memoryBuffer.isEmpty) {
         val line = memoryBuffer.poll()
-        if (line.nonBlank) futures += readLine(ParseToWebSocketOutMessage(line))
+        if (line.nonBlank) readLine(ParseToWebSocketOutMessage(line))
       }
       val res = Future.sequence(futures.toList).map(ResultList(_))
       append = false
       res
     } catch {
       case e =>
+        e.printStackTrace()
         Promise.failed(e)
     } finally {
       if (input != null) {
