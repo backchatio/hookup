@@ -213,7 +213,7 @@ object WebSocket {
     private[this] val timer = new HashedWheelTimer()
     private[this] var channel: Channel = null
     private[this] var _isConnected: Promise[OperationResult] = Promise[OperationResult]()
-    private[this] val buffer = new FileBuffer(client.bufferPath, logger)
+    private[this] val buffer = new FileBuffer(client.bufferPath)
 
     def isConnected = channel != null && channel.isConnected && _isConnected.isCompleted
 

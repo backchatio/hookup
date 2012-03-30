@@ -12,6 +12,7 @@ object BackchatMinutesBuild extends Build {
     libraryDependencies ++= Seq(
       "io.netty" % "netty" % "3.4.0.Alpha1" % "compile",
       "net.liftweb" %% "lift-json" % "2.4" % "compile",
+      "commons-io" % "commons-io" % "2.1",
       "com.typesafe.akka" % "akka-actor" % "2.0" % "compile",
       "com.typesafe.akka" % "akka-testkit" % "2.0" % "test",
       "org.specs2" %% "specs2" % "1.8.2" % "test",

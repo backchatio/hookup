@@ -8,6 +8,8 @@ import org.jboss.netty.logging.InternalLogger
 import akka.dispatch.{Promise, ExecutionContext, Future}
 import net.liftweb.json.Formats
 import collection.JavaConverters._
+import java.util.Queue
+import collection.mutable.{Queue => ScalaQueue}
 
 object FileBuffer {
   private object State extends Enumeration {
@@ -22,14 +24,15 @@ trait BackupBuffer {
   def drain(readLine: String => Unit)
 }
 
-class FileBuffer(file: File, logger: InternalLogger)(implicit format: Formats) extends Closeable {
+class FileBuffer private[websocket] (file: File, writeToFile: Boolean, memoryBuffer: Queue[String])(implicit format: Formats) extends Closeable {
+
+  def this(file: File)(implicit format: Formats) = this(file, true, new ConcurrentLinkedQueue[String]())
 
   import FileBuffer._
   import net.liftweb.json._
   import JsonDSL._
 
   @volatile private[this] var output: PrintWriter = _
-  private[this] val memoryBuffer = new ConcurrentLinkedQueue[String]()
   @volatile private[this] var state = State.Closed
 
   def open() = if (state == State.Closed) openFile(true)
@@ -38,7 +41,7 @@ class FileBuffer(file: File, logger: InternalLogger)(implicit format: Formats) e
     val dir = file.getAbsoluteFile.getParentFile
     if (!dir.exists()) dir.mkdirs()
     output = new PrintWriter(new BufferedOutputStream(new FileOutputStream(file, append)), true)
-    state = State.Open
+    state = if (writeToFile) State.Open else State.Draining
   }
 
   def write(message: WebSocketOutMessage): Unit = {
