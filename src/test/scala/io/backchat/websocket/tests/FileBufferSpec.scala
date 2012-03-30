@@ -10,10 +10,10 @@ import scala.io.Source
 import collection.JavaConverters._
 import org.specs2.specification.{Fragments, Step}
 import java.util.concurrent.{Executors, ConcurrentLinkedQueue}
-import collection.mutable.ListBuffer
 import akka.dispatch.{Await, Future, ExecutionContext}
 import akka.util.duration._
 import akka.actor.ActorSystem
+import collection.mutable.{ArrayBuffer, Buffer, SynchronizedBuffer, ListBuffer}
 import java.util.concurrent.atomic.AtomicInteger
 
 class FileBufferSpec extends Specification with NoTimeConversions { def is =
@@ -92,35 +92,36 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
   }
 
   def handlesConcurrentLoads = {
-//    val system = ActorSystem("filebufferconc")
-//    val logPath = new File("./test-work5/buffer.log")
-//    val buff = new FileBuffer(logPath)
-//    val lines = new ListBuffer[WebSocketOutMessage]
-//    buff.open()
-//    system.scheduler.scheduleOnce(200 millis) {
-//      Await.ready(buff drain { out =>
-//        Future {
-//          lines += out
-//          Success
-//        }
-//      }, 5 seconds)
-//    }
-//    (1 until 1000) foreach { s =>
-//        Thread.sleep(156)
-//        buff.write(TextMessage("message %s" format s))
-//    }
-//    //Await.ready(Future.sequence(futs), 5 seconds)
-//
-//    Await.ready(buff drain { out =>
-//          Future {
-//            lines += out
-//            Success
-//          }
-//        }, 5 seconds)
-//    buff.close()
-//    FileUtils.deleteQuietly(new File("./test-work5"))
-//    lines must haveSize(1000)
-    pending
+    val system = ActorSystem("filebufferconc")
+    val logPath = new File("./test-work5/buffer.log")
+    val buff = new FileBuffer(logPath)
+    val lines = new ArrayBuffer[WebSocketOutMessage] with SynchronizedBuffer[WebSocketOutMessage]
+    buff.open()
+    system.scheduler.schedule(200 millis, 200 millis) {
+      Await.ready(buff drain { out =>
+        Future {
+          lines += out
+          Success
+        }
+      }, 5 seconds)
+    }
+    (1 to 1000) foreach { s =>
+        Thread.sleep(15)
+        buff.write(TextMessage("message %s" format s))
+    }
+    //Await.ready(Future.sequence(futs), 5 seconds)
+
+    Await.ready(buff drain { out =>
+          Future {
+            lines += out
+            Success
+          }
+        }, 5 seconds)
+    buff.close()
+    FileUtils.deleteQuietly(new File("./test-work5"))
+    system.shutdown()
+    lines must haveSize(1000)
+//    pending
   }
 
 }

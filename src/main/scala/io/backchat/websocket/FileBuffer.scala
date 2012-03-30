@@ -28,6 +28,7 @@ class FileBuffer private[websocket] (file: File, writeToFile: Boolean, memoryBuf
 
   def this(file: File)(implicit format: Formats) = this(file, true, new ConcurrentLinkedQueue[String]())
 
+  //TODO: Get rid of all the synchronized and volatile stuff
   import FileBuffer._
   import net.liftweb.json._
   import JsonDSL._
@@ -35,7 +36,7 @@ class FileBuffer private[websocket] (file: File, writeToFile: Boolean, memoryBuf
   @volatile private[this] var output: PrintWriter = _
   @volatile private[this] var state = State.Closed
 
-  def open() = if (state == State.Closed) openFile(true)
+  def open() { if (state == State.Closed) openFile(true) }
 
   @inline private[this] def openFile(append: Boolean) {
     val dir = file.getAbsoluteFile.getParentFile
@@ -44,7 +45,7 @@ class FileBuffer private[websocket] (file: File, writeToFile: Boolean, memoryBuf
     state = if (writeToFile) State.Open else State.Draining
   }
 
-  def write(message: WebSocketOutMessage): Unit = {
+  def write(message: WebSocketOutMessage): Unit = synchronized {
     val msg = WebSocket.RenderOutMessage(message)
     state match {
       case State.Open => {
@@ -63,8 +64,8 @@ class FileBuffer private[websocket] (file: File, writeToFile: Boolean, memoryBuf
 
   def drain(readLine: (WebSocketOutMessage => Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult] = synchronized {
     var futures = mutable.ListBuffer[Future[OperationResult]]()
-    close()
     state = State.Draining
+    close()
     var input: BufferedReader = null
     var append = true
     try {
@@ -98,10 +99,10 @@ class FileBuffer private[websocket] (file: File, writeToFile: Boolean, memoryBuf
   }
 
   def close() {
-    if (state != State.Closed) {
-      output.close()
-      output = null
-      state = State.Closed
-    }
+      if (state != State.Closed) {
+        if (output != null) output.close()
+        output = null
+        state = State.Closed
+      }
   }
 }
