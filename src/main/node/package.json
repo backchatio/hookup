@@ -18,7 +18,8 @@
     , "mkdirp": "" },
   "devDependencies":
     { "vows": "0.6.x"
-    , "sinon": "" }
+    , "sinon": ""
+    , "rimraf": "" }
   , "main": "./lib/backchat-websocket.js"
   , "scripts": { "test": "vows --spec --isolate" }
 }

@@ -97,7 +97,7 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
     val buff = new FileBuffer(logPath)
     val lines = new ArrayBuffer[WebSocketOutMessage] with SynchronizedBuffer[WebSocketOutMessage]
     buff.open()
-    system.scheduler.schedule(200 millis, 200 millis) {
+    val reader = system.scheduler.schedule(50 millis, 50 millis) {
       Await.ready(buff drain { out =>
         Future {
           lines += out
@@ -105,12 +105,10 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
         }
       }, 5 seconds)
     }
-    (1 to 1000) foreach { s =>
-        Thread.sleep(15)
-        buff.write(TextMessage("message %s" format s))
+    (1 to 20000) foreach { s =>
+      buff.write(TextMessage("message %s" format s))
     }
-    //Await.ready(Future.sequence(futs), 5 seconds)
-
+    reader.cancel()
     Await.ready(buff drain { out =>
           Future {
             lines += out
@@ -118,10 +116,9 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
           }
         }, 5 seconds)
     buff.close()
-    FileUtils.deleteQuietly(new File("./test-work5"))
+    FileUtils.deleteDirectory(new File("./test-work5"))
     system.shutdown()
-    lines must haveSize(1000)
-//    pending
+    lines must haveSize(20000)
   }
 
 }
