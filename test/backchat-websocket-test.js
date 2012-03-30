@@ -1,19 +1,20 @@
+
 var vows = require("vows"),
     assert = require("assert"),
     WebSocket = require("../lib/backchat-websocket").WebSocket;
 
 vows.describe("BackChat WebSocket").addBatch({
-  
+
   "when initializing": {
-    topic: { 
-      uri: "ws://localhost:2949/", 
-      retries: [1, 2, 3, 4, 5], 
-      journaled: true, 
+    topic: {
+      uri: "ws://localhost:2949/",
+      retries: [1, 2, 3, 4, 5],
+      journaled: true,
       defaultsClient: new WebSocket("ws://localhost:2949/"),
       configuredClient: new WebSocket({uri: "ws://localhost:2949/", retrySchedule: [1, 2, 3, 4, 5], journaled: true})},
     'fails when the uri param is': {
-      "missing": function(topic) {
-        assert.throws(function () { new WebSocket(); }, Error);
+      "missing": function (topic) {
+        assert.throws(function () { new WebSocket() }, Error);
       },
       "an invalid uri": function (topic) {
         assert.throws(function () { new WebSocket({uri: "http:"}) }, Error);
