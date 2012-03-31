@@ -8,12 +8,12 @@ var vows = require("vows"),
     path = require('path');
 
 vows.describe("FileBuffer").addBatch({
-  "when opening": {
+  "when opening, ": {
     topic: {
       workPath: "./test-work",
       logPath: "./test-work/testing/and/such/buffer.log"
     },
-    "create the path": {
+    "creates the path": {
       topic: function(options) {
         if (path.exists(options.workPath)) rimraf(options.workPath);
         var promise =  new(events.EventEmitter);
@@ -37,14 +37,14 @@ vows.describe("FileBuffer").addBatch({
       }
     }
   },
-  "when not draining": {
+  "when not draining,": {
     topic: {
       logPath: "./test-work2/buffer.log",
       workPath: "./test-work2",
       exp1: "the first message",
       exp2: "the second message"
     },
-    "writing to a file": {
+    "writes to a file": {
       topic: function(options) {
         if (path.exists(options.workPath)) rimraf(options.workPath);
         var promise =  new(events.EventEmitter);
@@ -69,7 +69,7 @@ vows.describe("FileBuffer").addBatch({
       }
     }
   },
-  "when draining": {
+  "when draining, ": {
     topic: {
       logPath: "./test-work3/buffer.log",
       workPath: "./test-work3",
@@ -84,7 +84,7 @@ vows.describe("FileBuffer").addBatch({
 
         return options;
       },
-      "should be written to the memory buffer": function(topic) {
+      "should write to the memory buffer": function(topic) {
         topic.buffer.write(topic.exp1);
         topic.buffer.write(topic.exp2);
         assert.lengthOf(topic.memoryBuffer, 2);
