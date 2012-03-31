@@ -8,7 +8,7 @@ var WebSocket = require('faye-websocket'),
     Uri = require('url');
 
 
-var RECONNECT_SCHEDULE = [1, 1, 1, 1, 1, 5, 5, 5, 5, 5, 10, 10, 10, 10, 10, 30, 30, 30, 30, 30, 60, 60, 60, 60, 60, 300, 300, 300, 300, 300];
+var RECONNECT_SCHEDULE = {min: 1, max: 300};
 var BUFFER_PATH = './logs/buffer.log';
 var EVENT_NAMES = {
   connected: "open",
@@ -34,13 +34,14 @@ var ServerClient = exports.WebSocket = function (options) {
   if (!this._uri.host || !((this._uri.protocol||"").match(/^ws/))) throw new Error("Invalid uri supplied.")
   delete options['uri'];
   
-  this.retrySchedule = options.retrySchedule || RECONNECT_SCHEDULE;
-  this.retryIndefinitely = !!options.retryIndefinitely;
+  this.reconnectSchedule = options.reconnectSchedule || RECONNECT_SCHEDULE;
 
   this._quiet = options['quiet']
   this._state = DISCONNECTED;
   this._handlers = [];
-  this._wireFormat = new WireFormat()
+  this._wireFormat = new WireFormat();
+  this._expectedAcks = {};
+  this._ackCounter = 0;
   if (options['buffered']) {
     this._buffer = new FileBuffer(options.bufferPath||BUFFER_PATH);
     this._buffer.on('data', this.send);
@@ -57,12 +58,16 @@ _.extend(ServerClient.prototype, {
   connect: function() {
     if (this.state != CONNECTING && !this.isConnected()) this._establishConnection();
   },
-  send: function(msg) {
-    var m = this._prepareForSend(msg);
+  send: function(message) {
+    var m = this._prepareForSend(message);
     if (this.isConnected()) {
       this._client.send(m);
     } else this._buffer.write(m);
   },
+  sendAcked: function(message, options) {
+    var timeout = options['timeout']||5000;
+    this.send({type: "needs_ack", content: message, timeout: timeout});
+  } 
   isConnected: function() {
     return this._state == CONNECTED;
   },
@@ -89,28 +94,38 @@ _.extend(ServerClient.prototype, {
       }
       client.onerror = function(evt) {
         if (!self.quiet) console.error("Couldn't connect to " + self.uri);
-        self.emit("error");
+        self.emit("error", evt.data);
       }
       client.onmessage = function(evt) {
-        self.emit("receive", self._preprocessInMessage(evt.data));
+        var inMsg = self._preprocessInMessage(evt.data);
+        if (inMsg)
+          self.emit("data", inMsg);
       }
     }
   },
   _reconnect: function () {
-    if (this._skipReconnect) {
-      this._state = DISCONNECTED;
-      this.buffer.close();
+    if (this._state == DISCONNECTING) {
+      this._doDisconnect();
     } else {
-      if (this._retries && this._retries.length > 0) {
-        this._doReconnect(this._retries.shift());
+      if (this._reconnectIn && this._reconnectIn > 0 && this._reconnectIn < this.reconnectSchedule.max) {
+        var nextRecon = this._reconnectIn * 2;
+        var max = this.reconnectSchedule.max;
+        var next = nextRecon < max ? nextRecon : max;
+        if (this.reconnectSchedule.maxRetries && this.reconnectSchedule.maxRetries > 0) {
+          if (this._reconnectsLeft <= 0)
+            this.emit('error', new Error("Exhausted the retry schedule. The server at "+this.uri+" is just not there."));
+          else
+            --this._reconnectsLeft;
+        } 
+        this._doReconnect(next);
       } else {
-        if (this.retryIndefinitely) {
-          this._doReconnect(this.retrySchedule[this.retrySchedule.length - 1]);
-        } else {
-          throw new Error("Exhausted the retry schedule. The server at "+this.uri+" is just not there.");
-        }
+        this._doDisconnect();    
       }
     }
+  },
+  _doDisconnect: function() {
+    this._state = DISCONNECTED;
+    this.buffer.close();
   },
   _doReconnect: function (retryIn) {
     if (!this._scheduledReconnect) {
@@ -123,16 +138,39 @@ _.extend(ServerClient.prototype, {
   },
   _connected: function() {
     if (this._buffer) this._buffer.drain();
-    this._retries = _.clone(this.retrySchedule);
+    this._reconnectIn = this.reconnectSchedule.min;
+    this._reconnectsLeft = 0;
     this._state = CONNECTED;
     this.emit("connected");
   },
   _preprocessInMessage: function(message) {
-    return message;
+    if (message.type === "ack_request") {
+      this.send({type: "ack", id: message.id});
+      this.emit("ack_request", message);
+    }
+    if (message.type === "ack") {
+      var timeout = this._expectedAcks[message.id]; 
+      if (timeout) clearTimeout(timeout);
+      delete this._expectedAcks[message.id];
+      this.emit("ack", message);
+      return null;
+    }
+    return this._wireFormat.unwrapContent(message);
   },
   _prepareForSend: function(message) {
     var out = this._wireFormat.renderOutMessage(message);
-    // TODO: handle handle wrapping a message in an ack.
+    var self = this;
+    if (message.type === "needs_ack") {
+      var ackReq = {
+        message: this._wireFormat.buildOutMessage(message.content),
+        type: "ack_request",
+        id: ++this._ackCounter
+      };
+      this._expectedAcks[ackReq.id] = setTimeout(function (){
+        self.emit('ack', { type: "ack_failed", content: message.content });
+      }, message.timeout);
+      out = this._wireFormat.renderOutMessage(message);
+    }
     return out;
   }
 });
