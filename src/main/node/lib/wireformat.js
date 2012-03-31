@@ -1,6 +1,6 @@
 var _ = require('underscore');
 
-var JsonWireFormat = function(options) {
+var WireFormat = function(options) {
   this.format = 'json';
 }
 
@@ -27,8 +27,10 @@ _.extend(WireFormat.prototype, {
   },
   unwrapContent: function(message) {
     var parsed = this.parseMessage(message);
+    if (parsed.type === "ack_request") 
+      return this.parseMessage(parsed.content).content;
     return parsed.content;
-  }
+  },
   _canBeJson: function(message) {
     return !!message.match(/^(?:\{|\]/);
   }
