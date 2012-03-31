@@ -2,12 +2,13 @@ var WebSocket = require('faye-websocket'),
     _ = require('underscore'),
     util = require('util'),
     events = require('events'),
+    FileBuffer = require("./filebuffer").FileBuffer,
     fs = require('fs'),
     Uri = require('url');
 
 
 var RECONNECT_SCHEDULE = [1, 1, 1, 1, 1, 5, 5, 5, 5, 5, 10, 10, 10, 10, 10, 30, 30, 30, 30, 30, 60, 60, 60, 60, 60, 300, 300, 300, 300, 300];
-var JOURNAL_PATH = './logs/journal.log';
+var BUFFER_PATH = './logs/journal.log';
 var EVENT_NAMES = {
   connected: "open",
   receive: "message",
@@ -39,16 +40,20 @@ var ServerClient = exports.WebSocket = function (options) {
   this._quiet = options['quiet']
   this._state = DISCONNECTED;
   this._handlers = [];
-  this._journalPath = options.journalPath||JOURNAL_PATH;
-  if (options['journaled']) this.journal = fs.createWriteStream(this._journalPath, { flags: 'a', encoding: 'utf-8'});
-  this._journalBuffer = [];
+  if (options['buffered']) {
+    this._buffer = new FileBuffer(options.bufferPath||BUFFER_PATH);
+    this._buffer.on('data', this.send)
+  }
+  // this._journalPath = options.journalPath||JOURNAL_PATH;
+  // if (options['journaled']) this.journal = fs.createWriteStream(this._journalPath, { flags: 'a', encoding: 'utf-8'});
+  // this._journalBuffer = [];
   
 }
 
 util.inherits(ServerClient, events.EventEmitter);
 
 ServerClient.RECONNECT_SCHEDULE = RECONNECT_SCHEDULE
-ServerClient.JOURNAL_PATH = JOURNAL_PATH
+ServerClient.BUFFER_PATH = BUFFER_PATH
 ServerClient.EVENT_NAMES = EVENT_NAMES
 
 ServerClient.prototype.connect = function() {
@@ -58,27 +63,16 @@ ServerClient.prototype.connect = function() {
 ServerClient.prototype.send = function(msg) {
   var m = typeof msg === "string" ? msg : JSON.stringify(msg);
   if (this.isConnected()) {
-    this._drainMemoryBuffer();
     this._client.send(m);
-  } else if (this._state == JOURNAL_REDO) {
-    this._journalBuffer.push(m);
-  } else {
-    if (this.isJournaled()) {
-      var _a = null;
-      while(_a = this._journalBuffer.shift()) {
-        this.journal.write(a + "\n");
-      }
-      this.journal.write(m + "\n");
-    }
-  }
+  } else this._buffer.write(m);
 }
 
 ServerClient.prototype.isConnected = function() {
   return this._state == CONNECTED;
 }
 
-ServerClient.prototype.isJournaled = function() {
-  return !!this.journal;
+ServerClient.prototype.isBuffered = function() {
+  return !!this._buffer;
 }
 
 ServerClient.prototype._establishConnection = function() {
@@ -92,9 +86,7 @@ ServerClient.prototype._establishConnection = function() {
 
     client.onopen = function(evt) {
       console.info("connected to " + self.uri);
-      self._state = self.isJournaled() && self._state == RECONNECTING ? JOURNAL_REDO : CONNECTED;
-      if (self._state == JOURNAL_REDO) self._drainFileBuffer();
-      else self._connected();
+      self._connected();
     }
     client.onclose = function(evt) {
       self._state = self._skipReconnect ? DISCONNECTING : RECONNECTING
@@ -114,7 +106,7 @@ ServerClient.prototype._establishConnection = function() {
 ServerClient.prototype._reconnect = function () {
   if (this._skipReconnect) {
     this._state = DISCONNECTED;
-    this.journal.end();
+    this.buffer.close();
   } else {
     if (this._retries && this._retries.length > 0) {
       this._doReconnect(this._retries.shift());
@@ -139,42 +131,42 @@ ServerClient.prototype._doReconnect = function (retryIn) {
 }
 
 ServerClient.prototype._connected = function() {
-  this._drainMemoryBuffer();
+  if (this._buffer) this._buffer.drain();
   this._retries = _.clone(this.retrySchedule);
   this._state = CONNECTED;
   this.emit("connected");
 }
 
-ServerClient.prototype._drainMemoryBuffer = function() {
-  if (this._client) {
-    var entry = null;
-    while(entry = (this._journalBuffer||[]).shift()) {
-      this._client.send(entry);
-    }
-  }
-}
+// ServerClient.prototype._drainMemoryBuffer = function() {
+//   if (this._client) {
+//     var entry = null;
+//     while(entry = (this._journalBuffer||[]).shift()) {
+//       this._client.send(entry);
+//     }
+//   }
+// }
 
-ServerClient.prototype._drainFileBuffer = function() {
-  var self = this;
-  var jnl = this.journal;
-  jnl.once('close', function() {
-    var rdJnl = fs.createReadStream(self._journalPath, {encoding: 'utf-8'});
-    rdJnl.on('data', function(data) {
-      data.toString('utf-8').split("\n").forEach(function(line) {
-        if (line && line.trim().length > 0) {
-          var written = self._client.send(line);
-          if (!written) rdJnl.pause();
-        }
-      })
-    });
-    rdJnl.on('drain', function() {
-      rdJnl.resume();
-    })
-    // rdJnl.on('end', function() { rdJnl.close() })
-    rdJnl.on('close', function() {
-      self.journal = fs.createWriteStream(self._journalPath, { flags: 'w', encoding: 'utf-8'});
-      self._connected();
-    });
-  });
-  jnl.end();
-}
+// ServerClient.prototype._drainFileBuffer = function() {
+//   var self = this;
+//   var jnl = this.journal;
+//   jnl.once('close', function() {
+//     var rdJnl = fs.createReadStream(self._journalPath, {encoding: 'utf-8'});
+//     rdJnl.on('data', function(data) {
+//       data.toString('utf-8').split("\n").forEach(function(line) {
+//         if (line && line.trim().length > 0) {
+//           var written = self._client.send(line);
+//           if (!written) rdJnl.pause();
+//         }
+//       })
+//     });
+//     rdJnl.on('drain', function() {
+//       rdJnl.resume();
+//     })
+//     // rdJnl.on('end', function() { rdJnl.close() })
+//     rdJnl.on('close', function() {
+//       self.journal = fs.createWriteStream(self._journalPath, { flags: 'w', encoding: 'utf-8'});
+//       self._connected();
+//     });
+//   });
+//   jnl.end();
+// }

@@ -56,8 +56,7 @@ vows.describe("FileBuffer").addBatch({
           });  
           buff.on("close", function() {
             var lines = fs.readFileSync(options.logPath, 'utf8');
-            console.log("lines: " + lines);
-            //rimraf(options.workPath);
+            rimraf(options.workPath);
             promise.emit("success", lines.split("\n"));
           });
           
@@ -70,10 +69,53 @@ vows.describe("FileBuffer").addBatch({
       }
     }
   },
-  "write to the memory buffer when draining": {
+  "when draining": {
+    topic: {
+      logPath: "./test-work3/buffer.log",
+      workPath: "./test-work3",
+      exp1: "the first message",
+      exp2: "the second message"
+    },
+    "new sends": {
+      topic: function(options) {
+        if (path.exists(options.workPath)) rimraf(options.workPath);
+        options.memoryBuffer = [];
+        options.buffer = new FileBuffer(options.logPath, { memoryBuffer: options.memoryBuffer, initialState: 1});
 
-  },
-  "drain the buffer": {
-
+        return options;
+      },
+      "should be written to the memory buffer": function(topic) {
+        topic.buffer.write(topic.exp1);
+        topic.buffer.write(topic.exp2);
+        assert.lengthOf(topic.memoryBuffer, 2);
+      }
+    },
+    "a drain request": {
+      topic: function(options) {
+        if (path.exists(options.workPath)) rimraf(options.workPath);
+        var promise = new (events.EventEmitter);
+        var buff = new FileBuffer(options.logPath);
+        var lines = [];
+        var self = this;
+        buff.on('data', function(data) {
+          lines.push(data);
+          if (lines.length === 2) {
+            buff.close();
+          }
+        });
+        buff.on("open", function() {
+          buff.write(options.exp1);
+          buff.write(options.exp2, function() { buff.drain() });
+        });
+        buff.on("close", function() {
+          rimraf(options.workPath);
+          self.callback(null, lines);
+        });
+        buff.open();
+      },
+      "should raise data events for every line in the buffer": function (err, topic) {
+        assert.lengthOf(topic, 2);
+      }
+    }
   }
 }).export(module);
