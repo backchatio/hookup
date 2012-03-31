@@ -9,9 +9,9 @@ vows.describe("BackChat WebSocket").addBatch({
     topic: {
       uri: "ws://localhost:2949/",
       retries: [1, 2, 3, 4, 5],
-      journaled: true,
+      buffered: true,
       defaultsClient: new WebSocket("ws://localhost:2949/"),
-      configuredClient: new WebSocket({uri: "ws://localhost:2949/", retrySchedule: [1, 2, 3, 4, 5], journaled: true})},
+      configuredClient: new WebSocket({uri: "ws://localhost:2949/", retrySchedule: [1, 2, 3, 4, 5], buffered: true})},
     'fails when the uri param is': {
       "missing": function (topic) {
         assert.throws(function () { new WebSocket() }, Error);
@@ -24,7 +24,7 @@ vows.describe("BackChat WebSocket").addBatch({
       assert.equal(topic.defaultsClient.retrySchedule, WebSocket.RECONNECT_SCHEDULE);
     },
     "should set journaling to false by default": function (topic) {
-      assert.isFalse(topic.defaultsClient.isJournaled());
+      assert.isFalse(topic.defaultsClient.isBuffered());
     },
     "should use the provided uri": function (topic) {
       assert.equal(topic.defaultsClient.uri, topic.uri);
@@ -33,7 +33,7 @@ vows.describe("BackChat WebSocket").addBatch({
       assert.deepEqual(topic.configuredClient.retrySchedule, topic.retries);
     },
     "should use the journaling value from the options": function (topic) {
-      assert.isTrue(topic.configuredClient.isJournaled());
+      assert.isTrue(topic.configuredClient.isBuffered());
     }
   },
 
