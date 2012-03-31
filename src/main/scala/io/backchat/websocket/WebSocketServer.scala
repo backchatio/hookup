@@ -30,7 +30,7 @@ import akka.util.{Index, Timeout}
 import annotation.switch
 import org.jboss.netty.handler.codec.frame.FrameDecoder
 import org.jboss.netty.buffer.{ChannelBuffer, ChannelBuffers}
-import org.jboss.netty.util.{CharsetUtil, Timeout => NettyTimeout, TimerTask, HashedWheelTimer}
+import org.jboss.netty.util.{CharsetUtil, Timeout ⇒ NettyTimeout, TimerTask, HashedWheelTimer}
 
 trait ServerCapability
 
@@ -70,7 +70,7 @@ case class ServerInfo(
               capabilities: Seq[ServerCapability] = Seq.empty) {
 
   val sslContext = (capabilities collect {
-    case cfg: SslSupport => {
+    case cfg: SslSupport ⇒ {
       val ks = KeyStore.getInstance("JKS")
       val fin = new FileInputStream(new File(cfg.keystorePath).getAbsoluteFile)
       ks.load(fin, cfg.keystorePassword.toCharArray)
@@ -82,18 +82,18 @@ case class ServerInfo(
     }
   }).headOption
 
-  val contentCompression = (capabilities collect { case c: ContentCompression => c }).headOption
+  val contentCompression = (capabilities collect { case c: ContentCompression ⇒ c }).headOption
 
   val subProtocols = (capabilities collect {
-    case sp: SubProtocols if sp.protocols.nonEmpty => sp.protocol :+ sp.protocols
+    case sp: SubProtocols if sp.protocols.nonEmpty ⇒ sp.protocol :+ sp.protocols
   }).headOption
 
   val pingTimeout = (capabilities collect {
-    case Ping(timeout) => timeout
+    case Ping(timeout) ⇒ timeout
   }).headOption | Timeout(90 seconds)
 
   val flashPolicy = (capabilities collect {
-    case FlashPolicy(domain, policyPorts) =>
+    case FlashPolicy(domain, policyPorts) ⇒
       (<cross-domain-policy>
          <allow-access-from domain={ domain } to-ports={ policyPorts.mkString(",") }/>
        </cross-domain-policy>).toString()
@@ -114,9 +114,9 @@ case class ServerInfo(
 *   val server = WebSocketServer(ServerInfo("MyWebSocketServer")) {
 *     new WebSocketServerClient {
 *       protected val receive = {
-*         case Connected => println("got a client connection")
-*         case TextMessage(text) => send(TextMessage("ECHO: " + text))
-*         case Disconnected(_) => println("client disconnected")
+*         case Connected ⇒ println("got a client connection")
+*         case TextMessage(text) ⇒ send(TextMessage("ECHO: " + text))
+*         case Disconnected(_) ⇒ println("client disconnected")
 *       }
 *     }
 *   }
@@ -132,7 +132,7 @@ object WebSocketServer {
 
   import WebSocket.{ executionContext, Receive }
 
-  trait BroadcastFilter extends (BroadcastChannel => Boolean) with NotNull
+  trait BroadcastFilter extends (BroadcastChannel ⇒ Boolean) with NotNull
 
   object Include {
     def apply(clients: WebSocketServerClient*): BroadcastFilter = new Include(clients)
@@ -162,8 +162,8 @@ object WebSocketServer {
 
   private implicit def nettyChannelGroup2Broadcaster(allChannels: ChannelGroup): Broadcast = new Broadcast {
     def apply(message: WebSocketOutMessage, matchingOnly: BroadcastFilter) = {
-      val lst = allChannels.asScala map (x => x: BroadcastChannel) filter matchingOnly map (_ send message)
-      Future.sequence(lst) map (l => ResultList(l.toList))
+      val lst = allChannels.asScala map (x ⇒ x: BroadcastChannel) filter matchingOnly map (_ send message)
+      Future.sequence(lst) map (l ⇒ ResultList(l.toList))
     }
   }
 
@@ -188,7 +188,7 @@ object WebSocketServer {
           futures += _handler.send(_buffer.poll())
         }
         futures += _handler send message
-        Future.sequence(futures).map(r => ResultList(r.toList))
+        Future.sequence(futures).map(r ⇒ ResultList(r.toList))
       } else {
         _buffer offer message
         Promise.successful(Success)
@@ -259,11 +259,11 @@ object WebSocketServer {
     def receive: Receive = client.receive orElse defaultReceive
 
     private val defaultReceive: Receive = {
-      case Error(Some(ex)) =>
+      case Error(Some(ex)) ⇒
         logger.error("Received an error.", ex)
-      case Error(_) =>
+      case Error(_) ⇒
         logger.error("Unknown error occurred")
-      case _ =>
+      case _ ⇒
     }
 
     def close() = {
@@ -273,27 +273,27 @@ object WebSocketServer {
 
   val DefaultServerName = "BackChatWebSocketServer"
 
-  def apply(capabilities: ServerCapability*)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
+  def apply(capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, capabilities = capabilities))(factory)
   }
 
-  def apply(port: Int,  capabilities: ServerCapability*)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
+  def apply(port: Int,  capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, port = port, capabilities = capabilities))(factory)
   }
 
-  def apply(listenOn: String,  capabilities: ServerCapability*)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
+  def apply(listenOn: String,  capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, capabilities = capabilities))(factory)
   }
 
-  def apply(listenOn: String, port: Int,  capabilities: ServerCapability*)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
+  def apply(listenOn: String, port: Int,  capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, port = port, capabilities = capabilities))(factory)
   }
 
-  def apply(name: String, listenOn: String, port: Int,  capabilities: ServerCapability*)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
+  def apply(name: String, listenOn: String, port: Int,  capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, port = port, capabilities = capabilities))(factory)
   }
 
-  def apply(info: ServerInfo)(factory: => WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
+  def apply(info: ServerInfo)(factory: ⇒ WebSocketServerClient)(implicit formats: Formats): WebSocketServer = {
     new WebSocketServer(info, factory)
   }
 
@@ -357,7 +357,7 @@ object WebSocketServer {
   private[this] object OneHundredContinueResponse extends DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE)
   private final class WebSocketClientFactoryHandler(logger: InternalLogger,
                                                     allChannels: ChannelGroup,
-                                                    factory: => WebSocketServerClient,
+                                                    factory: ⇒ WebSocketServerClient,
                                                     subProtocols: Traversable[String] = Nil,
                                                     raiseEvents: Boolean = false)(implicit formats: Formats) extends SimpleChannelUpstreamHandler {
 
@@ -371,7 +371,7 @@ object WebSocketServer {
 
     private[this] def clientFrom(ctx: ChannelHandlerContext): WebSocketServerClientHandler = {
       (Option(ctx.getAttachment) collect {
-        case h: WebSocketServerClientHandler => h
+        case h: WebSocketServerClientHandler ⇒ h
       }) getOrElse {
         val sockAddr = ctx.getChannel.getRemoteAddress
         val h = new WebSocketServerClientHandler(ctx.getChannel, factory, logger, allChannels) {
@@ -384,24 +384,24 @@ object WebSocketServer {
 
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
-        case request: HttpRequest if HttpHeaders.is100ContinueExpected(request) =>
+        case request: HttpRequest if HttpHeaders.is100ContinueExpected(request) ⇒
           Channels.write(ctx, Channels.future(ctx.getChannel), OneHundredContinueResponse, e.getRemoteAddress)
           request.removeHeader(HttpHeaders.Names.EXPECT)
           ctx.sendUpstream(e)
 
         case httpRequest: HttpRequest if isWebSocketUpgrade(httpRequest) ⇒ handleUpgrade(ctx, httpRequest)
 
-        case m: TextWebSocketFrame => {
+        case m: TextWebSocketFrame ⇒ {
           WebSocket.ParseToWebSocketInMessage(m.getText) match {
-            case a: Ack => Channels.fireMessageReceived(ctx, a)
-            case a: AckRequest => Channels.fireMessageReceived(ctx, a)
-            case r => client.receive lift r
+            case a: Ack ⇒ Channels.fireMessageReceived(ctx, a)
+            case a: AckRequest ⇒ Channels.fireMessageReceived(ctx, a)
+            case r ⇒ client.receive lift r
           }
         }
 
-        case m: BinaryWebSocketFrame => client.receive lift BinaryMessage(m.getBinaryData.array)
+        case m: BinaryWebSocketFrame ⇒ client.receive lift BinaryMessage(m.getBinaryData.array)
 
-        case m: ContinuationWebSocketFrame =>
+        case m: ContinuationWebSocketFrame ⇒
           if (m.isFinalFragment) {
             client.receive lift TextMessage(collectedFrames map (_.getText) reduce (_ + _))
             collectedFrames = Nil
@@ -409,7 +409,7 @@ object WebSocketServer {
             collectedFrames :+= m
           }
 
-        case f: WebSocketInMessage => client.receive lift f
+        case f: WebSocketInMessage ⇒ client.receive lift f
         case f: CloseWebSocketFrame ⇒
           receivedCloseFrame = true
           if (handshaker != null) handshaker.close(ctx.getChannel, f)
@@ -470,13 +470,13 @@ object WebSocketServer {
   class WebSocketMessageAdapter(logger: InternalLogger)(implicit formats: Formats) extends SimpleChannelDownstreamHandler {
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
-        case m: JsonMessage => writeOutMessage(ctx, m)
-        case m: TextMessage => writeOutMessage(ctx, m)
-        case Disconnect => ctx.getChannel.write(new CloseWebSocketFrame()).addListener(ChannelFutureListener.CLOSE)
-        case BinaryMessage(bytes) => {
+        case m: JsonMessage ⇒ writeOutMessage(ctx, m)
+        case m: TextMessage ⇒ writeOutMessage(ctx, m)
+        case Disconnect ⇒ ctx.getChannel.write(new CloseWebSocketFrame()).addListener(ChannelFutureListener.CLOSE)
+        case BinaryMessage(bytes) ⇒ {
           ctx.getChannel.write(new BinaryWebSocketFrame(ChannelBuffers.copiedBuffer(bytes)))
         }
-        case _ => {
+        case _ ⇒ {
           ctx.sendDownstream(e)
         }
       }
@@ -505,27 +505,27 @@ object WebSocketServer {
 
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
-        case Ack(id) =>
+        case Ack(id) ⇒
           val ack = expectedAcks.remove(id)
           if (ack != null) ack.cancel()
           if (raiseEvents) ctx.sendUpstream(e)
-        case AckRequest(msg, id) => {
+        case AckRequest(msg, id) ⇒ {
           ctx.getChannel.write(Ack(id))
           if (raiseEvents) Channels.fireMessageReceived(ctx, AckRequest(msg, id))
           Channels.fireMessageReceived(ctx, msg)
         }
-         case _ => ctx.sendUpstream(e)
+         case _ ⇒ ctx.sendUpstream(e)
       }
     }
 
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
-        case m: Ack =>
+        case m: Ack ⇒
           ctx.getChannel.write(new TextWebSocketFrame(WebSocket.RenderOutMessage(m)))
-        case NeedsAck(m, timeout) =>
+        case NeedsAck(m, timeout) ⇒
           val id = createAck(ctx, m, timeout)
           if (raiseEvents) Channels.fireMessageReceived(ctx, AckRequest(m, id))
-        case _ => ctx.sendDownstream(e)
+        case _ ⇒ ctx.sendDownstream(e)
       }
     }
 
@@ -555,14 +555,14 @@ object WebSocketServer {
 
 
     private[this] def contentFrom(message: Ackable): (String, JValue) = message match {
-      case TextMessage(text) => ("text", JString(text))
-      case JsonMessage(json) => ("json", json)
+      case TextMessage(text) ⇒ ("text", JString(text))
+      case JsonMessage(json) ⇒ ("json", json)
     }
   }
 
 }
 
-class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)(implicit formats: Formats = DefaultFormats) {
+class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient)(implicit formats: Formats = DefaultFormats) {
   def capabilities = config.capabilities
   def name = config.name
   def version = config.version
@@ -587,7 +587,7 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
     pipe.addLast("flash-policy", new FlashPolicyHandler(ChannelBuffers.copiedBuffer(config.flashPolicy, CharsetUtil.UTF_8)))
     pipe.addLast("connection-tracker", new ConnectionTracker(allChannels))
     addFirstInPipeline(pipe)
-    config.sslContext foreach { ctxt =>
+    config.sslContext foreach { ctxt ⇒
       val engine = ctxt.createSSLEngine()
       engine.setUseClientMode(false)
       pipe.addLast("ssl", new SslHandler(engine))
@@ -600,7 +600,7 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
     pipe.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192))
     pipe.addLast("aggregator", new HttpChunkAggregator(64 * 1024))
     pipe.addLast("encoder", new HttpResponseEncoder)
-    config.contentCompression foreach { ctx =>
+    config.contentCompression foreach { ctx ⇒
       pipe.addLast("deflater", new HttpContentCompressor(ctx.level))
     }
     val raiseEvents = capabilities.contains(RaiseAckEvents)
@@ -613,10 +613,10 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
         var theclient: WebSocketServerClientHandler = null
         override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
           e.getMessage match {
-            case ("client", c: WebSocketServerClientHandler) => theclient = c
-            case m: Ack => theclient.receive lift m
-            case m: AckRequest => theclient.receive lift m
-            case _ => ctx.sendUpstream(e)
+            case ("client", c: WebSocketServerClientHandler) ⇒ theclient = c
+            case m: Ack ⇒ theclient.receive lift m
+            case m: AckRequest ⇒ theclient.receive lift m
+            case _ ⇒ ctx.sendUpstream(e)
           }
         }
       })
@@ -641,11 +641,11 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
     def getPipeline = WebSocketServer.this.getPipeline
   }
 
-  private[this] val startCallbacks = new ListBuffer[() => Any]()
-  private[this] val stopCallbacks = new ListBuffer[() => Any]()
+  private[this] val startCallbacks = new ListBuffer[() ⇒ Any]()
+  private[this] val stopCallbacks = new ListBuffer[() ⇒ Any]()
 
-  def onStart(thunk: => Any) = startCallbacks += { () => thunk }
-  def onStop(thunk: => Any) = stopCallbacks += { () => thunk }
+  def onStart(thunk: ⇒ Any) = startCallbacks += { () ⇒ thunk }
+  def onStop(thunk: ⇒ Any) = stopCallbacks += { () ⇒ thunk }
 
   final def start = synchronized {
     server = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool()))
@@ -653,7 +653,7 @@ class WebSocketServer(val config: ServerInfo, factory: => WebSocketServerClient)
     server.setOption("reuseAddress", true)
     server.setOption("child.tcpNoDelay", true)
     server.setPipelineFactory(pipelineFactory)
-    val addr = config.listenOn.blankOption.map(l =>new InetSocketAddress(l, config.port) ) | new InetSocketAddress(config.port)
+    val addr = config.listenOn.blankOption.map(l ⇒new InetSocketAddress(l, config.port) ) | new InetSocketAddress(config.port)
     val sc = server.bind(addr)
     allChannels add sc
     sys.addShutdownHook(stop)
