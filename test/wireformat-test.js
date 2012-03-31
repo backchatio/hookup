@@ -1,7 +1,6 @@
-
 var vows = require("vows"),
     assert = require("assert"),
-    WebSocket = require("../lib/backchat-websocket").WebSocket;
+    WireFormat = require("../lib/wireformat").WireFormat;
 
 vows.describe("BackChat WebSocket").addBatch({
 
