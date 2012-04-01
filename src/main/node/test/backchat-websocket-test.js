@@ -13,12 +13,12 @@ var vows = require("vows"),
 var EchoServer = function() {
   var self = this;
   var wf = new WireFormat();
+  this.connections = [];
   var appHandler = function(request, socket,  head) {
     var ws = new WebSocketClient(request, socket, head);
-
+    self.connections.push(ws);
     ws.onmessage = function(event) {
       var parsed = wf.parseMessage(event.data);
-      console.log(util.inspect(parsed));
       if (parsed.type === "ack_request" && parsed.id == 1) {
         ws.send(wf.renderMessage({type: "ack", id: 1}));
         ws.send(wf.renderMessage(parsed.content));
@@ -29,6 +29,7 @@ var EchoServer = function() {
 
     ws.onclose = function(event) {
       ws = null;
+      _.reject(self.connections, function(wss) { return wss === ws });
       self.close();
     };
   }
@@ -46,6 +47,7 @@ var EchoServer = function() {
   this._server.addListener('upgrade', appHandler);
   this._server.addListener('request', staticHandler);
   this._server.on('error', function(err) { self.emit('error', err) });
+  this._server.setMaxListeners(20); 
 }
 
 util.inherits(EchoServer, events.EventEmitter);
@@ -57,13 +59,20 @@ _.extend(EchoServer.prototype, {
       self.emit('listen');
     });
   },
-  close: function() {
+  close: function(force) {
     var self = this;
-    if (this._server) {
-      this._server.once('close', function() {
-        self.emit('close');
-      });
+    if (force) this.connections.forEach(function(ws) { ws._stream.destroy(); });
+    var closed = function (){
+      console.log("closed server xxxxx");
+      self.emit("close");
+    }
+    this._server.once('close', closed);
+    try {
       this._server.close();
+    } catch (e) {
+      //  console.log("closed server xxxxx");
+      //  this._server.removeListener('close', closed);
+      // self.emit("close");
     }
   }
 });
@@ -116,7 +125,7 @@ vows.describe("BackChat WebSocket").addBatch({
           var ws = new WebSocket({uri: "ws://localhost:"+port+"/"});
           ws.on('close', function() {
             closed++;
-            try { server.close() } catch (e) { };
+            server.close();
           });
           ws.on('data', function(evt) {
             messages.push(evt);
@@ -150,27 +159,18 @@ vows.describe("BackChat WebSocket").addBatch({
         var killSwitch = null;
         server.on('listen', function() {
           var ws = new WebSocket({uri: "ws://localhost:"+port+"/", raiseAckEvents: true});
-          ws.on('data', function(data) {
-            console.log("data");
-            console.log(data);
-          })
           ws.on('ack_failed', function() {
-            console.log("ack failed");
             failedAcks++;
             if (killSwitch) clearTimeout(killSwitch);
             if (ws) ws.close();
           });
           ws.on('close', function() {
-            try { server.close() } catch (e) { };
+            server.close();
           });
           ws.on('ack', function(data) { 
-            console.log("ack");
-            console.log(util.inspect(data));
             acks++ ;
           });
           ws.on('ack_request', function(data) { 
-            console.log("ack_request");
-            console.log(util.inspect(data));
             ackRequests++ 
           });
           ws.on('connected', function() {
@@ -200,28 +200,31 @@ vows.describe("BackChat WebSocket").addBatch({
   }).addBatch({
     "when reconnecting": {
       topic: function() {
-        var port = 2951;
+        var port = 2953;
         var promise = new events.EventEmitter();
         var server = new EchoServer();
         var closed=0, reconnecting=0;
-        server.on('listen', function() {
+        var listen = function() {
           var ws = new WebSocket({uri: "ws://localhost:"+port+"/"});
           ws.on('close', function() {
-            try { server.close() } catch (e) { };
+            server.close();
           });
           ws.on('reconnecting', function() {
             reconnecting++;
           });
           ws.on('connected', function() {
-            if (closed === 0) server.close();
+            server.close(true);
           });
           ws.connect();
-        });
+        }
+        server.on('listen', listen);
         server.on('close', function() {
           if (closed > 0) promise.emit('success', reconnecting);
           else {
             closed++;
-            process.nextTick(function (){server.listen(port)});
+            setTimeout(function (){
+              server.listen(port)
+            }, 3000);
           }
         });
         server.listen(port);
@@ -242,7 +245,7 @@ vows.describe("BackChat WebSocket").addBatch({
           var ws = new WebSocket({uri: "ws://localhost:2950/"});
           ws.on('close', function() {
             closed++;
-            try { server.close() } catch (e) { };
+            server.close();
           });
           ws.on('reconnecting', function() {
             reconnecting++;
