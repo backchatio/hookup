@@ -2,46 +2,72 @@ var vows = require("vows"),
     assert = require("assert"),
     WireFormat = require("../lib/wireformat").WireFormat;
 
-vows.describe("BackChat WebSocket").addBatch({
-
-  "when initializing": {
+vows.describe("WireFormat").addBatch({
+  "A WireFormat": {
     topic: {
-      uri: "ws://localhost:2949/",
-      retries:  {min:1, max: 5},
-      buffered: true,
-      defaultsClient: new WebSocket("ws://localhost:2949/"),
-      configuredClient: new WebSocket({uri: "ws://localhost:2949/", reconnectSchedule: { min: 1, max: 5 }, buffered: true})},
-    'fails when the uri param is': {
-      "missing": function (topic) {
-        assert.throws(function () { new WebSocket() }, Error);
+      text: "this is a text message",
+      textResult: { type: "text", content: "this is a text message" },
+      jsonResult: {data: "a json message", type: 'json'},
+      jsonData: {data: "a json message"},
+      json: JSON.stringify({data: "a json message"}),
+      ackResult: { id: 3, type: "ack" },
+      ack: JSON.stringify({ id: 3, type: "ack" }),
+      ackRequestResult: { id: 3, type: "ack_request", content:  { type: "text", content: "this is a text message" }},
+      ackRequestData: { id: 3, type: "ack_request", content:  "this is a text message" },
+      ackRequest: JSON.stringify({ id: 3, type: "ack_request", content: { type: "text", content: "this is a text message" }}),
+      needsAckResult: { type: "needs_ack", timeout: 5000 },
+      needsAck: JSON.stringify({ type: "needs_ack", timeout: 5000 }),
+      wireFormat: new(WireFormat)
+    },
+    "parses messages from": {
+      "a text message": function(topic) {
+        assert.deepEqual(topic.wireFormat.parseMessage(topic.text), topic.textResult);
       },
-      "an invalid uri": function (topic) {
-        assert.throws(function () { new WebSocket({uri: "http:"}) }, Error);
+      "a json message": function(topic) {
+        assert.deepEqual(topic.wireFormat.parseMessage(topic.json), topic.jsonResult);
+      },
+      "an ack message": function(topic) {
+        assert.deepEqual(topic.wireFormat.parseMessage(topic.ack), topic.ackResult);
+      },
+      "an ack_request message": function(topic) {
+        assert.deepEqual(topic.wireFormat.parseMessage(topic.ackRequest), topic.ackRequestResult);
+      },
+      "a needs_ack message": function(topic) {
+        assert.deepEqual(topic.wireFormat.parseMessage(topic.needsAck), topic.needsAckResult);
+      } 
+    },
+
+    "builds messages": {
+      "a text message": function(topic) {
+        assert.deepEqual(topic.wireFormat.buildOutMessage(topic.text), topic.textResult);
+      },
+      "a json message": function(topic) {
+        assert.deepEqual(topic.wireFormat.buildOutMessage(topic.jsonData), topic.jsonResult);
+      },
+      "an ack message": function(topic) {
+        assert.deepEqual(topic.wireFormat.buildOutMessage(topic.ackResult), topic.ackResult);
+      },
+      "an ack_request message": function(topic) {
+        assert.deepEqual(topic.wireFormat.buildOutMessage(topic.ackRequestData), topic.ackRequestResult);
       }
     },
-    "should use the default retry schedule": function (topic) {
-      assert.equal(topic.defaultsClient.reconnectSchedule, WebSocket.RECONNECT_SCHEDULE);
-    },
-    "should set journaling to false by default": function (topic) {
-      assert.isFalse(topic.defaultsClient.isBuffered());
-    },
-    "should use the provided uri": function (topic) {
-      assert.equal(topic.defaultsClient.uri, topic.uri);
-    },
-    "should use the retry schedule from the options": function (topic) {
-      assert.deepEqual(topic.configuredClient.reconnectSchedule, topic.retries);
-    },
-    "should use the journaling value from the options": function (topic) {
-      assert.isTrue(topic.configuredClient.isBuffered());
+
+    "unwraps messages": {
+      "a text message": function(topic) {
+        assert.deepEqual(topic.wireFormat.unwrapContent(topic.textResult), topic.text);
+      },
+      "a json message": function(topic) {
+        assert.deepEqual(topic.wireFormat.unwrapContent(topic.jsonResult), topic.jsonData);
+      },
+      "an ack message": function(topic) {
+        assert.deepEqual(topic.wireFormat.unwrapContent(topic.ackResult), topic.ackResult);
+      },
+      "an ack_request message": function(topic) {
+        assert.deepEqual(topic.wireFormat.unwrapContent(topic.ackRequestResult), topic.text);
+      },
+      "a needs_ack message": function(topic) {
+        assert.deepEqual(topic.wireFormat.unwrapContent(topic.needsAckResult), topic.needsAckResult);
+      } 
     }
-  },
-
-  "when sending json to the server": {
-    
-  },
-
-  "when closing the connection": {
-    "the client disconnects": {}
   }
-
 }).export(module);
