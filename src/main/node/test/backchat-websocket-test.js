@@ -63,17 +63,12 @@ _.extend(EchoServer.prototype, {
     var self = this;
     if (force) this.connections.forEach(function(ws) { ws._stream.destroy(); });
     var closed = function (){
-      console.log("closed server xxxxx");
       self.emit("close");
     }
     this._server.once('close', closed);
     try {
       this._server.close();
-    } catch (e) {
-      //  console.log("closed server xxxxx");
-      //  this._server.removeListener('close', closed);
-      // self.emit("close");
-    }
+    } catch (e) { }
   }
 });
 
