@@ -3,6 +3,7 @@ var vows = require("vows"),
     assert = require("assert"),
     WebSocket = require("../lib/backchat-websocket").WebSocket,
     WebSocketClient = require('faye-websocket'),
+    WireFormat = require("../lib/wireformat").WireFormat,
     _ = require('underscore'),
     fs = require('fs'),
     http = require('http'),
@@ -11,11 +12,19 @@ var vows = require("vows"),
 
 var EchoServer = function() {
   var self = this;
+  var wf = new WireFormat();
   var appHandler = function(request, socket,  head) {
     var ws = new WebSocketClient(request, socket, head);
 
     ws.onmessage = function(event) {
-      ws.send(event.data);
+      var parsed = wf.parseMessage(event.data);
+      console.log(util.inspect(parsed));
+      if (parsed.type === "ack_request" && parsed.id == 1) {
+        ws.send(wf.renderMessage({type: "ack", id: 1}));
+        ws.send(wf.renderMessage(parsed.content));
+      } else if (parsed.type !== "ack_request") {
+        ws.send(event.data);
+      }
     };
 
     ws.onclose = function(event) {
@@ -132,6 +141,97 @@ vows.describe("BackChat WebSocket").addBatch({
       } 
     }
   }}).addBatch({
+    "when expecting acks": {
+      topic: function(options) {
+        var port = 2952;
+        var promise = new events.EventEmitter();
+        var server = new EchoServer();
+        var ackRequests=0, acks=0, failedAcks = 0;
+        var killSwitch = null;
+        server.on('listen', function() {
+          var ws = new WebSocket({uri: "ws://localhost:"+port+"/", raiseAckEvents: true});
+          ws.on('data', function(data) {
+            console.log("data");
+            console.log(data);
+          })
+          ws.on('ack_failed', function() {
+            console.log("ack failed");
+            failedAcks++;
+            if (killSwitch) clearTimeout(killSwitch);
+            if (ws) ws.close();
+          });
+          ws.on('close', function() {
+            try { server.close() } catch (e) { };
+          });
+          ws.on('ack', function(data) { 
+            console.log("ack");
+            console.log(util.inspect(data));
+            acks++ ;
+          });
+          ws.on('ack_request', function(data) { 
+            console.log("ack_request");
+            console.log(util.inspect(data));
+            ackRequests++ 
+          });
+          ws.on('connected', function() {
+            ws.sendAcked({ data: "the first message"});
+            ws.sendAcked({ data: "the second message"}, { timeout: 500});
+            killSwitch = setTimeout(function() { if (ws && ws.isConnected()) ws.close() }, 5000);
+          });
+          ws.connect();
+        });
+        server.on('close', function() {
+          promise.emit('success', {ackRequests: ackRequests, acks: acks, failedAcks: failedAcks});
+        });
+        server.on('error',function(err) { promise.emit('error', err)});
+        server.listen(port);
+        return promise;
+      },
+      "creates an ack request": function(topic) {
+        assert.equal(topic.ackRequests, 2);
+      },
+      "a message gets acked by the server": function(topic) {
+        assert.equal(topic.acks, 1);
+      },
+      "notifies of failed ack": function(topic) {
+        assert.equal(topic.failedAcks, 1);
+      }
+    }    
+  }).addBatch({
+    "when reconnecting": {
+      topic: function() {
+        var port = 2951;
+        var promise = new events.EventEmitter();
+        var server = new EchoServer();
+        var closed=0, reconnecting=0;
+        server.on('listen', function() {
+          var ws = new WebSocket({uri: "ws://localhost:"+port+"/"});
+          ws.on('close', function() {
+            try { server.close() } catch (e) { };
+          });
+          ws.on('reconnecting', function() {
+            reconnecting++;
+          });
+          ws.on('connected', function() {
+            if (closed === 0) server.close();
+          });
+          ws.connect();
+        });
+        server.on('close', function() {
+          if (closed > 0) promise.emit('success', reconnecting);
+          else {
+            closed++;
+            process.nextTick(function (){server.listen(port)});
+          }
+        });
+        server.listen(port);
+        return promise;
+      },
+      "reconnects to the server": function(topic) {
+        assert.ok(topic > 0)
+      }
+    }
+  }).addBatch({
 
     "when closing the connection": {
       topic: function(options) {
