@@ -42,7 +42,10 @@ var ServerClient = exports.WebSocket = function (options) {
   this._wireFormat = new WireFormat();
   this._expectedAcks = {};
   this._ackCounter = 0;
-  this._raiseAckEvents = !!options.raiseAckEvents;
+  // this option `raiseAckEvents` is only useful in tests for the acking itself.
+  // it raises an event when an ack is received or an ack request is prepared
+  // it serves no other purpose than that, ack_failed events are raised independently from this option.
+  this._raiseAckEvents = options.raiseAckEvents === true; 
 
   if (options.buffered) {
     this._buffer = new FileBuffer(options.bufferPath||BUFFER_PATH);
@@ -71,7 +74,7 @@ _.extend(ServerClient.prototype, {
     } else this._buffer.write(m);
   },
   sendAcked: function(message, options) {
-    var timeout = options['timeout']||5000;
+    var timeout = (options||{})['timeout']||5000;
     this.send({type: "needs_ack", content: message, timeout: timeout});
   },
   isConnected: function() {
@@ -155,10 +158,11 @@ _.extend(ServerClient.prototype, {
     this._state = CONNECTED;
     this.emit("connected");
   },
-  _preprocessInMessage: function(message) {
+  _preprocessInMessage: function(msg) {
+    var message = this._wireFormat.parseMessage(msg);
+    console.log("preprocessing: " + util.inspect(message)); 
     if (message.type === "ack_request") {
       this.send({type: "ack", id: message.id});
-      if (this._raiseAckEvents) this.emit("ack_request", message);
     }
     if (message.type === "ack") {
       var timeout = this._expectedAcks[message.id]; 
@@ -170,18 +174,17 @@ _.extend(ServerClient.prototype, {
     return this._wireFormat.unwrapContent(message);
   },
   _prepareForSend: function(message) {
-    var out = this._wireFormat.renderOutMessage(message);
+    var out = this._wireFormat.renderMessage(message);
     var self = this;
     if (message.type === "needs_ack") {
       var ackReq = {
-        message: this._wireFormat.buildOutMessage(message.content),
+        content: this._wireFormat.buildMessage(message.content),
         type: "ack_request",
         id: ++this._ackCounter
       };
-      this._expectedAcks[ackReq.id] = setTimeout(function (){
-        self.emit('ack', { type: "ack_failed", content: message.content });
-      }, message.timeout);
-      out = this._wireFormat.renderOutMessage(message);
+      this._expectedAcks[ackReq.id] = setTimeout(function (){ self.emit('ack_failed', message.content) }, message.timeout);
+      out = this._wireFormat.renderMessage(ackReq);
+      if (this._raiseAckEvents) this.emit("ack_request", ackReq);
     }
     return out;
   }

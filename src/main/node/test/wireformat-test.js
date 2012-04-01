@@ -39,16 +39,16 @@ vows.describe("WireFormat").addBatch({
 
     "builds messages": {
       "a text message": function(topic) {
-        assert.deepEqual(topic.wireFormat.buildOutMessage(topic.text), topic.textResult);
+        assert.deepEqual(topic.wireFormat.buildMessage(topic.text), topic.textResult);
       },
       "a json message": function(topic) {
-        assert.deepEqual(topic.wireFormat.buildOutMessage(topic.jsonData), topic.jsonResult);
+        assert.deepEqual(topic.wireFormat.buildMessage(topic.jsonData), topic.jsonResult);
       },
       "an ack message": function(topic) {
-        assert.deepEqual(topic.wireFormat.buildOutMessage(topic.ackResult), topic.ackResult);
+        assert.deepEqual(topic.wireFormat.buildMessage(topic.ackResult), topic.ackResult);
       },
       "an ack_request message": function(topic) {
-        assert.deepEqual(topic.wireFormat.buildOutMessage(topic.ackRequestData), topic.ackRequestResult);
+        assert.deepEqual(topic.wireFormat.buildMessage(topic.ackRequestData), topic.ackRequestResult);
       }
     },
 
