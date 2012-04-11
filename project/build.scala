@@ -7,7 +7,7 @@ object BackchatMinutesBuild extends Build {
   val projectSettings = Defaults.defaultSettings ++ Seq(
     organization := "io.backchat.websocket",
     name := "scala-websocket",
-    version := "0.1.0",
+    version := "0.2.0-SNAPSHOT",
     scalaVersion := "2.9.1",
     libraryDependencies ++= Seq(
       "io.netty" % "netty" % "3.3.1.Final",
