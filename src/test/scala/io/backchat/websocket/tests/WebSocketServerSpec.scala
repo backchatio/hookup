@@ -12,6 +12,7 @@ import java.net.{URI, ServerSocket}
 import akka.util.Timeout
 import net.liftweb.json._
 import JsonDSL._
+import java.io.File
 
 class WebSocketServerSpec extends Specification with NoTimeConversions { def is = sequential ^
   "A WebSocketServer should" ^
@@ -78,15 +79,19 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
 
     def withClient[T <% Result](handler: WebSocket.Receive, protocols: String*)(thunk: WebSocket => T): T = {
       val protos = protocols
-      val cl = new WebSocket with BufferedWebSocket {
+      val cl = new WebSocket {
         val uri = new URI("ws://127.0.0.1:"+serverAddress.toString+"/")
+
+
+        val settings: WebSocketContext = WebSocketContext(
+          uri = uri,
+          throttle = IndefiniteThrottle(1 second, 1 second),
+          buffer = Some(new FileBuffer(new File("./work/buffer-test.log"))),
+          protocols = protocols
+        )
 
         override private[websocket] def raiseEvents = true
 
-
-        override def throttle = IndefiniteThrottle(1 second, 1 second)
-
-        override val protocols = protos
 
         def receive = handler
       }
