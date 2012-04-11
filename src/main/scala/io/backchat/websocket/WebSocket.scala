@@ -199,30 +199,30 @@ object WebSocket {
 
   private final class WebSocketHost(val client: WebSocket)(implicit executionContext: ExecutionContext, wireFormat: WireFormat) extends WebSocketLike with BroadcastChannel with Connectable with Reconnectable {
 
-    private[this] val normalized = client.uri.normalize()
+    private[this] val normalized = client.settings.uri.normalize()
     private[this] val tgt = if (normalized.getPath == null || normalized.getPath.trim().isEmpty) {
       new URI(normalized.getScheme, normalized.getAuthority, "/", normalized.getQuery, normalized.getFragment)
     } else normalized
-    private[this] val protos = if (client.protocols.isEmpty) null else client.protocols.mkString(",")
+    private[this] val protos = if (client.settings.protocols.isEmpty) null else client.settings.protocols.mkString(",")
 
     private[this] val bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(Executors.newCachedThreadPool, Executors.newCachedThreadPool))
     private[this] var handshaker: WebSocketClientHandshaker = null
     private[this] val timer = new HashedWheelTimer()
     private[this] var channel: Channel = null
     private[this] var _isConnected: Promise[OperationResult] = Promise[OperationResult]()
-    private[this] val buffer = new FileBuffer(client.bufferPath)
+    private[this] val buffer = client.settings.buffer
 
     def isConnected = channel != null && channel.isConnected && _isConnected.isCompleted
 
     private def configureBootstrap() {
       val self = this
-      val ping = client.ping.duration.toSeconds.toInt
+      val ping = client.settings.pinging.duration.toSeconds.toInt
       bootstrap.setPipelineFactory(new ChannelPipelineFactory {
         def getPipeline = {
           val pipeline = Channels.pipeline()
           pipeline.addLast("timeouts", new IdleStateHandler(timer, ping, 0, 0))
           pipeline.addLast("pingpong", new PingPongHandler(logger))
-          if (client.version == WebSocketVersion.V00)
+          if (client.settings.version == WebSocketVersion.V00)
             pipeline.addLast("decoder", new WebSocketHttpResponseDecoder)
           else
             pipeline.addLast("decoder", new HttpResponseDecoder)
@@ -246,17 +246,17 @@ object WebSocket {
       })
     }
 
-    var throttle = client.throttle
+    var throttle = client.settings.throttle
     var isClosing = false
     configureBootstrap()
 
     def connect(): Future[OperationResult] = synchronized {
-      handshaker = new WebSocketClientHandshakerFactory().newHandshaker(tgt, client.version, protos, false, client.initialHeaders.asJava)
+      handshaker = new WebSocketClientHandshakerFactory().newHandshaker(tgt, client.settings.version, protos, false, client.settings.initialHeaders.asJava)
       isClosing = false
       val self = this
       if (isConnected) Promise.successful(Success)
       else {
-        val fut = bootstrap.connect(new InetSocketAddress(client.uri.getHost, client.uri.getPort))
+        val fut = bootstrap.connect(new InetSocketAddress(client.settings.uri.getHost, client.settings.uri.getPort))
         fut.addListener(new ChannelFutureListener {
           def operationComplete(future: ChannelFuture) {
             if (future.isSuccess && isReconnecting) {
@@ -266,7 +266,7 @@ object WebSocket {
         })
         val af = fut.toAkkaFuture flatMap {
           case Success ⇒
-            throttle = client.throttle
+            throttle = client.settings.throttle
             channel = fut.getChannel
             handshaker.handshake(channel).toAkkaFuture
           case x ⇒ Promise.successful(x)
@@ -276,7 +276,7 @@ object WebSocket {
             isReconnecting = false
             _isConnected
           }
-          if (client.buffered) buffer.open()
+          buffer foreach (_.open())
           Await.ready(fut, 5 seconds)
         } catch {
           case ex ⇒ {
@@ -302,7 +302,7 @@ object WebSocket {
     }
 
     def delay(thunk: ⇒ Future[OperationResult]): Future[OperationResult] = {
-      if (client.throttle != NoThrottle) {
+      if (client.settings.throttle != NoThrottle) {
         val promise = Promise[OperationResult]()
         val theDelay = throttle.delay
         throttle = throttle.next()
@@ -314,7 +314,7 @@ object WebSocket {
     }
 
     private def task(promise: Promise[OperationResult], theDelay: Duration, thunk: ⇒ Future[OperationResult]): TimerTask = {
-      logger info "Connection to host [%s] lost, reconnecting in %s".format(client.uri.toASCIIString, humanize(theDelay))
+      logger info "Connection to host [%s] lost, reconnecting in %s".format(client.settings.uri.toASCIIString, humanize(theDelay))
       new TimerTask {
         def run(timeout: NettyTimeout) {
           if (!timeout.isCancelled) {
@@ -348,7 +348,7 @@ object WebSocket {
             future.getChannel.close().addListener(new ChannelFutureListener {
               def operationComplete(future: ChannelFuture) {
                 if (!isReconnecting) {
-                  buffer.close()
+                  buffer foreach (_.close())
                   client.receive lift Disconnected(None)
                 }
                 _isConnected = Promise[OperationResult]()
@@ -359,7 +359,7 @@ object WebSocket {
         })
       } else {
         if (!isReconnecting) {
-          buffer.close()
+          buffer foreach (_.close())
           client.receive lift Disconnected(None)
         }
         disconnected.success(Success)
@@ -388,7 +388,7 @@ object WebSocket {
         channel.write(message).toAkkaFuture
       } else {
         logger info "buffering message until fully connected"
-        buffer write message
+        buffer foreach (_.write(message))
         Promise.successful(Success)
       }
     }
@@ -397,11 +397,13 @@ object WebSocket {
 
     def internalReceive: Receive = {
       case Connected ⇒ {
-        buffer.drain(channel.send(_)) onComplete {
-          case _ ⇒
-            _isConnected.success(Success)
+        buffer foreach { b ⇒
+          b.drain(channel.send(_)) onComplete {
+            case _ ⇒
+              _isConnected.success(Success)
+          }
+          client.receive lift Connected
         }
-        client.receive lift Connected
       }
     }
 
@@ -466,29 +468,27 @@ trait WebSocketLike extends BroadcastChannelLike {
   def receive: WebSocket.Receive
 }
 
+case class WebSocketContext(
+  uri: URI,
+  version: WebSocketVersion = WebSocketVersion.V13,
+  initialHeaders: Map[String, String] = Map.empty,
+  protocols: Seq[String] = Nil,
+  pinging: Timeout = Timeout(60 seconds),
+  buffer: Option[BackupBuffer] = None,
+  throttle: Throttle = NoThrottle,
+  executionContext: ExecutionContext = WebSocket.executionContext)(implicit val wireFormat: WireFormat)
+
 trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
 
   import WebSocket.WebSocketHost
 
-  def uri: URI
+  def settings: WebSocketContext
 
-  def protocols: Seq[String] = Nil
-
-  def version: WebSocketVersion = WebSocketVersion.V13
-
-  def initialHeaders: Map[String, String] = Map.empty[String, String]
-
-  def ping = Timeout(60 seconds)
-
-  def throttle: Throttle = NoThrottle
-
-  def bufferPath: File = null
-
-  def buffered = false
+  def buffered = settings.buffer.isDefined
 
   private[websocket] def raiseEvents: Boolean = false
 
-  implicit protected def executionContext = WebSocket.executionContext
+  implicit protected def executionContext = settings.executionContext
 
   implicit protected def formats: Formats = DefaultFormats
   implicit def wireFormat: WireFormat = new LiftJsonWireFormat
@@ -509,11 +509,11 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
 
 }
 
-trait BufferedWebSocket { self: WebSocket ⇒
-
-  override def throttle = IndefiniteThrottle(500 millis, 30 minutes)
-
-  override def bufferPath = new File("./work/buffer.log")
-  override def buffered = true
-
-}
+//trait BufferedWebSocket { self: WebSocket ⇒
+//
+//  override def throttle = IndefiniteThrottle(500 millis, 30 minutes)
+//
+//  override def bufferPath = new File("./work/buffer.log")
+//  override def buffered = true
+//
+//}

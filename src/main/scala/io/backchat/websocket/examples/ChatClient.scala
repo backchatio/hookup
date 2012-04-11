@@ -10,7 +10,7 @@ import java.io.File
 
 object ChatClient {
 
-  implicit val formats: Formats = DefaultFormats
+  implicit val wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)
   val messageCounter = new AtomicInteger(0)
 
   def main(args: Array[String]) {
@@ -20,10 +20,13 @@ object ChatClient {
     }
     val system = ActorSystem("ChatClient")
 
-    new WebSocket with BufferedWebSocket {
+    new WebSocket {
       val uri = URI.create("ws://localhost:8127/")
 
-      override def bufferPath = new File("./work/buffer-" + args(0) + ".log")
+      val settings: WebSocketContext = WebSocketContext(
+        uri = uri,
+        throttle = IndefiniteThrottle(5 seconds, 30 minutes),
+        buffer = Some(new FileBuffer(new File("./work/buffer.log"))))
 
       def receive = {
         case TextMessage(text) ⇒

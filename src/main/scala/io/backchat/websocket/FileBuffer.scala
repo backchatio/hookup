@@ -20,11 +20,11 @@ object FileBuffer {
 trait BackupBuffer {
   def open()
   def close()
-  def write(line: String)
-  def drain(readLine: String ⇒ Unit)(implicit executionContext: ExecutionContext)
+  def write(line: WebSocketOutMessage)
+  def drain(readLine: (WebSocketOutMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult]
 }
 
-class FileBuffer private[websocket] (file: File, writeToFile: Boolean, memoryBuffer: Queue[String])(implicit wireFormat: WireFormat) extends Closeable {
+class FileBuffer private[websocket] (file: File, writeToFile: Boolean, memoryBuffer: Queue[String])(implicit wireFormat: WireFormat) extends BackupBuffer with Closeable {
 
   def this(file: File)(implicit wireFormat: WireFormat) = this(file, true, new ConcurrentLinkedQueue[String]())
 

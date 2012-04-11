@@ -6,18 +6,24 @@ import net.liftweb.json.{ DefaultFormats, Formats }
 import akka.actor.ActorSystem
 import akka.util.duration._
 import java.util.concurrent.atomic.AtomicInteger
+import java.io.File
 
 object PrintingEchoClient {
 
-  implicit val formats: Formats = DefaultFormats
+  implicit val wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)
   val messageCounter = new AtomicInteger(0)
 
   def main(args: Array[String]) {
 
     val system = ActorSystem("PrintingEchoClient")
 
-    new WebSocket with BufferedWebSocket {
+    new WebSocket {
       val uri = URI.create("ws://localhost:8125/")
+
+      val settings: WebSocketContext = WebSocketContext(
+        uri = uri,
+        throttle = IndefiniteThrottle(5 seconds, 30 minutes),
+        buffer = Some(new FileBuffer(new File("./work/buffer.log"))))
 
       def receive = {
         case TextMessage(text) ⇒

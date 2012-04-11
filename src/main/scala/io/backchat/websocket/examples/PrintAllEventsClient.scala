@@ -7,10 +7,11 @@ import java.net.URI
 import akka.util.duration._
 import akka.actor.{ Cancellable, ActorSystem }
 import JsonDSL._
+import java.io.File
 
 object PrintAllEventsClient {
 
-  implicit val formats: Formats = DefaultFormats
+  implicit val wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)
   val messageCounter = new AtomicInteger(0)
   val bufferedCounter = new AtomicInteger(0)
 
@@ -19,8 +20,13 @@ object PrintAllEventsClient {
     val system = ActorSystem("PrintAllEventsClient") // the actor system is only for the scheduler in the example
     var timeout: Cancellable = null
 
-    new WebSocket with BufferedWebSocket {
+    new WebSocket {
       val uri = URI.create("ws://localhost:8126/")
+
+      val settings: WebSocketContext = WebSocketContext(
+        uri,
+        throttle = IndefiniteThrottle(5 seconds, 30 minutes),
+        buffer = Some(new FileBuffer(new File("./work/buffer.log"))))
 
       def receive = {
         case Connected       ⇒ println("Connected to the server")
