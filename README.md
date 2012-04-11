@@ -26,6 +26,12 @@ In addition to the shared items the client optionally does:
 
 ## Usage
 
+This library is available on maven central.
+
+```scala
+libraryDependencies += "io.backchat.websocket" %% "scala-websocket" % "0.1.0"
+```
+
 #### Create a websocket server
 
 ```scala
