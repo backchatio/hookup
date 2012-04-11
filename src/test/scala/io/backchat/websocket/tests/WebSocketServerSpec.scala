@@ -32,7 +32,7 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       "expecting an ack on the client" ! webSocketServerContext().clientExpectsAnAck ^ bt(3) ^
   end
 
-  implicit val formats: Formats = DefaultFormats
+  implicit val wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)
   implicit val executionContext = ExecutionContext.fromExecutorService(Executors.newCachedThreadPool())
   override def map(fs: => Fragments) = super.map(fs) ^ Step(executionContext.shutdown())
 

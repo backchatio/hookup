@@ -2,7 +2,7 @@ package io.backchat.websocket
 package examples
 
 import java.net.URI
-import net.liftweb.json.{DefaultFormats, Formats}
+import net.liftweb.json.{ DefaultFormats, Formats }
 import akka.actor.ActorSystem
 import akka.util.duration._
 import java.util.concurrent.atomic.AtomicInteger
@@ -26,12 +26,12 @@ object ChatClient {
       override def bufferPath = new File("./work/buffer-" + args(0) + ".log")
 
       def receive = {
-        case TextMessage(text) =>
+        case TextMessage(text) ⇒
           println(text)
       }
 
       connect() onSuccess {
-        case _ =>
+        case _ ⇒
           println("connected to: %s" format uri.toASCIIString)
           system.scheduler.schedule(2 seconds, 5 second) {
             send(args(0) + ": message " + messageCounter.incrementAndGet().toString)

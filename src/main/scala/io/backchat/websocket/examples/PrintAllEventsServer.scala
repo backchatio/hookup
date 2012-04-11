@@ -5,23 +5,23 @@ import net.liftweb.json._
 
 object PrintAllEventsServer {
 
-  implicit val formats: Formats = DefaultFormats
+  implicit val wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)
 
   def main(args: Array[String]) {
     val server = WebSocketServer(8126) {
       new WebSocketServerClient {
         def receive = {
-          case Connected =>
+          case Connected ⇒
             println("client connected")
-          case Disconnected(_) =>
+          case Disconnected(_) ⇒
             println("client disconnected")
-          case m @ Error(exOpt) =>
+          case m @ Error(exOpt) ⇒
             System.err.println("Received an error: " + m)
             exOpt foreach { _.printStackTrace(System.err) }
-          case m: TextMessage =>
+          case m: TextMessage ⇒
             println(m)
             send(m)
-          case m: JsonMessage =>
+          case m: JsonMessage ⇒
             println("JsonMessage(" + pretty(render(m.content)) + ")")
             send(m)
         }

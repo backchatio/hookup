@@ -25,7 +25,7 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
     "not fail under concurrent load" ! handlesConcurrentLoads ^
   end
 
-  implicit val formats = DefaultFormats
+  implicit val wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)
   implicit val executionContext = ExecutionContext.fromExecutorService(Executors.newCachedThreadPool())
   override def map(fs: => Fragments) = super.map(fs) ^ Step(executionContext.shutdown())
 
@@ -51,7 +51,7 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
     buff.write(exp1)
     buff.write(exp2)
     buff.close()
-    val lines = Source.fromFile(logPath).getLines().toList map WebSocket.ParseToWebSocketOutMessage.apply
+    val lines = Source.fromFile(logPath).getLines().toList map wireFormat.parseOutMessage
     FileUtils.deleteQuietly(new File("./test-work2"))
     lines must haveTheSameElementsAs(List(exp1, exp2))
   }

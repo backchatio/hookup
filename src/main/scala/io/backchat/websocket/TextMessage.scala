@@ -6,7 +6,7 @@ import akka.util.Duration
 
 sealed trait WebSocketInMessage
 sealed trait WebSocketOutMessage
-trait Ackable { self: WebSocketOutMessage =>
+trait Ackable { self: WebSocketOutMessage ⇒
   def needsAck(within: Duration = 1 second) = NeedsAck(this, within)
 }
 case object Connected extends WebSocketInMessage

@@ -8,45 +8,44 @@ import collection.JavaConverters._
 import websocketx._
 import org.jboss.netty.buffer.ChannelBuffers
 import akka.util.duration._
-import akka.dispatch.{ExecutionContext, Await, Promise, Future}
+import akka.dispatch.{ ExecutionContext, Await, Promise, Future }
 import akka.jsr166y.ForkJoinPool
 import java.lang.Thread.UncaughtExceptionHandler
-import org.jboss.netty.handler.timeout.{IdleStateAwareChannelHandler, IdleStateEvent, IdleState, IdleStateHandler}
-import org.jboss.netty.logging.{InternalLogger, InternalLoggerFactory}
+import org.jboss.netty.handler.timeout.{ IdleStateAwareChannelHandler, IdleStateEvent, IdleState, IdleStateHandler }
+import org.jboss.netty.logging.{ InternalLogger, InternalLoggerFactory }
 import java.util.concurrent.atomic.AtomicLong
-import net.liftweb.json.{DefaultFormats, Formats}
+import net.liftweb.json.{ DefaultFormats, Formats }
 import io.backchat.websocket.WebSocketServer.MessageAckingHandler
-import java.util.concurrent.{TimeUnit, Executors}
-import org.jboss.netty.util.{Timeout ⇒ NettyTimeout, TimerTask, HashedWheelTimer, CharsetUtil}
-import akka.util.{Duration, Timeout}
+import java.util.concurrent.{ TimeUnit, Executors }
+import org.jboss.netty.util.{ Timeout ⇒ NettyTimeout, TimerTask, HashedWheelTimer, CharsetUtil }
+import akka.util.{ Duration, Timeout }
 import java.io.File
-import java.net.{ConnectException, InetSocketAddress, URI}
+import java.net.{ ConnectException, InetSocketAddress, URI }
 import java.nio.channels.ClosedChannelException
 
-
 /**
-* Usage of the simple websocket client:
-*
-* <pre>
-*   new WebSocket {
-*     val uri = new URI("ws://localhost:8080/thesocket")
-*
-*     def receive = {
-*       case Disconnected(_) ⇒ println("The websocket to " + url.toASCIIString + " disconnected.")
-*       case TextMessage(message) ⇒ {
-*         println("RECV: " + message)
-*         send("ECHO: " + message)
-*       }
-*     }
-*
-*    connect() onSuccess {
- *    case Success ⇒
- *      println("The websocket to " + url.toASCIIString + "is connected.")
- *    case _ ⇒
+ * Usage of the simple websocket client:
+ *
+ * <pre>
+ *   new WebSocket {
+ *     val uri = new URI("ws://localhost:8080/thesocket")
+ *
+ *     def receive = {
+ *       case Disconnected(_) ⇒ println("The websocket to " + url.toASCIIString + " disconnected.")
+ *       case TextMessage(message) ⇒ {
+ *         println("RECV: " + message)
+ *         send("ECHO: " + message)
+ *       }
+ *     }
+ *
+ *     connect() onSuccess {
+ *       case Success ⇒
+ *         println("The websocket to " + url.toASCIIString + "is connected.")
+ *       case _ ⇒
+ *     }
  *   }
-*  }
-* </pre>
-*/
+ * </pre>
+ */
 object WebSocket {
 
   object ParseToWebSocketInMessage {
@@ -63,10 +62,10 @@ object WebSocket {
       val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
       (contentType) match {
         case "ack_request" ⇒ AckRequest(inferContentMessage(content \ "message"), (content \ "id").extract[Long])
-        case "ack" ⇒ Ack((content \ "id").extract[Long])
-        case "text" ⇒ TextMessage((content \ "content").extract[String])
-        case "json" ⇒ JsonMessage((content \ "content"))
-        case _ ⇒ JsonMessage(content)
+        case "ack"         ⇒ Ack((content \ "id").extract[Long])
+        case "text"        ⇒ TextMessage((content \ "content").extract[String])
+        case "json"        ⇒ JsonMessage((content \ "content"))
+        case _             ⇒ JsonMessage(content)
       }
     }
 
@@ -93,10 +92,10 @@ object WebSocket {
     private def inferJsonMessageFromContent(content: JValue)(implicit format: Formats): WebSocketOutMessage = {
       val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
       (contentType) match {
-        case "needs_ack" ⇒ NeedsAck(inferContentMessage(content \ "content"), (content \ "timeout").extract[Long].millis )
-        case "text" ⇒ TextMessage((content \ "content").extract[String])
-        case "json" ⇒ JsonMessage((content \ "content"))
-        case _ ⇒ JsonMessage(content)
+        case "needs_ack" ⇒ NeedsAck(inferContentMessage(content \ "content"), (content \ "timeout").extract[Long].millis)
+        case "text"      ⇒ TextMessage((content \ "content").extract[String])
+        case "json"      ⇒ JsonMessage((content \ "content"))
+        case _           ⇒ JsonMessage(content)
       }
     }
 
@@ -123,7 +122,7 @@ object WebSocket {
         case NeedsAck(msg, timeout) ⇒
           compact(render(("type" -> "needs_ack") ~ ("timeout" -> timeout.toMillis) ~ ("content" -> contentFrom(msg))))
         case Ack(id) ⇒ compact(render(("type" -> "ack") ~ ("id" -> id)))
-        case x ⇒ sys.error(x.getClass.getName + " is an unsupported message type")
+        case x       ⇒ sys.error(x.getClass.getName + " is an unsupported message type")
       }
     }
 
@@ -137,35 +136,33 @@ object WebSocket {
 
   private val logger = InternalLoggerFactory.getInstance("WebSocket")
 
-  class WebSocketClientHostHandler(handshaker: WebSocketClientHandshaker, host: WebSocketHost)(implicit formats: Formats) extends SimpleChannelHandler {
+  class WebSocketClientHostHandler(handshaker: WebSocketClientHandshaker, host: WebSocketHost)(implicit wireFormat: WireFormat) extends SimpleChannelHandler {
     private val msgCount = new AtomicLong(0)
 
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
         case resp: HttpResponse if handshaker.isHandshakeComplete ⇒
           throw new WebSocketException("Unexpected HttpResponse (status=" + resp.getStatus + ", content="
-                              + resp.getContent.toString(CharsetUtil.UTF_8) + ")")
+            + resp.getContent.toString(CharsetUtil.UTF_8) + ")")
         case resp: HttpResponse ⇒
           handshaker.finishHandshake(ctx.getChannel, resp)
           host.receive lift Connected
 
         case f: TextWebSocketFrame ⇒
-          val inferred = ParseToWebSocketInMessage(f.getText)
+          val inferred = wireFormat.parseInMessage(f.getText)
           inferred match {
-            case a: Ack ⇒ Channels.fireMessageReceived(ctx, a)
+            case a: Ack        ⇒ Channels.fireMessageReceived(ctx, a)
             case a: AckRequest ⇒ Channels.fireMessageReceived(ctx, a)
-            case r ⇒ host.receive lift r
+            case r             ⇒ host.receive lift r
           }
         case f: BinaryWebSocketFrame ⇒ host.receive lift BinaryMessage(f.getBinaryData.array())
         case f: ContinuationWebSocketFrame ⇒
           logger warn "Got a continuation frame this is not (yet) supported"
-        case _: PingWebSocketFrame ⇒ ctx.getChannel.write(new PongWebSocketFrame())
-        case _: PongWebSocketFrame ⇒
+        case _: PingWebSocketFrame  ⇒ ctx.getChannel.write(new PongWebSocketFrame())
+        case _: PongWebSocketFrame  ⇒
         case _: CloseWebSocketFrame ⇒ host.close()
       }
     }
-
-
 
     override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
       (e.getCause) match {
@@ -179,32 +176,32 @@ object WebSocket {
 
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
-        case content: String ⇒ e.getChannel.write(new TextWebSocketFrame(content))
-        case m: JsonMessage ⇒ sendOutMessage(m, e.getChannel)
-        case m: TextMessage ⇒ sendOutMessage(m, e.getChannel)
+        case content: String        ⇒ e.getChannel.write(new TextWebSocketFrame(content))
+        case m: JsonMessage         ⇒ sendOutMessage(m, e.getChannel)
+        case m: TextMessage         ⇒ sendOutMessage(m, e.getChannel)
         case BinaryMessage(content) ⇒ e.getChannel.write(new BinaryWebSocketFrame(ChannelBuffers.copiedBuffer(content)))
-        case Disconnect ⇒ // ignore here
+        case Disconnect             ⇒ // ignore here
         case _: WebSocketOutMessage ⇒
-        case _ ⇒ ctx.sendDownstream(e)
+        case _                      ⇒ ctx.sendDownstream(e)
       }
     }
 
     private def sendOutMessage(msg: WebSocketOutMessage with Ackable, channel: Channel) {
-      channel.write(new TextWebSocketFrame(RenderOutMessage(msg)))
+      channel.write(new TextWebSocketFrame(wireFormat.render(msg)))
     }
 
     override def channelDisconnected(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
-      if (!host.isClosing||host.isReconnecting) {
+      if (!host.isClosing || host.isReconnecting) {
         host.reconnect()
       }
     }
   }
 
-  private final class WebSocketHost(val client: WebSocket)(implicit executionContext: ExecutionContext, formats: Formats) extends WebSocketLike with BroadcastChannel with Connectable with Reconnectable {
+  private final class WebSocketHost(val client: WebSocket)(implicit executionContext: ExecutionContext, wireFormat: WireFormat) extends WebSocketLike with BroadcastChannel with Connectable with Reconnectable {
 
     private[this] val normalized = client.uri.normalize()
     private[this] val tgt = if (normalized.getPath == null || normalized.getPath.trim().isEmpty) {
-      new URI(normalized.getScheme, normalized.getAuthority,"/", normalized.getQuery, normalized.getFragment)
+      new URI(normalized.getScheme, normalized.getAuthority, "/", normalized.getQuery, normalized.getFragment)
     } else normalized
     private[this] val protos = if (client.protocols.isEmpty) null else client.protocols.mkString(",")
 
@@ -237,9 +234,9 @@ object WebSocket {
             pipeline.addLast("eventsHook", new SimpleChannelHandler {
               override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
                 e.getMessage match {
-                  case m: Ack ⇒ client.receive lift m
+                  case m: Ack        ⇒ client.receive lift m
                   case m: AckRequest ⇒ client.receive lift m
-                  case _ ⇒ ctx.sendUpstream(e)
+                  case _             ⇒ ctx.sendUpstream(e)
                 }
               }
             })
@@ -296,13 +293,13 @@ object WebSocket {
     def reconnect(): Future[OperationResult] = {
       if (!isReconnecting) client.receive lift Reconnecting
       isReconnecting = true
-      close() andThen { case _ ⇒
-        delay {
-          connect()
-        }
+      close() andThen {
+        case _ ⇒
+          delay {
+            connect()
+          }
       }
     }
-
 
     def delay(thunk: ⇒ Future[OperationResult]): Future[OperationResult] = {
       if (client.throttle != NoThrottle) {
@@ -340,13 +337,12 @@ object WebSocket {
         dur.toMinutes.toString + " minutes"
     }
 
-
     def close(): Future[OperationResult] = synchronized {
       isClosing = true;
       val closing = Promise[OperationResult]()
       val disconnected = Promise[OperationResult]()
 
-      if(isConnected) {
+      if (isConnected) {
         channel.write(new CloseWebSocketFrame()).addListener(new ChannelFutureListener {
           def operationComplete(future: ChannelFuture) {
             future.getChannel.close().addListener(new ChannelFutureListener {
@@ -368,7 +364,6 @@ object WebSocket {
         }
         disconnected.success(Success)
       }
-
 
       disconnected onComplete {
         case _ ⇒ {
@@ -402,8 +397,9 @@ object WebSocket {
 
     def internalReceive: Receive = {
       case Connected ⇒ {
-        buffer.drain(channel.send(_)) onComplete  { case _ ⇒
-          _isConnected.success(Success)
+        buffer.drain(channel.send(_)) onComplete {
+          case _ ⇒
+            _isConnected.success(Success)
         }
         client.receive lift Connected
       }
@@ -422,7 +418,7 @@ object WebSocket {
     protected override def isContentAlwaysEmpty(msg: HttpMessage) = {
       msg match {
         case res: HttpResponse ⇒ codes contains res.getStatus.getCode
-        case _ ⇒ false
+        case _                 ⇒ false
       }
     }
   }
@@ -443,7 +439,7 @@ object WebSocket {
    *
    * Copied from https://github.com/cgbystrom/netty-tools
    */
-  class WebSocketException(s: String,  th: Throwable) extends java.io.IOException(s, th) {
+  class WebSocketException(s: String, th: Throwable) extends java.io.IOException(s, th) {
     def this(s: String) = this(s, null)
   }
 
@@ -455,7 +451,6 @@ object WebSocket {
       }
     }
   }
-
 
 }
 
@@ -470,7 +465,6 @@ trait WebSocketLike extends BroadcastChannelLike {
 
   def receive: WebSocket.Receive
 }
-
 
 trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
 
@@ -495,7 +489,9 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
   private[websocket] def raiseEvents: Boolean = false
 
   implicit protected def executionContext = WebSocket.executionContext
+
   implicit protected def formats: Formats = DefaultFormats
+  implicit def wireFormat: WireFormat = new LiftJsonWireFormat
 
   private[websocket] lazy val channel: BroadcastChannel with Connectable with Reconnectable = new WebSocketHost(this)
 
@@ -504,7 +500,6 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
   final def !(message: WebSocketOutMessage) = send(message)
 
   final def connect(): Future[OperationResult] = channel.connect()
-
 
   def reconnect() = channel.reconnect()
 

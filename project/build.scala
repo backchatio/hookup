@@ -10,7 +10,7 @@ object BackchatMinutesBuild extends Build {
     version := "0.1.0",
     scalaVersion := "2.9.1",
     libraryDependencies ++= Seq(
-      "io.netty" % "netty" % "3.4.0.Alpha1" % "compile",
+      "io.netty" % "netty" % "3.3.1.Final",
       "net.liftweb" %% "lift-json" % "2.4" % "compile",
       "commons-io" % "commons-io" % "2.1",
       "com.typesafe.akka" % "akka-actor" % "2.0" % "compile",
@@ -36,8 +36,7 @@ object BackchatMinutesBuild extends Build {
     })
 
   lazy val root =
-    (Project("backchat-websocket", file("."), settings = projectSettings)
-      settings (VersionGenPlugin.allSettings:_*))
+    Project("backchat-websocket", file("."), settings = projectSettings)
 
 
 
