@@ -5,13 +5,13 @@ import net.liftweb.json._
 
 object PrintingEchoServer {
 
-  implicit val formats: Formats = DefaultFormats
+  implicit val wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)
 
   def main(args: Array[String]) {
     val server = WebSocketServer(8125) {
       new WebSocketServerClient {
         def receive = {
-          case TextMessage(text) =>
+          case TextMessage(text) ⇒
             println(text)
             send(text)
         }
