@@ -2,11 +2,11 @@ import sbt._
 import Keys._
 import xml.Group
 
-object BackchatMinutesBuild extends Build {
+object BackchatWebSocketBuild extends Build {
   
   val projectSettings = Defaults.defaultSettings ++ Seq(
     organization := "io.backchat.websocket",
-    name := "scala-websocket",
+    name := "backchat-websocket",
     version := "0.2.0-SNAPSHOT",
     scalaVersion := "2.9.1",
     libraryDependencies ++= Seq(
