@@ -7,7 +7,7 @@ vows.describe("WireFormat").addBatch({
     topic: {
       text: "this is a text message",
       textResult: { type: "text", content: "this is a text message" },
-      jsonResult: {data: "a json message", type: 'json'},
+      jsonResult: { content: { data: "a json message" }, type: 'json'},
       jsonData: {data: "a json message"},
       json: JSON.stringify({data: "a json message"}),
       ackResult: { id: 3, type: "ack" },

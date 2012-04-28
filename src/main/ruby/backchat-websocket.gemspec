@@ -22,7 +22,7 @@ Gem::Specification.new do |s|
   
   s.add_dependency("eventmachine")
   s.add_dependency("faye-websocket")
-  s.add_dependency("yajl-ruby")
+  s.add_dependency("json")
   
   s.add_development_dependency('rspec')
   s.add_development_dependency('webmock')
