@@ -10,7 +10,7 @@ object BackchatWebSocketBuild extends Build {
     version := "0.2.0-SNAPSHOT",
     scalaVersion := "2.9.1",
     libraryDependencies ++= Seq(
-      "io.netty" % "netty" % "3.4.0.Final",
+      "io.netty" % "netty" % "3.4.1.Final",
       "net.liftweb" %% "lift-json" % "2.4" % "compile",
       "commons-io" % "commons-io" % "2.1",
       "com.typesafe.akka" % "akka-actor" % "2.0.1" % "compile",
