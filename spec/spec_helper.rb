@@ -2,7 +2,7 @@
 require 'bundler/setup'
 require 'rainbows'
 require 'faye/websocket'
-require 'yajl/json_gem'
+require 'json'
 Unicorn::Configurator::DEFAULTS[:logger] = Logger.new(StringIO.new)
 
 $:.unshift File.expand_path('../../lib', __FILE__)
