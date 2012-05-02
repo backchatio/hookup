@@ -1,5 +1,5 @@
 import xml.Group
-import scalariform.formatter.preferences._
+//import scalariform.formatter.preferences._
 
 publishMavenStyle := true
 
@@ -53,19 +53,19 @@ pomExtra <<= (pomExtra, name, description) {(pom, name, desc) => pom ++ Group(
   </developers>
 )}
 
-seq(scalariformSettings: _*)
-
-ScalariformKeys.preferences :=
-  (FormattingPreferences()
-        setPreference(IndentSpaces, 2)
-        setPreference(AlignParameters, false)
-        setPreference(AlignSingleLineCaseStatements, true)
-        setPreference(DoubleIndentClassDeclaration, true)
-        setPreference(RewriteArrowSymbols, true)
-        setPreference(PreserveSpaceBeforeArguments, true)
-        setPreference(IndentWithTabs, false))
-
-(excludeFilter in ScalariformKeys.format) <<= excludeFilter(_ || "*Spec.scala")
+//seq(scalariformSettings: _*)
+//
+//ScalariformKeys.preferences :=
+//  (FormattingPreferences()
+//        setPreference(IndentSpaces, 2)
+//        setPreference(AlignParameters, false)
+//        setPreference(AlignSingleLineCaseStatements, true)
+//        setPreference(DoubleIndentClassDeclaration, true)
+//        setPreference(RewriteArrowSymbols, true)
+//        setPreference(PreserveSpaceBeforeArguments, true)
+//        setPreference(IndentWithTabs, false))
+//
+//(excludeFilter in ScalariformKeys.format) <<= excludeFilter(_ || "*Spec.scala")
 
 seq(buildInfoSettings: _*)
 
