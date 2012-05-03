@@ -24,13 +24,14 @@ import java.util.concurrent.atomic.AtomicLong
 import net.liftweb.json._
 import JsonDSL._
 import java.util.concurrent.{ ConcurrentHashMap, ConcurrentLinkedQueue, TimeUnit, Executors }
-import akka.actor.{ DefaultCancellable, Cancellable }
 import io.backchat.websocket.WebSocketServer.{ WebSocketCancellable }
 import akka.util.{ Index, Timeout }
 import annotation.switch
 import org.jboss.netty.handler.codec.frame.FrameDecoder
 import org.jboss.netty.buffer.{ ChannelBuffer, ChannelBuffers }
 import org.jboss.netty.util.{ CharsetUtil, Timeout ⇒ NettyTimeout, TimerTask, HashedWheelTimer }
+import com.typesafe.config.Config
+import akka.actor.{Actor, ActorRef, DefaultCancellable, Cancellable}
 
 trait ServerCapability
 
@@ -52,6 +53,38 @@ case class Ping(timeout: Timeout) extends ServerCapability
 case class FlashPolicy(domain: String, port: Seq[Int]) extends ServerCapability
 private[websocket] case object RaiseAckEvents extends ServerCapability
 private[websocket] case object RaisePingEvents extends ServerCapability
+
+object ServerInfo {
+
+  def apply(config: Config, name: String): ServerInfo = apply(config, name, "")
+
+  def apply(config: Config, name: String, prefix: String): ServerInfo = {
+    def k(v: String) = (prefix.blankOption.map(_+".") getOrElse "") + v
+    import collection.JavaConverters._
+    val caps = ListBuffer[ServerCapability]()
+    if (config.hasPath(k("contentCompression")))
+      caps += ContentCompression(config.getInt(k("contentCompression")))
+    if (config.hasPath(k("subProtocols"))) {
+      val lst = config.getStringList(k("subProtocols")).asScala.toList
+      caps += SubProtocols(lst.head, lst.tail:_*)
+    }
+    if (config.hasPath("pingTimout"))
+      caps += Ping(Timeout(config.getMilliseconds(k("pingTimeout"))))
+    if (config.hasPath("flashPolicy")) {
+      val domain = if (config.hasPath(k("flashPolicy.domain"))) config.getString(k("flashPolicy.domain")) else "*"
+      val ports: List[Int] = if (config.hasPath(k("flashPolicy.ports"))) config.getIntList(k("flashPolicy.ports")).asScala.map(_.toInt).toList else {
+        if (config.hasPath(k("flashPolicy.port"))) List(config.getInt("flashPolicy.port")) else Nil
+      }
+      caps += FlashPolicy(domain, ports)
+    }
+    new ServerInfo(
+      name,
+      if (config.hasPath(k("version"))) config.getString(k("version")) else BuildInfo.version,
+      if (config.hasPath(k("listenOn"))) config.getString(k("listenOn")) else "0.0.0.0",
+      if (config.hasPath(k("port"))) config.getInt(k("port")) else 8765,
+      caps)
+  }
+}
 
 /**
  * Main configuration object for a server
@@ -150,6 +183,21 @@ object WebSocketServer {
   //  private implicit def wsServerClient2BroadcastChannel(ch: WebSocketServerClientHandler): BroadcastChannel =
   //    new { val id = ch.id } with BroadcastChannel { def send(msg: String) { ch.send(msg) } }
   //
+
+  trait WebSocketServerClientActor { self: Actor =>
+    protected def connection: WebSocketServerClient
+    protected def remoteReceive: WebSocket.Receive
+  }
+
+  trait ActorWebSocketServerClient { self: WebSocketServerClient =>
+
+    protected def actorFactory: WebSocketServerClient => ActorRef
+
+    lazy val linkedTo: ActorRef = actorFactory(this)
+    val receive: Actor.Receive = {
+      case m => linkedTo ! m
+    }
+  }
 
   trait Broadcast {
     def apply(message: WebSocketOutMessage, allowsOnly: BroadcastFilter): Future[OperationResult]
@@ -560,6 +608,7 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
   def port = config.port
 
   import WebSocketServer._
+  import WebSocket.executionContext
   protected val logger = InternalLoggerFactory.getInstance(name)
   private[this] val timer = new HashedWheelTimer()
   private[this] var server: ServerBootstrap = null
@@ -636,6 +685,11 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
   def onStart(thunk: ⇒ Any) = startCallbacks += { () ⇒ thunk }
   def onStop(thunk: ⇒ Any) = stopCallbacks += { () ⇒ thunk }
 
+  def broadcast(message: WebSocketOutMessage) = {
+    val lst = allChannels.asScala map (x ⇒ x: BroadcastChannel) map (_ send message)
+    Future.sequence(lst) map (l ⇒ ResultList(l.toList))
+  }
+
   final def start = synchronized {
     server = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool()))
     server.setOption("soLinger", 0)
@@ -665,4 +719,11 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
     thread.join()
     logger info "Stopped %s".format(config.name)
   }
+}
+
+trait Server {
+
+  def start
+
+  def stop
 }
