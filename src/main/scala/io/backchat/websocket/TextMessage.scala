@@ -16,7 +16,7 @@ case class TextMessage(content: String) extends WebSocketInMessage with WebSocke
 case class BinaryMessage(content: Array[Byte]) extends WebSocketInMessage with WebSocketOutMessage
 private[websocket] case class NeedsAck(message: Ackable, timeout: Duration = 1 second) extends WebSocketOutMessage
 private[websocket] case class AckRequest(message: Ackable, id: Long) extends WebSocketInMessage
-private[websocket] case class AckFailed(message: WebSocketOutMessage) extends WebSocketInMessage
+case class AckFailed(message: WebSocketOutMessage) extends WebSocketInMessage
 private[websocket] case class Ack(id: Long) extends WebSocketInMessage with WebSocketOutMessage
 case class Error(cause: Option[Throwable]) extends WebSocketInMessage
 case class Disconnected(cause: Option[Throwable]) extends WebSocketInMessage
