@@ -4,13 +4,21 @@ require 'thread'
 module Backchat
   module WebSocket
 
-    RECONNECT_SCHEDULE = [1, 1, 1, 1, 1, 5, 5, 5, 5, 5, 10, 10, 10, 10, 10, 30, 30, 30, 30, 30, 60, 60, 60, 60, 60, 300, 300, 300, 300, 300]
-    JOURNAL_PATH = "./logs/journal.log"
+    RECONNECT_SCHEDULE = 1..300
+    BUFFER_PATH = "./logs/journal.log"
     EVENT_NAMES = {
       :receive => "message",
-      :connect => "open",
+      :connected => "open",
       :disconnect => "close"
     }
+
+    module ClientState
+      Disconnected = 0
+      Disconnecting = 1
+      Reconnecting = 2
+      Connecting = 3
+      Connected = 4
+    end
 
     class Client
 
@@ -19,12 +27,12 @@ module Backchat
       def on(event_name, &cb)
         @handlers.subscribe do |evt|
           callback = EM.Callback(&cb)
-          callback.call if evt[0] == :open
-          callback.call(evt[1]) if evt[0] == event_name && evt[0] != :open
+          callback.call if evt.size == 1 and evt[0] == evt_name
+          callback.call(evt[1]) if evt[0] == event_name && evt.size > 1
         end
       end
 
-      def off(evt_id) 
+      def remove_on(evt_id) 
         @handlers.unsubscribe(evt_id)
       end
 
@@ -44,44 +52,51 @@ module Backchat
         rescue 
           raise Backchat::WebSocket::InvalidURIError, ":uri [#{options[:uri]}] must be a valid uri" 
         end
-        @uri, @retry_schedule = parsed, (options[:retry_schedule]||RECONNECT_SCHEDULE.clone)
-        @retry_indefinitely = options[:retry_indefinitely]||true
+        @uri, @retry_schedule = parsed, (options[:reconnect_schedule]||RECONNECT_SCHEDULE.clone)
+        @quiet = !!options[:quiet]
         @handlers = EM::Channel.new
-        @state = :disconnected
-        if !!options[:journaled]
-          @journal = File.open(JOURNAL_PATH, 'a')
-          @journal_buffer = []
+        @wire_format = WireFormat.new
+        @expected_acks = {}
+        @ack_counter = 0
+        # this option `raise_ack_events` is only useful in tests for the acking itself.
+        # it raises an event when an ack is received or an ack request is prepared
+        # it serves no other purpose than that, ack_failed events are raised independently from this option.
+        @raise_ack_events = !!options[:raise_ack_events]
+        @state = ClientState::Disconnected
+        if !!options[:buffered]
+          @journal = FileBuffer.new(options[:buffer_path]||BUFFER_PATH)
+          @journal.on(:data, &method(:send))
         end
       end
 
       def send(msg)
-        m = msg.is_a?(String) ? msg : msg.to_json
-        if connected?
-          while entry = (@journal_buffer||[]).shift
-            @ws.send(line)
-          end
+        m = prepare_for_send(msg)
+        if connected?          
           @ws.send(m)
-        elsif @state == :journal_redo
-          @journal_buffer << m 
         else
-          @journal.puts(m) if journaled?
+          @journal << m if buffered?
         end
       end
 
+      def send_acked(msg, options={})
+        timeout = (options||{})[:timeout]||5
+        self.send(:type => :needs_ack, :content => msg, :timeout => timeout)
+      end
+
       def connect
-        establish_connection unless @state == :connecting || @state == :connected
+        establish_connection unless @state < ClientState::Connecting
       end
 
       def connected?
-        @state == :connected
+        @state == ClientState::Connected
       end
 
-      def journaled?
+      def buffered?
         !!@journal
       end
 
       def disconnect
-        if @state == :connected || @state == :connecting
+        if @state > ClientState::Reconnecting
           @skip_reconnect = true
           @ws.close
         end
@@ -99,6 +114,22 @@ module Backchat
 
       private
         def reconnect
+          if @state == ClientState::Disconnecting
+            perform_disconnect
+          else
+            @notified_of_reconnect = true
+            if @reconnect_in && @reconnect_in > 0 && @reconnect_in < @reconnect_schedule.max
+              curr = @reconnect_in
+              max = @reconnect_schedule.max
+              nxt = curr < max ? curr : max
+              if @max_retries && @max_retries > 0
+              else
+                
+              end
+            else
+              perform_disconnect
+            end
+          end
           unless @skip_reconnect          
             unless @retries.nil? || @retries.empty?
               retry_in = @retries.shift 
@@ -112,7 +143,7 @@ module Backchat
                 retry_in = @retry_schedule.last
                 secs = "second#{retry_in == 1 ? "" : "s"}"
                 puts "connection lost, reconnecting in #{retry_in >= 1 ? retry_in : retry_in * 1000} #{retry_in >= 1 ? secs : "millis"}"
-                EM.add_timer(retry_in) { establish_connection }
+                @scheduled_retry = EM::Timer.new(retry_in) { establish_connection }
               end
             end
           else
@@ -121,29 +152,33 @@ module Backchat
         end
 
         def establish_connection
+          if @scheduled_retry
+            @scheduled_retry.cancel
+            @scheduled_retry = nil
+          end
           unless connected?
             begin
               @ws = Faye::WebSocket::Client.new(@uri)
-              @state == :connecting
-              @skip_reconnect = false
+              @state = ClientState::Connecting
 
               @ws.onopen = lambda { |e| 
                 puts "connected to #{uri}"
-                @state = journaled? && @state == :reconnecting ? :journal_redo : :connected
-                flush_journal_to_server if @state == :journal_redo
-                @retries = @retry_schedule.clone
-                emit(:connected, e)
+                self.connected
               }
               @ws.onmessage = lambda { |e|
+                m = self.preprocess_in_message(e)
                 emit(:receive, e)
               }
               @ws.onerror = lambda { |e| 
-                puts e.inspect
+                unless @quiet
+                  puts "Couldn't connect to #@uri"
+                  puts e.inspect 
+                end
                 emit(:error, e)
               }
               @ws.onclose = lambda { |e| 
-                @state = @skip_reconnect ? :disconnecting : :reconnecting
-                if @state == :disconnecting
+                @state = @skip_reconnect ? ClientState::Disconnecting : ClientState::Reconnecting
+                if @state == ClientState::Disconnecting
                   emit(:disconnected, e)
                 else
                   emit(:reconnect, e)
@@ -152,22 +187,26 @@ module Backchat
               }
             rescue Exception => e
               puts e
+              emit(:error, e)
             end
           end
         end
 
         def flush_journal_to_server
           @journal.close
-          IO.foreach(JOURNAL_PATH) do |line|
+          IO.foreach(BUFFER_PATH) do |line|
             @ws.send(line)
           end
           while entry = (@journal_buffer||[]).shift
             @ws.send(line)
           end
           @state = :connected
-          @journal = File.open(JOURNAL_PATH, 'w')
+          @journal = File.open(BUFFER_PATH, 'w')
         end
 
+        def connected
+
+        end
         
 
     end
