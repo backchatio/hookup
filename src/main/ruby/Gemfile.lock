@@ -16,12 +16,14 @@ GEM
   remote: http://rubygems.org/
   specs:
     addressable (2.2.7)
-    callsite (0.0.11)
+    bacon (1.1.0)
     crack (0.3.1)
     diff-lcs (1.1.3)
-    em-ventually (0.1.3)
-      callsite (~> 0.0.5)
+    em-spec (0.2.6)
+      bacon
       eventmachine
+      rspec (> 2.6.0)
+      test-unit
     eventmachine (0.12.10)
     faye-websocket (0.4.5)
       eventmachine (>= 0.12.0)
@@ -41,6 +43,7 @@ GEM
     rspec-expectations (2.8.0)
       diff-lcs (~> 1.1.2)
     rspec-mocks (2.8.0)
+    test-unit (2.4.8)
     unicorn (4.2.1)
       kgio (~> 2.6)
       rack
@@ -54,7 +57,7 @@ PLATFORMS
 
 DEPENDENCIES
   backchat-websocket!
-  em-ventually
+  em-spec (>= 0.2.6)
   idn (~> 0.0.2)!
   rack
   rainbows (>= 1.0.0)

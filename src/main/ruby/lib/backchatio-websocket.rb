@@ -12,5 +12,6 @@ module Backchat
     autoload :Client, "#{File.dirname(__FILE__)}/backchat_websocket/client"
     autoload :WireFormat, "#{File.dirname(__FILE__)}/backchat_websocket/wire_format"
     autoload :FileBuffer, "#{File.dirname(__FILE__)}/backchat_websocket/file_buffer"
+    autoload :Eventable, "#{File.dirname(__FILE__)}/backchat_websocket/eventable"
   end
 end
