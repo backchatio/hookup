@@ -6,7 +6,6 @@ require 'json'
 Unicorn::Configurator::DEFAULTS[:logger] = Logger.new(StringIO.new)
 
 $:.unshift File.expand_path('../../lib', __FILE__)
-require File.expand_path('../../vendor/em-rspec/lib/em-rspec', __FILE__)
 
 class TestServer
   def call(env)
@@ -40,5 +39,5 @@ class TestServer
   end
 end
 
-require 'backchat_websocket'
+require 'backchatio-websocket'
 include Backchat::WebSocket

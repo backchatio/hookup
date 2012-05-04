@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 $:.push File.expand_path("../lib", __FILE__)
-require "backchat_websocket/version"
+require "backchatio-websocket/version"
 
 Gem::Specification.new do |s|
   s.name        = "backchat-websocket"
@@ -24,10 +24,9 @@ Gem::Specification.new do |s|
   s.add_dependency("faye-websocket")
   s.add_dependency("json")
   
-  s.add_development_dependency('rspec')
   s.add_development_dependency('webmock')
   s.add_development_dependency "rack"
   s.add_development_dependency "rspec", "~> 2.8.0"
   s.add_development_dependency "rainbows", ">= 1.0.0"
-  s.add_development_dependency "em-ventually"
+  s.add_development_dependency "em-spec", ">= 0.2.6"
 end

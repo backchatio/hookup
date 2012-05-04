@@ -1,4 +1,5 @@
 # -*- encoding: utf-8 -*-
+require 'thread'
 
 module Backchat
   module WebSocket
@@ -15,6 +16,24 @@ module Backchat
 
       attr_reader :uri, :retry_schedule
 
+      def on(event_name, &cb)
+        @handlers.subscribe do |evt|
+          callback = EM.Callback(&cb)
+          callback.call if evt[0] == :open
+          callback.call(evt[1]) if evt[0] == event_name && evt[0] != :open
+        end
+      end
+
+      def off(evt_id) 
+        @handlers.unsubscribe(evt_id)
+      end
+
+      private
+      def emit(evt_name, args)
+        @handlers << [evt_name, args]
+      end
+
+      public
       def initialize(options={})
         options = {:uri => options} if options.is_a?(String)
         raise Backchat::WebSocket::UriRequiredError, ":uri parameter is required" unless options.key?(:uri)
@@ -27,6 +46,7 @@ module Backchat
         end
         @uri, @retry_schedule = parsed, (options[:retry_schedule]||RECONNECT_SCHEDULE.clone)
         @retry_indefinitely = options[:retry_indefinitely]||true
+        @handlers = EM::Channel.new
         @state = :disconnected
         if !!options[:journaled]
           @journal = File.open(JOURNAL_PATH, 'a')
@@ -50,14 +70,6 @@ module Backchat
 
       def connect
         establish_connection unless @state == :connecting || @state == :connected
-      end
-
-      def on(event, &callback) 
-        cache_handler(event.to_sym, callback)
-      end
-
-      def remove_on(event, &callback)
-        evict_handler(event.to_sym, callback)
       end
 
       def connected?
@@ -120,21 +132,21 @@ module Backchat
                 @state = journaled? && @state == :reconnecting ? :journal_redo : :connected
                 flush_journal_to_server if @state == :journal_redo
                 @retries = @retry_schedule.clone
-                notify_handlers(:connected, e)
+                emit(:connected, e)
               }
               @ws.onmessage = lambda { |e|
-                notify_handlers(:receive, e)
+                emit(:receive, e)
               }
               @ws.onerror = lambda { |e| 
                 puts e.inspect
-                notify_handlers(:error, e)
+                emit(:error, e)
               }
               @ws.onclose = lambda { |e| 
                 @state = @skip_reconnect ? :disconnecting : :reconnecting
                 if @state == :disconnecting
-                  notify_handlers(:disconnected, e)
+                  emit(:disconnected, e)
                 else
-                  notify_handlers(:reconnect, e)
+                  emit(:reconnect, e)
                 end
                 reconnect 
               }
@@ -142,10 +154,6 @@ module Backchat
               puts e
             end
           end
-        end
-
-        def notify_handlers(evt, arg)
-          (@handlers[evt.to_sym]||[]).each { |h| h.call(arg.data) }
         end
 
         def flush_journal_to_server
@@ -160,16 +168,7 @@ module Backchat
           @journal = File.open(JOURNAL_PATH, 'w')
         end
 
-        def cache_handler(evt, listener) 
-          @handlers ||= {}
-          @handlers[evt] ||= []
-          @handlers[evt].push listener 
-        end
-
-        def evict_handler(evt, listener) 
-          @handlers ||= {}
-          @handlers[evt] = (handlers[evt]||[]).reject { |l| l == listener }
-        end
+        
 
     end
   end
