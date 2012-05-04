@@ -3,7 +3,7 @@ var vows = require("vows"),
     assert = require("assert"),
     WebSocket = require("../lib/backchat-websocket").WebSocket,
     WebSocketClient = require('faye-websocket'),
-    WireFormat = require("../lib/wireformat").WireFormat,
+    WireFormat = require("../lib/wireformat");
     _ = require('underscore'),
     fs = require('fs'),
     http = require('http'),
@@ -141,7 +141,7 @@ vows.describe("BackChat WebSocket").addBatch({
         return promise;
       },
       "the client can send and receive messages from the server": function(topic) {
-        assert.deepEqual(topic.messages[0], {data: "the message"});
+        assert.deepEqual(topic.messages[0], {type: 'json', content: { data: "the message"}});
       } 
     }
   }}).addBatch({

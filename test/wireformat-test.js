@@ -1,6 +1,6 @@
 var vows = require("vows"),
     assert = require("assert"),
-    WireFormat = require("../lib/wireformat").WireFormat;
+    WireFormat = require("../lib/wireformat");
 
 vows.describe("WireFormat").addBatch({
   "A WireFormat": {
@@ -10,6 +10,9 @@ vows.describe("WireFormat").addBatch({
       jsonResult: { content: { data: "a json message" }, type: 'json'},
       jsonData: {data: "a json message"},
       json: JSON.stringify({data: "a json message"}),
+      arrayResult: { content: [1, 2, 3, 4], type: "json"},
+      arrayData: [1, 2, 3, 4],
+      arrayJson: JSON.stringify([1, 2, 3, 4]),
       ackResult: { id: 3, type: "ack" },
       ack: JSON.stringify({ id: 3, type: "ack" }),
       ackRequestResult: { id: 3, type: "ack_request", content:  { type: "text", content: "this is a text message" }},
@@ -25,6 +28,9 @@ vows.describe("WireFormat").addBatch({
       },
       "a json message": function(topic) {
         assert.deepEqual(topic.wireFormat.parseMessage(topic.json), topic.jsonResult);
+      },
+      "an array json message": function(topic) {
+        assert.deepEqual(topic.wireFormat.parseMessage(topic.arrayJson), topic.arrayResult);
       },
       "an ack message": function(topic) {
         assert.deepEqual(topic.wireFormat.parseMessage(topic.ack), topic.ackResult);
@@ -44,6 +50,9 @@ vows.describe("WireFormat").addBatch({
       "a json message": function(topic) {
         assert.deepEqual(topic.wireFormat.buildMessage(topic.jsonData), topic.jsonResult);
       },
+      "an array json message": function(topic) {
+        assert.deepEqual(topic.wireFormat.buildMessage(topic.arrayData), topic.arrayResult);
+      },
       "an ack message": function(topic) {
         assert.deepEqual(topic.wireFormat.buildMessage(topic.ackResult), topic.ackResult);
       },
@@ -58,6 +67,9 @@ vows.describe("WireFormat").addBatch({
       },
       "a json message": function(topic) {
         assert.deepEqual(topic.wireFormat.unwrapContent(topic.jsonResult), topic.jsonData);
+      },
+      "an array json message": function(topic) {
+        assert.deepEqual(topic.wireFormat.unwrapContent(topic.arrayResult), topic.arrayData);
       },
       "an ack message": function(topic) {
         assert.deepEqual(topic.wireFormat.unwrapContent(topic.ackResult), topic.ackResult);
