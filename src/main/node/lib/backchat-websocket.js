@@ -3,7 +3,7 @@ var WebSocket = require('faye-websocket'),
     util = require('util'),
     events = require('events'),
     FileBuffer = require("./filebuffer").FileBuffer,
-    WireFormat = require("./wireformat").WireFormat,
+    WireFormat = require("./wireformat");
     fs = require('fs'),
     Uri = require('url');
 
@@ -71,7 +71,8 @@ _.extend(ServerClient.prototype, {
     var m = this._prepareForSend(message);
     if (this.isConnected()) {
       this._client.send(m);
-    } else this._buffer.write(m);
+    } else if(this.isBuffered()) 
+      this._buffer.write(m);
   },
   sendAcked: function(message, options) {
     var timeout = (options||{})['timeout']||5000;
@@ -116,9 +117,7 @@ _.extend(ServerClient.prototype, {
     if (this._state == DISCONNECTING) {
       this._doDisconnect();
     } else {
-      if (!this._notifiedOfReconnect) {
-        this._notifiedOfReconnect = true;
-      }
+      this._notifiedOfReconnect = true;
       if (this._reconnectIn && this._reconnectIn > 0 && this._reconnectIn < this.reconnectSchedule.max) {
         var curr = this._reconnectIn;
         var max = this.reconnectSchedule.max;

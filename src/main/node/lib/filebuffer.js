@@ -35,7 +35,7 @@ _.extend(FileBuffer.prototype, {
       this._stream.end();
     } else {
       this.emit("close");
-      self._state = CLOSED;
+      this._state = CLOSED;
     }
   },
   write: function (outMessage, callback) {
