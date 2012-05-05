@@ -8,6 +8,9 @@ describe Backchat::WebSocket::WireFormat do
   json_result = { "content" => { "data" => "a json message" }, "type" => 'json'}
   json_data = {"data" => "a json message"}
   json = JSON.generate({"data" => "a json message"})
+  array_result = { "content": [1, 2, 3, 4], "type": "json" }
+  array_data = [1,2,3,4]
+  array_json = [1,2,3,4].to_json
   ack_result = { "id" => 3, "type" => "ack" }
   ack = JSON.generate(ack_result)
   ack_request_result = { "id" => 3, "type" => "ack_request", "content" => { "type" => "text", "content" => "this is a text message" }}
