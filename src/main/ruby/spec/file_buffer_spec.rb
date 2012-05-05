@@ -13,6 +13,10 @@ describe Backchat::WebSocket::FileBuffer do
     end
 
     it "creates the path if missing" do
+      buff = new FileBuffer(work_path)
+      buff.open
+      File.exist?(work_path).should be_true
+      FileUtils.rm_rf(work_path)
     end
   end
 

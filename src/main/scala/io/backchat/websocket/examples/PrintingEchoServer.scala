@@ -5,7 +5,7 @@ import net.liftweb.json._
 
 object PrintingEchoServer {
 
-  implicit val wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)
+  implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
 
   def main(args: Array[String]) {
     val server = WebSocketServer(8125) {

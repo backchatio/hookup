@@ -48,89 +48,7 @@ import java.nio.channels.ClosedChannelException
  */
 object WebSocket {
 
-  object ParseToWebSocketInMessage {
-    import net.liftweb.json._
-    def apply(message: String)(implicit format: Formats) = inferMessageTypeFromContent(message)
 
-    private def inferMessageTypeFromContent(content: String)(implicit format: Formats): WebSocketInMessage = {
-      val possiblyJson = content.trim.startsWith("{") || content.trim.startsWith("[")
-      if (!possiblyJson) TextMessage(content)
-      else parseOpt(content) map inferJsonMessageFromContent getOrElse TextMessage(content)
-    }
-
-    private def inferJsonMessageFromContent(content: JValue)(implicit format: Formats): WebSocketInMessage = {
-      val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
-      (contentType) match {
-        case "ack_request" ⇒ AckRequest(inferContentMessage(content \ "message"), (content \ "id").extract[Long])
-        case "ack"         ⇒ Ack((content \ "id").extract[Long])
-        case "text"        ⇒ TextMessage((content \ "content").extract[String])
-        case "json"        ⇒ JsonMessage((content \ "content"))
-        case _             ⇒ JsonMessage(content)
-      }
-    }
-
-    private def inferContentMessage(content: JValue)(implicit format: Formats): Ackable = {
-      val contentType = (content \ "type").extractOrElse("none")
-      (contentType) match {
-        case "text" ⇒ TextMessage((content \ "content").extract[String])
-        case "json" ⇒ JsonMessage((content \ "content"))
-        case "none" ⇒ JsonMessage(content)
-      }
-    }
-  }
-
-  object ParseToWebSocketOutMessage {
-    import net.liftweb.json._
-    def apply(message: String)(implicit format: Formats): WebSocketOutMessage = inferMessageTypeFromContent(message)
-
-    private def inferMessageTypeFromContent(content: String)(implicit format: Formats): WebSocketOutMessage = {
-      val possiblyJson = content.trim.startsWith("{") || content.trim.startsWith("[")
-      if (!possiblyJson) TextMessage(content)
-      else parseOpt(content) map inferJsonMessageFromContent getOrElse TextMessage(content)
-    }
-
-    private def inferJsonMessageFromContent(content: JValue)(implicit format: Formats): WebSocketOutMessage = {
-      val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
-      (contentType) match {
-        case "needs_ack" ⇒ NeedsAck(inferContentMessage(content \ "content"), (content \ "timeout").extract[Long].millis)
-        case "text"      ⇒ TextMessage((content \ "content").extract[String])
-        case "json"      ⇒ JsonMessage((content \ "content"))
-        case _           ⇒ JsonMessage(content)
-      }
-    }
-
-    private def inferContentMessage(content: JValue)(implicit format: Formats): Ackable = content match {
-      case JString(text) ⇒ TextMessage(text)
-      case _ ⇒
-        val contentType = (content \ "type").extractOrElse("none")
-        (contentType) match {
-          case "text" ⇒ TextMessage((content \ "content").extract[String])
-          case "json" ⇒ JsonMessage((content \ "content"))
-          case "none" ⇒ JsonMessage(content)
-        }
-    }
-  }
-
-  object RenderOutMessage {
-    import net.liftweb.json._
-    import JsonDSL._
-
-    def apply(message: WebSocketOutMessage): String = {
-      message match {
-        case TextMessage(text) ⇒ text
-        case JsonMessage(json) ⇒ compact(render(("type" -> "json") ~ ("content" -> json)))
-        case NeedsAck(msg, timeout) ⇒
-          compact(render(("type" -> "needs_ack") ~ ("timeout" -> timeout.toMillis) ~ ("content" -> contentFrom(msg))))
-        case Ack(id) ⇒ compact(render(("type" -> "ack") ~ ("id" -> id)))
-        case x       ⇒ sys.error(x.getClass.getName + " is an unsupported message type")
-      }
-    }
-
-    private[this] def contentFrom(message: Ackable): (String, JValue) = message match {
-      case TextMessage(text) ⇒ ("text", JString(text))
-      case JsonMessage(json) ⇒ ("json", json)
-    }
-  }
 
   type Receive = PartialFunction[WebSocketInMessage, Unit]
 
@@ -491,7 +409,7 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
   implicit protected def executionContext = settings.executionContext
 
   implicit protected def formats: Formats = DefaultFormats
-  implicit def wireFormat: WireFormat = new LiftJsonWireFormat
+  implicit def wireFormat: WireFormat = new JsonProtocolWireFormat
 
   private[websocket] lazy val channel: BroadcastChannel with Connectable with Reconnectable = new WebSocketHost(this)
 

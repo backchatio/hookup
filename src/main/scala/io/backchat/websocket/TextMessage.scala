@@ -4,8 +4,8 @@ import akka.util.duration._
 import net.liftweb.json.JsonAST.JValue
 import akka.util.Duration
 
-sealed trait WebSocketInMessage
-sealed trait WebSocketOutMessage
+trait WebSocketInMessage
+trait WebSocketOutMessage
 trait Ackable { self: WebSocketOutMessage ⇒
   def needsAck(within: Duration = 1 second) = NeedsAck(this, within)
 }

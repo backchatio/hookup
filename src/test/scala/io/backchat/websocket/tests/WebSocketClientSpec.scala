@@ -21,5 +21,5 @@ class WebSocketClientSpec extends Specification with NoTimeConversions { def is 
     "" ! pending ^
   end
 
-  implicit val wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)
+  implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
 }
