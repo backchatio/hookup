@@ -5,8 +5,6 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory
 import org.jboss.netty.channel._
 import group.{ ChannelGroup, DefaultChannelGroup }
 import org.jboss.netty.handler.codec.http.websocketx._
-import org.jboss.netty.handler.codec.http.HttpHeaders.Values
-import org.jboss.netty.handler.codec.http.HttpHeaders.Names
 import java.util.Locale.ENGLISH
 import org.jboss.netty.logging.{ InternalLogger, InternalLoggerFactory }
 import java.security.KeyStore
@@ -24,14 +22,21 @@ import java.util.concurrent.atomic.AtomicLong
 import net.liftweb.json._
 import JsonDSL._
 import java.util.concurrent.{ ConcurrentHashMap, ConcurrentLinkedQueue, TimeUnit, Executors }
-import io.backchat.websocket.WebSocketServer.{ WebSocketCancellable }
+import _root_.io.backchat.websocket.WebSocketServer.{ WebSocketCancellable }
 import akka.util.{ Index, Timeout }
 import annotation.switch
 import org.jboss.netty.handler.codec.frame.FrameDecoder
+import org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1
+import org.jboss.netty.handler.codec.http.HttpResponseStatus.OK
 import org.jboss.netty.buffer.{ ChannelBuffer, ChannelBuffers }
 import org.jboss.netty.util.{ CharsetUtil, Timeout ⇒ NettyTimeout, TimerTask, HashedWheelTimer }
 import com.typesafe.config.Config
 import akka.actor.{Actor, ActorRef, DefaultCancellable, Cancellable}
+import akka.config.ConfigurationException
+import org.jboss.netty.handler.codec.http.HttpHeaders.Names._
+import org.jboss.netty.handler.codec.http.HttpHeaders._
+import java.text.SimpleDateFormat
+import java.util.{Date, TimeZone}
 
 trait ServerCapability
 
@@ -51,37 +56,55 @@ case class ContentCompression(level: Int = 6) extends ServerCapability
 case class SubProtocols(protocol: String, protocols: String*) extends ServerCapability
 case class Ping(timeout: Timeout) extends ServerCapability
 case class FlashPolicy(domain: String, port: Seq[Int]) extends ServerCapability
+case class MaxFrameSize(size: Long = Long.MaxValue) extends ServerCapability
 private[websocket] case object RaiseAckEvents extends ServerCapability
 private[websocket] case object RaisePingEvents extends ServerCapability
 
 object ServerInfo {
+  val DefaultServerName = "BackChatWebSocketServer"
 
-  def apply(config: Config, name: String): ServerInfo = apply(config, name, "")
+  def apply(config: Config): ServerInfo = apply(config, DefaultServerName)
 
-  def apply(config: Config, name: String, prefix: String): ServerInfo = {
-    def k(v: String) = (prefix.blankOption.map(_+".") getOrElse "") + v
+  def apply(config: Config, name: String): ServerInfo = {
     import collection.JavaConverters._
+
     val caps = ListBuffer[ServerCapability]()
-    if (config.hasPath(k("contentCompression")))
-      caps += ContentCompression(config.getInt(k("contentCompression")))
-    if (config.hasPath(k("subProtocols"))) {
-      val lst = config.getStringList(k("subProtocols")).asScala.toList
+    if (config.hasPath("contentCompression"))
+      caps += ContentCompression(config.getInt("contentCompression"))
+
+    if (config.hasPath("subProtocols")) {
+      val lst = config.getStringList("subProtocols").asScala.toList
       caps += SubProtocols(lst.head, lst.tail:_*)
     }
-    if (config.hasPath("pingTimout"))
-      caps += Ping(Timeout(config.getMilliseconds(k("pingTimeout"))))
+
+    if (config.hasPath("pingTimeout"))
+      caps += Ping(Timeout(config.getMilliseconds("pingTimeout")))
+
     if (config.hasPath("flashPolicy")) {
-      val domain = if (config.hasPath(k("flashPolicy.domain"))) config.getString(k("flashPolicy.domain")) else "*"
-      val ports: List[Int] = if (config.hasPath(k("flashPolicy.ports"))) config.getIntList(k("flashPolicy.ports")).asScala.map(_.toInt).toList else {
-        if (config.hasPath(k("flashPolicy.port"))) List(config.getInt("flashPolicy.port")) else Nil
+      val domain = if (config.hasPath("flashPolicy.domain")) config.getString("flashPolicy.domain") else "*"
+      val ports: List[Int] = if (config.hasPath("flashPolicy.ports")) config.getIntList("flashPolicy.ports").asScala.map(_.toInt).toList else {
+        if (config.hasPath("flashPolicy.port")) List(config.getInt("flashPolicy.port")) else Nil
       }
       caps += FlashPolicy(domain, ports)
     }
+
+    if (config.hasPath("ssl")) {
+      val keystore = if (config.hasPath("ssl.keystore")) config.getString("ssl.keystore")
+      else sys.props.get("keystore.file.path").getOrElse(throw new RuntimeException("You need to specify a keystore."))
+      val passw = if (config.hasPath("ssl.password")) config.getString("ssl.password")
+      else sys.props.get("keystore.file.password").getOrElse(throw new RuntimeException("You need to specify a password for the keystore"))
+      val algo = if (config.hasPath("ssl.algorithm")) config.getString("ssl.algorithm")
+      else (sys.props.get("ssl.KeyManagerFactory.algorithm").flatMap(_.blankOption) | "SunX509")
+      caps += SslSupport(keystore, passw, algo)
+    }
+
+    caps += (if (config.hasPath("maxFrameSize")) MaxFrameSize(config.getBytes("maxFrameSize")) else MaxFrameSize())
+
     new ServerInfo(
       name,
-      if (config.hasPath(k("version"))) config.getString(k("version")) else BuildInfo.version,
-      if (config.hasPath(k("listenOn"))) config.getString(k("listenOn")) else "0.0.0.0",
-      if (config.hasPath(k("port"))) config.getInt(k("port")) else 8765,
+      if (config.hasPath("version")) config.getString("version") else BuildInfo.version,
+      if (config.hasPath("listenOn")) config.getString("listenOn") else "0.0.0.0",
+      if (config.hasPath("port")) config.getInt("port") else 8765,
       caps)
   }
 }
@@ -96,7 +119,7 @@ object ServerInfo {
  * @param capabilities A varargs of extra capabilities of this server
  */
 case class ServerInfo(
-    name: String,
+    name: String = ServerInfo.DefaultServerName,
     version: String = BuildInfo.version,
     listenOn: String = "0.0.0.0",
     port: Int = 8765,
@@ -125,6 +148,10 @@ case class ServerInfo(
     case Ping(timeout) ⇒ timeout
   }).headOption | Timeout(90 seconds)
 
+  val maxFrameSize: Long = (capabilities collect {
+    case MaxFrameSize(size) => size
+  }).headOption | Long.MaxValue
+
   val flashPolicy = (capabilities collect {
     case FlashPolicy(domain, policyPorts) ⇒
       (<cross-domain-policy>
@@ -139,7 +166,7 @@ case class ServerInfo(
 
 /**
  * Netty based WebSocketServer
- * requires netty 3.3.x or later
+ * requires netty 3.4.x or later
  *
  * Usage:
  * <pre>
@@ -159,6 +186,7 @@ case class ServerInfo(
  */
 object WebSocketServer {
 
+  import ServerInfo.DefaultServerName
   //  type WebSocketHandler = PartialFunction[WebSocketMessage, Unit]
 
   import WebSocket.{ executionContext, Receive }
@@ -314,7 +342,6 @@ object WebSocketServer {
     };
   }
 
-  val DefaultServerName = "BackChatWebSocketServer"
 
   def apply(capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, capabilities = capabilities))(factory)
@@ -400,6 +427,7 @@ object WebSocketServer {
       allChannels: ChannelGroup,
       factory: ⇒ WebSocketServerClient,
       subProtocols: Traversable[String] = Nil,
+      maxFrameSize: Long = Long.MaxValue,
       raiseEvents: Boolean = false)(implicit wireFormat: WireFormat) extends SimpleChannelUpstreamHandler {
 
     private[this] var collectedFrames: Seq[ContinuationWebSocketFrame] = Vector.empty[ContinuationWebSocketFrame]
@@ -481,7 +509,7 @@ object WebSocketServer {
 
     private def handleUpgrade(ctx: ChannelHandlerContext, httpRequest: HttpRequest) {
       val protos = if (subProtocols.isEmpty) null else subProtocols.mkString(",")
-      val handshakerFactory = new WebSocketServerHandshakerFactory(websocketLocation(httpRequest), protos, false)
+      val handshakerFactory = new WebSocketServerHandshakerFactory(websocketLocation(httpRequest), protos, false, maxFrameSize)
       handshaker = handshakerFactory.newHandshaker(httpRequest)
       if (handshaker == null) handshakerFactory.sendUnsupportedWebSocketVersionResponse(ctx.getChannel)
       else {
@@ -598,6 +626,41 @@ object WebSocketServer {
     }
   }
 
+  class LoadBalancerPing(path: String) extends SimpleChannelUpstreamHandler {
+    override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
+      e.getMessage match {
+        case r: HttpRequest if r.getUri.toLowerCase.startsWith(path) =>
+          val res = new DefaultHttpResponse(HTTP_1_1, OK)
+          val content = ChannelBuffers.copiedBuffer("pong", CharsetUtil.UTF_8)
+          val dateformat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz")
+          dateformat.setTimeZone(TimeZone.getTimeZone("UTC"))
+          res.setHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
+          res.setHeader(Names.EXPIRES, dateformat.format(new Date))
+          res.setHeader(Names.CACHE_CONTROL, "no-cache, must-revalidate")
+          res.setHeader(Names.PRAGMA, "no-cache")
+
+          res.setContent(content)
+          ctx.getChannel.write(res).addListener(ChannelFutureListener.CLOSE)
+        case _ => ctx.sendUpstream(e)
+      }
+    }
+  }
+
+  class Favico(favico: Option[File] = None) extends SimpleChannelUpstreamHandler {
+    override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
+      e.getMessage match {
+        case r: HttpRequest if r.getUri.toLowerCase.startsWith("/favicon.ico") =>
+          val status = HttpResponseStatus.NOT_FOUND
+          val response: HttpResponse = new DefaultHttpResponse(HTTP_1_1, status)
+          response.setHeader(CONTENT_TYPE, "text/plain; charset=UTF-8")
+          response.setContent(ChannelBuffers.copiedBuffer("Failure: "+status.toString+"\r\n", CharsetUtil.UTF_8))
+          ctx.getChannel.write(response).addListener(ChannelFutureListener.CLOSE)
+
+        case _ => ctx.sendUpstream(e)
+      }
+    }
+  }
+
 }
 
 class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)) {
@@ -622,30 +685,23 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
    */
   protected def getPipeline: ChannelPipeline = {
     val pipe = Channels.pipeline()
-    pipe.addLast("flash-policy", new FlashPolicyHandler(ChannelBuffers.copiedBuffer(config.flashPolicy, CharsetUtil.UTF_8)))
+    configureFlashPolicySupport(pipe)
     pipe.addLast("connection-tracker", new ConnectionTracker(allChannels))
     addFirstInPipeline(pipe)
-    config.sslContext foreach { ctxt ⇒
-      val engine = ctxt.createSSLEngine()
-      engine.setUseClientMode(false)
-      pipe.addLast("ssl", new SslHandler(engine))
-    }
-    val ping = config.pingTimeout.duration.toSeconds.toInt
-    if (ping > 0) {
-      pipe.addLast("timeouts", new IdleStateHandler(timer, 0, ping, 0))
-      pipe.addLast("connection-reaper", new WebSocket.PingPongHandler(logger))
-    }
-    pipe.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192))
-    pipe.addLast("aggregator", new HttpChunkAggregator(64 * 1024))
-    pipe.addLast("encoder", new HttpResponseEncoder)
-    config.contentCompression foreach { ctx ⇒
-      pipe.addLast("deflater", new HttpContentCompressor(ctx.level))
-    }
-    val raiseEvents = capabilities.contains(RaiseAckEvents)
+    configureSslSupport(pipe)
+    addPingSupport(pipe)
+    configureHttpSupport(pipe)
     configurePipeline(pipe)
-    pipe.addLast("websockethandler", new WebSocketClientFactoryHandler(logger, allChannels, factory, raiseEvents = raiseEvents))
+    configureWebSocketSupport(pipe)
+    addLastInPipeline(pipe)
+    pipe
+  }
+
+  private[this] def configureWebSocketSupport(pipe: ChannelPipeline) {
+    val raiseEvents = capabilities.contains(RaiseAckEvents)
+    pipe.addLast("websockethandler", new WebSocketClientFactoryHandler(logger, allChannels, factory, maxFrameSize = config.maxFrameSize, raiseEvents = raiseEvents))
     pipe.addLast("websocketoutput", new WebSocketMessageAdapter(logger))
-    pipe.addLast("acking", new MessageAckingHandler(logger, capabilities.contains(RaiseAckEvents)))
+    pipe.addLast("acking", new MessageAckingHandler(logger, raiseEvents))
     if (raiseEvents) {
       pipe.addLast("eventsHook", new SimpleChannelHandler {
         var theclient: WebSocketServerClientHandler = null
@@ -659,8 +715,40 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
         }
       })
     }
-    addLastInPipeline(pipe)
-    pipe
+  }
+
+  private[this] def configureHttpSupport(pipe: ChannelPipeline) {
+    pipe.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192))
+    pipe.addLast("aggregator", new HttpChunkAggregator(64 * 1024))
+    pipe.addLast("encoder", new HttpResponseEncoder)
+    config.contentCompression foreach { ctx ⇒
+      pipe.addLast("deflater", new HttpContentCompressor(ctx.level))
+    }
+  }
+
+  private[this] def configureFlashPolicySupport(pipe: ChannelPipeline) {
+    val hasFlashPolicy = config.capabilities exists {
+      case _: FlashPolicy => true
+      case _ => false
+    }
+    if (hasFlashPolicy)
+      pipe.addLast("flash-policy", new FlashPolicyHandler(ChannelBuffers.copiedBuffer(config.flashPolicy, CharsetUtil.UTF_8)))
+  }
+
+  private[this] def configureSslSupport(pipe: ChannelPipeline) {
+    config.sslContext foreach { ctxt ⇒
+      val engine = ctxt.createSSLEngine()
+      engine.setUseClientMode(false)
+      pipe.addLast("ssl", new SslHandler(engine))
+    }
+  }
+
+  private[this] def addPingSupport(pipe: ChannelPipeline) {
+    val ping = config.pingTimeout.duration.toSeconds.toInt
+    if (ping > 0) {
+      pipe.addLast("timeouts", new IdleStateHandler(timer, 0, ping, 0))
+      pipe.addLast("connection-reaper", new WebSocket.PingPongHandler(logger))
+    }
   }
 
   protected def addFirstInPipeline(pipe: ChannelPipeline) {
@@ -673,6 +761,12 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
 
   protected def addLastInPipeline(pipe: ChannelPipeline) {
 
+  }
+
+  protected def configureBootstrap() {
+    server.setOption("soLinger", 0)
+    server.setOption("reuseAddress", true)
+    server.setOption("child.tcpNoDelay", true)
   }
 
   private[this] def pipelineFactory = new ChannelPipelineFactory {
@@ -692,9 +786,7 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
 
   final def start = synchronized {
     server = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool()))
-    server.setOption("soLinger", 0)
-    server.setOption("reuseAddress", true)
-    server.setOption("child.tcpNoDelay", true)
+    configureBootstrap()
     server.setPipelineFactory(pipelineFactory)
     val addr = config.listenOn.blankOption.map(l ⇒ new InetSocketAddress(l, config.port)) | new InetSocketAddress(config.port)
     val sc = server.bind(addr)
