@@ -25,7 +25,7 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
     "not fail under concurrent load" ! handlesConcurrentLoads ^
   end
 
-  implicit val wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)
+  implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
   implicit val executionContext = ExecutionContext.fromExecutorService(Executors.newCachedThreadPool())
   override def map(fs: => Fragments) = super.map(fs) ^ Step(executionContext.shutdown())
 

@@ -2,9 +2,7 @@ package io.backchat.websocket
 
 import java.io._
 import java.util.concurrent.ConcurrentLinkedQueue
-import io.backchat.websocket.WebSocket.ParseToWebSocketOutMessage
 import collection.mutable
-import org.jboss.netty.logging.InternalLogger
 import akka.dispatch.{ Promise, ExecutionContext, Future }
 import net.liftweb.json.Formats
 import collection.JavaConverters._

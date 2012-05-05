@@ -663,7 +663,7 @@ object WebSocketServer {
 
 }
 
-class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat = new LiftJsonWireFormat()(DefaultFormats)) {
+class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)) {
   def capabilities = config.capabilities
   def name = config.name
   def version = config.version
