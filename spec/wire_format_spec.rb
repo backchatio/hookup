@@ -28,6 +28,9 @@ describe Backchat::WebSocket::WireFormat do
     it "a json message" do
       wire_format.parse_message(json).should == json_result
     end
+    it "a json array" do
+      wire_format.parse_message(array_json).should == array_result
+    end
     it "an ack message" do
       wire_format.parse_message(ack).should == ack_result
     end
@@ -46,6 +49,9 @@ describe Backchat::WebSocket::WireFormat do
     it "a json message" do
       wire_format.build_message(json_data).should == json_data
     end
+    it "a json array" do
+      wire_format.build_message(array_data).should == array_data
+    end
     it "an ack message" do
       wire_format.build_message(ack_result).should == ack_result
     end
@@ -60,6 +66,9 @@ describe Backchat::WebSocket::WireFormat do
     end
     it "a json message" do
       wire_format.unwrap_content(json_result).should == json_data
+    end
+    it "a json array" do
+      wire_format.unwrap_content(array_result).should == array_data
     end
     it "an ack message" do
       wire_format.unwrap_content(ack_result).should == ack_result
