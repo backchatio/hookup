@@ -788,6 +788,7 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
     server = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool()))
     configureBootstrap()
     server.setPipelineFactory(pipelineFactory)
+    println("Starting server with: %s" format config)
     val addr = config.listenOn.blankOption.map(l ⇒ new InetSocketAddress(l, config.port)) | new InetSocketAddress(config.port)
     val sc = server.bind(addr)
     allChannels add sc
