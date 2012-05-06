@@ -19,7 +19,7 @@ object WebSocketClientSpec {
 
 class WebSocketClientSpec extends Specification with NoTimeConversions { def is =
   "A WebSocketClient should" ^
-    "" ! pending ^
+    "exchange json messages with the server" ! pending ^
   end
 
   implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)

@@ -114,10 +114,9 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       }
     }
 
-    def failsWithWrongSubProtocols = pending // Until netty really does do the sub protocols
-    //this {
-//      withClient({ case _ => }, "xmpp") { _ => client.isCompleted must beTrue.eventually  }
-//    }
+    def failsWithWrongSubProtocols = this {
+      withClient({ case _ => }, "xmpp") { _ => client.isCompleted must beTrue.eventually  }
+    }
 
     def canSendMessagesToTheClient = this {
       val toSend = TextMessage("this is some text you know")

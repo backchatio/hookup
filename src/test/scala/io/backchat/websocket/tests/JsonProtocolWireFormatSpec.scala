@@ -19,6 +19,7 @@ class JsonProtocolWireFormatSpec extends Specification with NoTimeConversions { 
   end
 
   val wf = new JsonProtocolWireFormat()(DefaultFormats)
+
   val textMessage = """{"type":"text","content":"this is a text message"}"""
   val text = TextMessage("this is a text message")
 
@@ -31,17 +32,15 @@ class JsonProtocolWireFormatSpec extends Specification with NoTimeConversions { 
   val ackMessage = """{"type":"ack","id":3}"""
   val ack = Ack(3L)
 
-
   val ackRequestMessage = """{"type":"ack_request","id":3,"content":"this is a text message"}"""
   val ackRequest = AckRequest(text, 3)
 
   val needsAckMessage = """{"type":"needs_ack","timeout":5000,"content":{"type":"text","content":"this is a text message"}}"""
   val needsAck: WebSocketOutMessage = NeedsAck(text, 5.seconds)
 
-  def testWireFormat(name: String, serialized: String, in: WebSocketInMessage, out: WebSocketOutMessage) = {
-
+  def testWireFormat(name: String, serialized: String, in: WebSocketInMessage, out: WebSocketOutMessage) =
     "parse a %s message".format(name) ! { wf.parseInMessage(serialized) must_== in } ^
     "build a %s message".format(name) ! { wf.parseOutMessage(serialized) must_== out } ^
     "render a %s message".format(name) ! { wf.render(out) must_== serialized }
-  }
+
 }
