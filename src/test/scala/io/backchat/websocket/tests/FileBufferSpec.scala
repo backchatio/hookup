@@ -68,7 +68,7 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
     val lst = queue.asScala.toList
     buff.close()
     FileUtils.deleteDirectory(new File("./test-work3"))
-    lst must haveTheSameElementsAs(List(exp1.content, exp2.content))
+    lst must haveTheSameElementsAs(List(wireFormat.render(exp1), wireFormat.render(exp2)))
   }
 
   def drainsBuffers = {
