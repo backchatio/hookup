@@ -11,6 +11,7 @@ object WebSocketClientSpec {
     new WebSocketServerClient {
       def receive = {
         case TextMessage(text) ⇒ send(text)
+        case JsonMessage(json) => send(json)
       }
     }
   }
