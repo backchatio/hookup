@@ -43,10 +43,10 @@ object JsonProtocolWireFormat {
       else parseOpt(content) map inferJsonMessageFromContent getOrElse TextMessage(content)
     }
 
-    private def inferJsonMessageFromContent(content: JValue)(implicit format: Formats): WebSocketInMessage = {
+    private def inferJsonMessageFromContent(content: JValue)(implicit format: Formats) = {
       val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
       (contentType) match {
-        case "ack_request" ⇒ AckRequest(inferContentMessage(content \ "message"), (content \ "id").extract[Long])
+        case "ack_request" ⇒ AckRequest(inferContentMessage((content \ "content")), (content \ "id").extract[Long])
         case "ack" ⇒ Ack((content \ "id").extract[Long])
         case "text" ⇒ TextMessage((content \ "content").extract[String])
         case "json" ⇒ JsonMessage((content \ "content"))
@@ -55,11 +55,21 @@ object JsonProtocolWireFormat {
     }
 
     private def inferContentMessage(content: JValue)(implicit format: Formats): Ackable = {
-      val contentType = (content \ "type").extractOrElse("none")
-      (contentType) match {
-        case "text" ⇒ TextMessage((content \ "content").extract[String])
-        case "json" ⇒ JsonMessage((content \ "content"))
-        case "none" ⇒ JsonMessage(content)
+      content match {
+        case JString(text) ⇒ TextMessage(text)
+        case _ =>
+          val contentType = (content \ "type").extractOrElse("none")
+          (contentType) match {
+            case "text" ⇒ TextMessage((content \ "content").extract[String])
+            case "json" ⇒ JsonMessage((content \ "content"))
+            case "none" ⇒ content match {
+              case JString(text) =>
+                val possiblyJson = text.trim.startsWith("{") || text.trim.startsWith("[")
+                if (!possiblyJson) TextMessage(text)
+                else parseOpt(text) map inferContentMessage getOrElse TextMessage(text)
+              case jv => JsonMessage(content)
+            }
+          }
       }
     }
   }
@@ -76,6 +86,7 @@ object JsonProtocolWireFormat {
     private def inferJsonMessageFromContent(content: JValue)(implicit format: Formats): WebSocketOutMessage = {
       val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
       (contentType) match {
+        case "ack" => Ack((content \ "id").extract[Long])
         case "needs_ack" ⇒ NeedsAck(inferContentMessage(content \ "content"), (content \ "timeout").extract[Long].millis)
         case "text" ⇒ TextMessage((content \ "content").extract[String])
         case "json" ⇒ JsonMessage((content \ "content"))
@@ -85,12 +96,18 @@ object JsonProtocolWireFormat {
 
     private def inferContentMessage(content: JValue)(implicit format: Formats): Ackable = content match {
       case JString(text) ⇒ TextMessage(text)
-      case _ ⇒
+      case _ =>
         val contentType = (content \ "type").extractOrElse("none")
         (contentType) match {
           case "text" ⇒ TextMessage((content \ "content").extract[String])
           case "json" ⇒ JsonMessage((content \ "content"))
-          case "none" ⇒ JsonMessage(content)
+          case "none" ⇒ content match {
+            case JString(text) =>
+              val possiblyJson = text.trim.startsWith("{") || text.trim.startsWith("[")
+              if (!possiblyJson) TextMessage(text)
+              else parseOpt(text) map inferContentMessage getOrElse TextMessage(text)
+            case jv => JsonMessage(content)
+          }
         }
     }
   }
@@ -101,30 +118,26 @@ object JsonProtocolWireFormat {
 
     def apply(message: WebSocketOutMessage): String = {
       message match {
-        case TextMessage(text) ⇒ text
-        case JsonMessage(json) ⇒ compact(render(("type" -> "json") ~ ("content" -> json)))
+        case Ack(id) ⇒ compact(render(("type" -> "ack") ~ ("id" -> id)))
+        case m: TextMessage ⇒ compact(render(contentFrom(m)))
+        case m: JsonMessage ⇒ compact(render(contentFrom(m)))
         case NeedsAck(msg, timeout) ⇒
           compact(render(("type" -> "needs_ack") ~ ("timeout" -> timeout.toMillis) ~ ("content" -> contentFrom(msg))))
-        case Ack(id) ⇒ compact(render(("type" -> "ack") ~ ("id" -> id)))
         case x ⇒ sys.error(x.getClass.getName + " is an unsupported message type")
       }
     }
 
-    private[this] def contentFrom(message: Ackable): (String, JValue) = message match {
-      case TextMessage(text) ⇒ ("text", JString(text))
-      case JsonMessage(json) ⇒ ("json", json)
+    private[this] def contentFrom(message: Ackable): JValue = message match {
+      case TextMessage(text) ⇒ ("type" -> "text") ~ ("content" -> text)
+      case JsonMessage(json) ⇒ ("type" -> "json") ~ ("content" -> json)
     }
   }
 
 }
 
 class JsonProtocolWireFormat(implicit formats: Formats) extends WireFormat {
-  def parseInMessage(message: String): WebSocketInMessage =
-    JsonProtocolWireFormat.ParseToWebSocketInMessage(message)
-
-  def parseOutMessage(message: String): WebSocketOutMessage =
-    JsonProtocolWireFormat.ParseToWebSocketOutMessage(message)
-
-  def render(message: WebSocketOutMessage) =
-    JsonProtocolWireFormat.RenderOutMessage(message)
+  import JsonProtocolWireFormat._
+  def parseInMessage(message: String): WebSocketInMessage = ParseToWebSocketInMessage(message)
+  def parseOutMessage(message: String): WebSocketOutMessage = ParseToWebSocketOutMessage(message)
+  def render(message: WebSocketOutMessage) = RenderOutMessage(message)
 }
