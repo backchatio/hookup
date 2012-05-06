@@ -31,7 +31,7 @@ import java.nio.channels.ClosedChannelException
  *     val uri = new URI("ws://localhost:8080/thesocket")
  *
  *     def receive = {
- *       case Disconnected(_) ⇒ println("The websocket to " + url.toASCIIString + " disconnected.")
+ *       case Disconnected(_) ⇒ println("The websocket to " + uri.toASCIIString + " disconnected.")
  *       case TextMessage(message) ⇒ {
  *         println("RECV: " + message)
  *         send("ECHO: " + message)
@@ -40,7 +40,7 @@ import java.nio.channels.ClosedChannelException
  *
  *     connect() onSuccess {
  *       case Success ⇒
- *         println("The websocket to " + url.toASCIIString + "is connected.")
+ *         println("The websocket to " + uri.toASCIIString + "is connected.")
  *       case _ ⇒
  *     }
  *   }
@@ -177,7 +177,7 @@ object WebSocket {
         val fut = bootstrap.connect(new InetSocketAddress(client.settings.uri.getHost, client.settings.uri.getPort))
         fut.addListener(new ChannelFutureListener {
           def operationComplete(future: ChannelFuture) {
-            if (future.isSuccess && isReconnecting) {
+             if (future.isSuccess && isReconnecting) {
               future.getChannel.getPipeline.replace("ws-handler", "ws-handler", new WebSocketClientHostHandler(handshaker, self))
             }
           }
@@ -189,18 +189,20 @@ object WebSocket {
             handshaker.handshake(channel).toAkkaFuture
           case x ⇒ Promise.successful(x)
         }
+
         try {
+
           val fut = af flatMap { _ ⇒
             isReconnecting = false
             _isConnected
           }
+
           buffer foreach (_.open())
-          Await.ready(fut, 5 seconds)
+          Await.ready(af, 5 seconds)
         } catch {
           case ex ⇒ {
             logger.error("Couldn't connect, killing all")
-            bootstrap.releaseExternalResources()
-            Promise.failed(ex)
+            reconnect()
           }
         }
       }
@@ -287,7 +289,16 @@ object WebSocket {
         case _ ⇒ {
           _isConnected = Promise[OperationResult]()
           try {
-            if (!isReconnecting && bootstrap != null) bootstrap.releaseExternalResources()
+            if (!isReconnecting && bootstrap != null) {
+              val thread = new Thread {
+                override def run = {
+                  bootstrap.releaseExternalResources()
+                }
+              }
+              thread.setDaemon(false)
+              thread.start()
+              thread.join()
+            }
           } catch {
             case e ⇒ logger.error("error while closing the connection", e)
           } finally {
@@ -320,6 +331,10 @@ object WebSocket {
             case _ ⇒
               _isConnected.success(Success)
           }
+          client.receive lift Connected
+        }
+        if (buffer.isEmpty) {
+          _isConnected.success(Success)
           client.receive lift Connected
         }
       }
@@ -408,7 +423,7 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
 
   implicit protected def executionContext = settings.executionContext
 
-  implicit protected def formats: Formats = DefaultFormats
+  implicit protected def jsonFormats: Formats = DefaultFormats
   implicit def wireFormat: WireFormat = new JsonProtocolWireFormat
 
   private[websocket] lazy val channel: BroadcastChannel with Connectable with Reconnectable = new WebSocketHost(this)

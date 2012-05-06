@@ -41,7 +41,8 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
   case class webSocketServerContext(protocols: String*) extends After {
     import io.backchat.websocket.Connected
     val serverAddress = {
-      val s = new ServerSocket(0); try { s.getLocalPort } finally { s.close() }
+      val s = new ServerSocket(0);
+      try { s.getLocalPort } finally { s.close() }
     }
     var messages = List.empty[String]
     var jsonMessages = List.empty[JValue]
@@ -82,18 +83,12 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       val protos = protocols
       val cl = new WebSocket {
         val uri = new URI("ws://127.0.0.1:"+serverAddress.toString+"/")
-
-
         val settings: WebSocketContext = WebSocketContext(
           uri = uri,
           throttle = IndefiniteThrottle(1 second, 1 second),
           buffer = Some(new FileBuffer(new File("./work/buffer-test.log"))),
-          protocols = protocols
-        )
-
+          protocols = protos)
         override private[websocket] def raiseEvents = true
-
-
         def receive = handler
       }
       try {
