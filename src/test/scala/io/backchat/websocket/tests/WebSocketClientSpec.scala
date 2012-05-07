@@ -51,7 +51,7 @@ trait WebSocketClientSupport { self: Specification =>
       }
     }
     Await.ready(client.connect(), 5 seconds)
-    try { t(client) } finally { try { Await.ready(client.close(), 2 seconds) } catch { case e => e.printStackTrace() }}
+    try { t(client) } finally { try { Await.ready(client.disconnect(), 2 seconds) } catch { case e => e.printStackTrace() }}
   }
 
 }

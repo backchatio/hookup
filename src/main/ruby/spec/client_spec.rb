@@ -12,7 +12,7 @@ describe Backchat::WebSocket::Client do
       @defaults_client = Client.new(:uri => @uri)
       @retries = 1..5
       @journaled = true
-      @client = Client.new(:uri => @uri, :retry_schedule => @retries, :buffered => @journaled)
+      @client = Client.new(:uri => @uri, :reconnect_schedule => @retries, :buffered => @journaled)
     end
 
     context "should raise when the uri param is" do
@@ -30,7 +30,7 @@ describe Backchat::WebSocket::Client do
     end
 
     it "should set use the default retry schedule" do
-      @defaults_client.retry_schedule.should == Backchat::WebSocket::RECONNECT_SCHEDULE
+      @defaults_client.reconnect_schedule.should == Backchat::WebSocket::RECONNECT_SCHEDULE
     end
 
     it "should set journaling as default to false" do
@@ -42,7 +42,7 @@ describe Backchat::WebSocket::Client do
     end
 
     it "should use the retry schedule from the options" do
-      @client.retry_schedule.should == @retries
+      @client.reconnect_schedule.should == @retries
     end
 
     it "should use the journaling value from the options" do 
@@ -50,7 +50,7 @@ describe Backchat::WebSocket::Client do
     end
   end
 
-  # context "sending json to the server" do 
+  context "sending json to the server" do 
 
     # include ClientSteps
 
@@ -78,7 +78,7 @@ describe Backchat::WebSocket::Client do
     #   check_response ["subscribe", "me"].to_json
     # end
 
-  # end
+  end
 
   # context "fault-tolerance" do 
 

@@ -14,14 +14,16 @@ import java.lang.Thread.UncaughtExceptionHandler
 import org.jboss.netty.handler.timeout.{ IdleStateAwareChannelHandler, IdleStateEvent, IdleState, IdleStateHandler }
 import org.jboss.netty.logging.{ InternalLogger, InternalLoggerFactory }
 import java.util.concurrent.atomic.AtomicLong
-import net.liftweb.json.{ DefaultFormats, Formats }
 import io.backchat.websocket.WebSocketServer.MessageAckingHandler
-import java.util.concurrent.{ TimeUnit, Executors }
 import org.jboss.netty.util.{ Timeout ⇒ NettyTimeout, TimerTask, HashedWheelTimer, CharsetUtil }
 import akka.util.{ Duration, Timeout }
-import java.io.File
 import java.net.{ ConnectException, InetSocketAddress, URI }
 import java.nio.channels.ClosedChannelException
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.{JsonParser, DefaultFormats, Formats, parse, render, compact}
+import java.io.{Closeable, File}
+import java.util.concurrent.{ConcurrentSkipListSet, TimeUnit, Executors}
+import reflect.BeanProperty
 
 /**
  * Usage of the simple websocket client:
@@ -78,7 +80,7 @@ object WebSocket {
           logger warn "Got a continuation frame this is not (yet) supported"
         case _: PingWebSocketFrame  ⇒ ctx.getChannel.write(new PongWebSocketFrame())
         case _: PongWebSocketFrame  ⇒
-        case _: CloseWebSocketFrame ⇒ host.close()
+        case _: CloseWebSocketFrame ⇒ host.disconnect()
       }
     }
 
@@ -213,7 +215,7 @@ object WebSocket {
     def reconnect(): Future[OperationResult] = {
       if (!isReconnecting) client.receive lift Reconnecting
       isReconnecting = true
-      close() andThen {
+      disconnect() andThen {
         case _ ⇒
           delay {
             connect()
@@ -257,7 +259,7 @@ object WebSocket {
         dur.toMinutes.toString + " minutes"
     }
 
-    def close(): Future[OperationResult] = synchronized {
+    def disconnect(): Future[OperationResult] = synchronized {
       isClosing = true;
       val closing = Promise[OperationResult]()
       val disconnected = Promise[OperationResult]()
@@ -387,6 +389,26 @@ object WebSocket {
     }
   }
 
+  def apply(context: WebSocketContext)
+           (recv: Receive)
+           (implicit jsFormat: Formats = DefaultFormats, wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)): WebSocket = {
+    new DefaultWebSocket(context, wireFormat, jsFormat) {
+      val receive = recv
+    }
+  }
+
+  def create(context: WebSocketContext, jsFormat: Formats, wireFormat: WireFormat): JavaWebSocket =
+    new JavaWebSocket(context, wireFormat, jsFormat)
+
+  def create(context: WebSocketContext, wireFormat: WireFormat): JavaWebSocket =
+    new JavaWebSocket(context, wireFormat)
+
+  def create(context: WebSocketContext, jsFormat: Formats): JavaWebSocket =
+    new JavaWebSocket(context, jsFormat)
+
+  def create(context: WebSocketContext): JavaWebSocket =
+    new JavaWebSocket(context)
+
 }
 
 trait Connectable { self: BroadcastChannelLike ⇒
@@ -401,44 +423,137 @@ trait WebSocketLike extends BroadcastChannelLike {
   def receive: WebSocket.Receive
 }
 
-case class WebSocketContext(
-  uri: URI,
-  version: WebSocketVersion = WebSocketVersion.V13,
-  initialHeaders: Map[String, String] = Map.empty,
-  protocols: Seq[String] = Nil,
-  pinging: Timeout = Timeout(60 seconds),
-  buffer: Option[BackupBuffer] = None,
-  throttle: Throttle = NoThrottle,
-  executionContext: ExecutionContext = WebSocket.executionContext)(implicit val wireFormat: WireFormat)
 
-trait WebSocket extends WebSocketLike with Connectable with Reconnectable {
+case class WebSocketContext(
+  @BeanProperty
+  uri: URI,
+  @BeanProperty
+  version: WebSocketVersion = WebSocketVersion.V13,
+  @BeanProperty
+  initialHeaders: Map[String, String] = Map.empty,
+  @BeanProperty
+  protocols: Seq[String] = Nil,
+  @BeanProperty
+  pinging: Timeout = Timeout(60 seconds),
+  @BeanProperty
+  buffer: Option[BackupBuffer] = None,
+  @BeanProperty
+  throttle: Throttle = NoThrottle,
+  @BeanProperty
+  executionContext: ExecutionContext = WebSocket.executionContext)
+
+trait WebSocket extends WebSocketLike with Connectable with Reconnectable with Closeable {
 
   import WebSocket.WebSocketHost
 
   def settings: WebSocketContext
 
-  def buffered = settings.buffer.isDefined
+  def buffered: Boolean = settings.buffer.isDefined
 
   private[websocket] def raiseEvents: Boolean = false
 
-  implicit protected def executionContext = settings.executionContext
+  implicit protected def executionContext: ExecutionContext = settings.executionContext
 
   implicit protected def jsonFormats: Formats = DefaultFormats
   implicit def wireFormat: WireFormat = new JsonProtocolWireFormat
 
   private[websocket] lazy val channel: BroadcastChannel with Connectable with Reconnectable = new WebSocketHost(this)
 
-  def isConnected = channel.isConnected
+  def isConnected: Boolean = channel.isConnected
 
   final def !(message: WebSocketOutMessage) = send(message)
 
   final def connect(): Future[OperationResult] = channel.connect()
 
-  def reconnect() = channel.reconnect()
+  def reconnect(): Future[OperationResult] = channel.reconnect()
 
-  final def close(): Future[OperationResult] = channel.close()
+  final def disconnect(): Future[OperationResult] = channel.disconnect()
+
+
+  final def close(): Unit = {
+    Await.ready(disconnect(), 30 seconds)
+  }
 
   final def send(message: WebSocketOutMessage): Future[OperationResult] = channel.send(message)
+
+}
+
+abstract class DefaultWebSocket(val settings: WebSocketContext, wf: WireFormat, jsFormat: Formats) extends WebSocket {
+
+  def this(settings: WebSocketContext, wf: WireFormat) = this(settings, wf, DefaultFormats)
+  def this(settings: WebSocketContext) = this(settings, new JsonProtocolWireFormat()(DefaultFormats), DefaultFormats)
+  def this(settings: WebSocketContext, jsFormats: Formats) =
+    this(settings, new JsonProtocolWireFormat()(jsFormats), jsFormats)
+
+
+  override implicit protected val jsonFormats = jsFormat
+
+  override implicit val wireFormat = wf
+
+}
+
+trait WebSocketListener {
+  def onConnected(): Unit = ()
+  def onDisconnected(reason: Throwable): Unit = ()
+  def onTextMessage(text: String): Unit = ()
+  def onJsonMessage(json: String): Unit = ()
+  def onError(reason: Throwable): Unit = ()
+  def onTextAckFailed(text: String): Unit = ()
+  def onJsonAckFailed(json: String): Unit = ()
+}
+
+trait JavaHelpers extends WebSocketListener { self: WebSocket =>
+  def send(message: String): Future[OperationResult] = channel.send(message)
+  def send(json: JValue): Future[OperationResult] = channel.send(json)
+  def sendJson(json: String): Future[OperationResult] = channel.send(JsonParser.parse(json))
+  def sendAcked(message: String, timeout: Duration): Future[OperationResult] = channel.send(message.needsAck(timeout))
+  def sendAcked(message: JValue, timeout: Duration): Future[OperationResult] = channel.send(message.needsAck(timeout))
+  def sendJsonAcked(json: String, timeout: Duration): Future[OperationResult] = channel.send(parse(json).needsAck(timeout))
+
+  private[this] val listeners = new ConcurrentSkipListSet[WebSocketListener]()
+
+  def addListener(listener: WebSocketListener): this.type = {
+    listeners.add(listener)
+    this
+  }
+  def removeListener(listener: WebSocketListener): this.type = {
+    listeners.remove(listener)
+    this
+  }
+
+  def receive: WebSocket.Receive = {
+    case Connected =>
+      listeners.asScala foreach (_.onConnected())
+      onConnected()
+    case Disconnected(reason) =>
+      listeners.asScala foreach (_.onDisconnected(reason.orNull))
+      onDisconnected(reason.orNull)
+    case TextMessage(text) =>
+      listeners.asScala foreach (_.onTextMessage(text))
+      onTextMessage(text)
+    case JsonMessage(text) =>
+      val str = compact(render(text))
+      listeners.asScala foreach (_.onJsonMessage(str))
+      onJsonMessage(str)
+    case AckFailed(TextMessage(text)) =>
+      listeners.asScala foreach (_.onTextAckFailed(text))
+      onTextAckFailed(text)
+    case AckFailed(JsonMessage(json)) =>
+      val str = compact(render(json))
+      listeners.asScala foreach (_.onJsonAckFailed(str))
+      onJsonAckFailed(str)
+    case Error(reason) =>
+      listeners.asScala foreach (_.onError(reason.orNull))
+      onError(reason.orNull)
+  }
+}
+
+class JavaWebSocket(settings: WebSocketContext, wf: WireFormat, jsFormat: Formats)
+  extends DefaultWebSocket(settings, wf, jsFormat) with JavaHelpers {
+  def this(settings: WebSocketContext, wf: WireFormat) = this(settings, wf, DefaultFormats)
+  def this(settings: WebSocketContext) = this(settings, new JsonProtocolWireFormat()(DefaultFormats), DefaultFormats)
+  def this(settings: WebSocketContext, jsFormats: Formats) =
+    this(settings, new JsonProtocolWireFormat()(jsFormats), jsFormats)
 
 }
 

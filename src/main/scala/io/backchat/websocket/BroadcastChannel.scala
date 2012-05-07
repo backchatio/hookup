@@ -8,5 +8,5 @@ trait BroadcastChannel extends BroadcastChannelLike {
 
 trait BroadcastChannelLike {
   def send(message: WebSocketOutMessage): Future[OperationResult]
-  def close(): Future[OperationResult]
+  def disconnect(): Future[OperationResult]
 }

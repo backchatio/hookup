@@ -95,7 +95,7 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
         Await.ready(cl.connect, 3 seconds)
         thunk(cl)
       } finally {
-        cl.close
+        cl.disconnect
       }
     }
 
@@ -165,7 +165,7 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       withClient({
         case Disconnected(_) =>
       }) { c =>
-        client.onSuccess({case c => c.close() })
+        client.onSuccess({case c => c.disconnect() })
         disconnectionLatch.await(2, TimeUnit.SECONDS) must beTrue and (c.isConnected must beFalse.eventually)
       }
     }
@@ -176,7 +176,7 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       withClient({
         case Disconnected(_) =>
       }) { c =>
-        c.close()
+        c.disconnect()
         disconnectionLatch.await(2, TimeUnit.SECONDS) must beTrue and (c.isConnected must beFalse.eventually)
       }
 
