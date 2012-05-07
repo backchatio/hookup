@@ -22,7 +22,7 @@ module Backchat
 
     class Client
 
-      attr_reader :uri, :retry_schedule
+      attr_reader :uri, :reconnect_schedule
 
       def on(event_name, &cb)
         @handlers.subscribe do |evt|
@@ -46,7 +46,7 @@ module Backchat
         rescue 
           raise Backchat::WebSocket::InvalidURIError, ":uri [#{options[:uri]}] must be a valid uri" 
         end
-        @uri, @retry_schedule = parsed, (options[:reconnect_schedule]||RECONNECT_SCHEDULE.clone)
+        @uri, @reconnect_schedule = parsed, (options[:reconnect_schedule]||RECONNECT_SCHEDULE.clone)
         @max_retries = options[:max_retries]
         @quiet = !!options[:quiet]
         @handlers = options[:channel]||EM::Channel.new
