@@ -2,8 +2,37 @@
 require File.expand_path("../spec_helper", __FILE__)
 require "em-spec/rspec"
 
+module ClientHelper 
+  def server(port)
+    begin
+      @server = TestServer.new
+      @server.listen(port)
+      @port = port
+    rescue Exception => e
+      puts e
+    end
+
+    # EM.add_timer(0.1, &callback)
+  end
+  
+  def stop_server(&callback)
+    begin
+      @server.stop      
+    rescue Exception => e
+      puts e
+    ensure      
+      EM.next_tick(&callback) if callback
+    end
+  end
+
+end
+
 describe Backchat::WebSocket::Client do 
+  include ClientHelper
   include EM::SpecHelper
+  
+
+  default_timeout 1
 
   context "initializing" do
 
@@ -52,31 +81,73 @@ describe Backchat::WebSocket::Client do
 
   context "sending json to the server" do 
 
-    # include ClientSteps
 
-    # before { server 8000; connect("ws://0.0.0.0:8000/") }
-    # after  { sync ; stop }
 
-    # it "connects to the server" do
-    #   check_connected
-    # end
+    it "connects to the server" do
+      em do
+        server(8001)
+        ws = Client.new("ws://127.0.0.1:8001/")
+        op = false
+        ws.on(:open) do 
+          op = true
+          ws.disconnect
+        end
+        ws.on(:close) do
+          begin
+            op.should be_true
+            stop_server
+          ensure
+            done
+          end
+        end       
+        ws.connect
+      end
+    end
 
-    # it "disconnects from the server" do
-    #   disconnect
-    #   check_disconnected
-    # end
+    it "disconnects from the server" do
+      em do
+        server(8002)
+        ws = Client.new("ws://127.0.0.1:8002/")
+        ws.on(:open) do 
+          ws.disconnect
+        end
+        ws.on(:close) do
+          begin
+            1.should == 1
+            stop_server
+          ensure
+            done
+          end
+        end       
+        ws.connect
+      end
+    end
 
-    # it "sends messages to the server" do
-    #   listen_for_message
-    #   send_message "I expect this to be echoed"
-    #   check_response "I expect this to be echoed"
-    # end
-
-    # it "converts objects to json before sending" do 
-    #   listen_for_message
-    #   send_message ["subscribe", "me"]
-    #   check_response ["subscribe", "me"].to_json
-    # end
+    it "sends messages to the server" do
+      msg = "I expect this to be echoed"
+      em do
+        server(8003)
+        ws = Client.new("ws://127.0.0.1:8003/")
+        ws.on(:open) do 
+          ws.send msg
+        end
+        ws.on(:data) do |data|
+          begin
+            data.should == msg          
+          ensure
+            ws.disconnect
+          end
+        end
+        ws.on(:close) do
+          begin
+            stop_server
+          ensure
+            done
+          end
+        end       
+        ws.connect
+      end
+    end
 
   end
 

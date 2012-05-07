@@ -5,7 +5,7 @@ module Backchat
   module WebSocket
 
     RECONNECT_SCHEDULE = 1..300
-    BUFFER_PATH = "./logs/journal.log"
+    BUFFER_PATH = "./logs/buffer.log"
     EVENT_NAMES = {
       :receive => "message",
       :connected => "open",
@@ -27,8 +27,8 @@ module Backchat
       def on(event_name, &cb)
         @handlers.subscribe do |evt|
           callback = EM.Callback(&cb)
-          callback.call if evt.size == 1 and evt[0] == evt_name
-          callback.call(evt[1]) if evt[0] == event_name && evt.size > 1
+          callback.call if evt && evt.size == 1 && evt[0] == evt_name
+          callback.call(evt[1]) if evt && evt[0] == event_name && evt.size > 1
         end
       end
 
@@ -59,23 +59,23 @@ module Backchat
         @raise_ack_events = !!options[:raise_ack_events]
         @state = ClientState::Disconnected
         if !!options[:buffered]
-          @journal = options[:buffer]||FileBuffer.new(options[:buffer_path]||BUFFER_PATH)
-          @journal.on(:data, &method(:send))
+          @buffer = options[:buffer]||FileBuffer.new(options[:buffer_path]||BUFFER_PATH)
+          @buffer.on(:data, &method(:send))
         end
       end
 
       def send(msg)
         m = prepare_for_send(msg)
-        connected? ? @ws.send(m) : (buffered? ? @journal << m : nil)
+        connected? ? @ws.send(m) : (buffered? ? @buffer << m : nil)
       end
 
       def send_acked(msg, options={})
         timeout = (options||{})[:timeout]||5
-        self.send(:type => :needs_ack, :content => msg, :timeout => timeout)
+        send(:type => :needs_ack, :content => msg, :timeout => timeout)
       end
 
       def connect
-        establish_connection unless @state < ClientState::Connecting
+        establish_connection if @state < ClientState::Connecting
       end
 
       def connected?
@@ -83,7 +83,7 @@ module Backchat
       end
 
       def buffered?
-        !!@journal
+        !!@buffer
       end
 
       def disconnect
@@ -104,7 +104,7 @@ module Backchat
       end
 
       private
-        def emit(evt_name, args)
+        def emit(evt_name, args = nil)
           @handlers << [evt_name, args]
         end
 
@@ -143,27 +143,33 @@ module Backchat
 
               @ws.onopen = lambda { |e| 
                 puts "connected to #{@uri}"
-                self.connected
+                EM.next_tick(&method(:connected))
               }
               @ws.onmessage = lambda { |e|
-                m = self.preprocess_in_message(e)
-                emit(:receive, e)
+                EM.next_tick do
+                  m = preprocess_in_message(e.data)
+                  emit(:data, m)
+                end
               }
               @ws.onerror = lambda { |e| 
                 unless @quiet
-                  puts "Couldn't connect to #@uri"
+                  puts "Couldn't connect to #{@uri}"
                   puts e.inspect 
                 end
                 emit(:error, e)
               }
               @ws.onclose = lambda { |e| 
-                @state = @skip_reconnect ? ClientState::Disconnecting : ClientState::Reconnecting
-                if @state == ClientState::Disconnecting
-                  emit(:disconnected, e)
-                else
-                  emit(:reconnect, e)
+                EM.next_tick do 
+                  @state = @skip_reconnect ? ClientState::Disconnecting : ClientState::Reconnecting
+                  if @state == ClientState::Disconnecting
+                    perform_disconnect
+                  else
+                    emit(:reconnect)
+                    #EM.next_tick(&method(:reconnect))
+                    reconnect
+                  end
+                  
                 end
-                reconnect 
               }
             rescue Exception => e
               puts e
@@ -173,7 +179,7 @@ module Backchat
         end
 
         def perform_disconnect
-          @state = Client::Disconnected
+          @state = ClientState::Disconnected
           emit(:close)
           @buffer.close if buffered?
         end
@@ -195,16 +201,16 @@ module Backchat
           @notified_of_reconnect = false
           @skip_reconnect = false
           @state = ClientState::Connected
-          emit(:connected)
+          emit(:open)
         end
 
         def preprocess_in_message(msg)
           message = @wire_format.parse_message(msg)
-          send :ack => "ack", :id => msg["id"] if message.type == "ack_request"
-          if message.type == "ack"
-            timeout = @expected_acks[message.id]
+          send :ack => "ack", :id => msg["id"] if message.is_a?(Hash) && message["type"] == "ack_request"
+          if message.is_a?(Hash) && message["type"] == "ack"
+            timeout = @expected_acks[message["id"]]
             timeout.cancel
-            @expected_acks.delete[message.id]
+            @expected_acks.delete[message["id"]]
             emit("ack", message) if @raise_ack_events
             return nil
           end
@@ -213,18 +219,19 @@ module Backchat
 
         def prepare_for_send(message)
           out = @wire_format.render_message(message)
-          if message.type == "needs_ack"
+          if message.is_a?(Hash) && message["type"] == "needs_ack"
             ack_req = {
-              :content => @wire_format.build_message(message.content),
+              :content => @wire_format.build_message(message["content"]),
               :type => "ack_request",
               :id => (@ack_counter += 1)
             }
             @expected_acks[ack_req[:id]] = EM::Timer.new(message[:timeout]) do
-              emit(:ack_failed, message.content)
+              emit(:ack_failed, message["content"])
             end
             out = @wire_format.render_message(ack_req)
             emit(:ack_request, ack_req) if @raise_ack_events
           end
+          puts "sending #{out.inspect}"
           out
         end
         
