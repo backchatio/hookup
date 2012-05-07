@@ -39,6 +39,7 @@ startYear := Some(2012)
 licenses := Seq(("MIT", url("http://github.com/backchat/scala-websocket/raw/HEAD/LICENSE")))
 
 pomExtra <<= (pomExtra, name, description) {(pom, name, desc) => pom ++ Group(
+  <url>http://github.com/backchat/scala-websocket</url>
   <scm>
     <connection>scm:git:git://github.com/backchat/scala-websocket.git</connection>
     <developerConnection>scm:git:git@github.com:backchat/scala-websocket.git</developerConnection>
