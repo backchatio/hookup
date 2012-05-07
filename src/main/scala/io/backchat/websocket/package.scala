@@ -57,7 +57,7 @@ package object websocket {
   private[websocket] implicit def nettyChannel2BroadcastChannel(ch: Channel)(implicit executionContext: ExecutionContext): BroadcastChannel =
     new { val id: Int = ch.getId } with BroadcastChannel {
       def send(msg: WebSocketOutMessage) = ch.write(msg).toAkkaFuture
-      def close() = ch.close().toAkkaFuture
+      def disconnect() = ch.close().toAkkaFuture
     }
 
 }

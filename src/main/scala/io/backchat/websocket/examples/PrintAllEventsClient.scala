@@ -54,7 +54,7 @@ object PrintAllEventsClient {
               } else { // if we reach 10 messages disconnect from the server
                 println("Disconnecting after 10 messages")
                 if (timeout != null) timeout.cancel()
-                close() onComplete {
+                disconnect() onComplete {
                   case _ ⇒
                     println("All resources have been closed")
                     sys.exit()

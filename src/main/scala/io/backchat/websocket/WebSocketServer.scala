@@ -288,7 +288,7 @@ object WebSocketServer {
 
     def receive: Receive
 
-    final def close() = {
+    final def disconnect() = {
       if (_handler != null) _handler.close()
       else Promise.successful(Success)
     }
