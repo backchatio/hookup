@@ -10,7 +10,7 @@ module Backchat
           json = JSON.parse(message)
           return json if json.is_a?(Hash) && (json["type"] == "ack" || json["type"] == "needs_ack")
           return json.update("content" => parse_message(json["content"])) if json.is_a?(Hash) && json["type"] == "ack_request"
-          { "type" => "json", "content" => json }
+          json.is_a?(Hash) && json.key?("type") ? json : { "type" => "json", "content" => json }
         rescue Exception => e
           puts e
           { "type" => "text", "content" => message }

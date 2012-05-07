@@ -11,6 +11,7 @@ class TestServer
   def call(env)
     socket = Faye::WebSocket.new(env, ["echo"])
     socket.onmessage = lambda do |event|
+      puts "SERVER: #{event.data}"
       socket.send(event.data)
     end
     socket.rack_response
@@ -35,7 +36,10 @@ class TestServer
   end
   
   def stop
-    @server.stop if @server
+    begin
+      @server.stop if @server
+    rescue
+    end
   end
 end
 
