@@ -49,8 +49,8 @@ module Backchat
         @uri, @retry_schedule = parsed, (options[:reconnect_schedule]||RECONNECT_SCHEDULE.clone)
         @max_retries = options[:max_retries]
         @quiet = !!options[:quiet]
-        @handlers = EM::Channel.new
-        @wire_format = WireFormat.new
+        @handlers = options[:channel]||EM::Channel.new
+        @wire_format = options[:wire_format] || WireFormat.new
         @expected_acks = {}
         @ack_counter = 0
         # this option `raise_ack_events` is only useful in tests for the acking itself.
@@ -59,18 +59,14 @@ module Backchat
         @raise_ack_events = !!options[:raise_ack_events]
         @state = ClientState::Disconnected
         if !!options[:buffered]
-          @journal = FileBuffer.new(options[:buffer_path]||BUFFER_PATH)
+          @journal = options[:buffer]||FileBuffer.new(options[:buffer_path]||BUFFER_PATH)
           @journal.on(:data, &method(:send))
         end
       end
 
       def send(msg)
         m = prepare_for_send(msg)
-        if connected?          
-          @ws.send(m)
-        else
-          @journal << m if buffered?
-        end
+        connected? ? @ws.send(m) : (buffered? ? @journal << m : nil)
       end
 
       def send_acked(msg, options={})
@@ -204,7 +200,7 @@ module Backchat
 
         def preprocess_in_message(msg)
           message = @wire_format.parse_message(msg)
-          send :ack => "ack", :id =>  if message.type == "ack_request"
+          send :ack => "ack", :id => msg["id"] if message.type == "ack_request"
           if message.type == "ack"
             timeout = @expected_acks[message.id]
             timeout.cancel
@@ -221,7 +217,7 @@ module Backchat
             ack_req = {
               :content => @wire_format.build_message(message.content),
               :type => "ack_request",
-              :id => (@ack_counter = @ack_counter+1)
+              :id => (@ack_counter += 1)
             }
             @expected_acks[ack_req[:id]] = EM::Timer.new(message[:timeout]) do
               emit(:ack_failed, message.content)
