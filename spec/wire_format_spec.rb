@@ -5,7 +5,7 @@ describe Backchat::WebSocket::WireFormat do
   
   text = "this is a text message"
   text_result = { "type" => "text", "content" => "this is a text message" }
-  json_result = { "content" => { "data" => "a json message" }, "type" => 'json'}
+  json_result = { "type" => 'json', "content" => { "data" => "a json message" }}
   json_data = {"data" => "a json message"}
   json = JSON.generate({"data" => "a json message"})
   array_result = { "content" => [1, 2, 3, 4], "type" => "json" }
@@ -47,10 +47,10 @@ describe Backchat::WebSocket::WireFormat do
       wire_format.build_message(text).should == text_result
     end
     it "a json message" do
-      wire_format.build_message(json_data).should == json_data
+      wire_format.build_message(json_data).should == json_result
     end
     it "a json array" do
-      wire_format.build_message(array_data).should == array_data
+      wire_format.build_message(array_data).should == array_result
     end
     it "an ack message" do
       wire_format.build_message(ack_result).should == ack_result

@@ -2,8 +2,8 @@
 
 require 'time'
 require "addressable/uri"
-require 'faye/websocket'
 require 'json'
+require 'json/ext'
 require 'backchatio-websocket/version'
 require 'backchatio-websocket/errors'
 

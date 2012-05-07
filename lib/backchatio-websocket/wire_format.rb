@@ -4,26 +4,16 @@ module Backchat
     class WireFormat
 
       def parse_message(message)
-        if message.is_a?(String)
-          begin
-            if possibly_json?(message) 
-              json = JSON.parse(message)
-              full = json
-              unless json.key?("content") || json.key?("type") 
-                full = {"type" => "json", "content" => json }
-              else
-                full["type"] ||= "json"
-              end
-              full["content"] = parse_message(full["content"]) if full["type"] == "ack_request"
-              full
-            else
-              { "type" => "text", "content" => message }
-            end
-          rescue
-            { "type" => "text", "content" => message }
-          end
-        else 
-          message
+        return message unless message.is_a?(String)
+        return { "type" => "text", "content" => message } unless possibly_json?(message)
+        begin
+          json = JSON.parse(message)
+          return json if json.is_a?(Hash) && (json["type"] == "ack" || json["type"] == "needs_ack")
+          return json.update("content" => parse_message(json["content"])) if json.is_a?(Hash) && json["type"] == "ack_request"
+          { "type" => "json", "content" => json }
+        rescue Exception => e
+          puts e
+          { "type" => "text", "content" => message }
         end
       end
 
@@ -32,12 +22,16 @@ module Backchat
       end
 
       def build_message(message)
-        unless message.is_a?(String)
-          built = parse_message(message)
-          built["content"] = parse_message(built["content"]) if built["type"] == "ack_request"
-          built 
+        return { "type" => "text", "content" => message } if message.is_a?(String)
+        prsd = parse_message(message)
+        return prsd if prsd.is_a?(Hash) && prsd["type"] == "ack"
+        prsd["content"] = parse_message(prsd["content"]) if prsd.is_a?(Hash) && prsd["type"] == "ack_request"
+        if prsd.is_a?(Hash)
+          built = prsd.key?("content") ? prsd : { "type" => "json", "content" => prsd}
+          built["type"] ||= "json"
+          built
         else
-          { "type" => "text", "content" => message }
+          {"type" => "json", "content" => prsd}
         end
       end
 
@@ -46,15 +40,15 @@ module Backchat
         return parsed["content"]["content"] if parsed["type"] == "ack_request"          
         if (parsed["type"] == "json") 
           parsed.delete('type')
-          return parsed.size == 1 && parsed["content"] ? parsed["content"] : parsed
+          return parsed.size == 1 && parsed.key?("content") ? parsed["content"] : parsed
         end
-        return parsed if parsed["type"] == "ack" || parsed["type"] === "needs_ack"           
+        return parsed if parsed["type"] == "ack" || parsed["type"] == "needs_ack"           
         parsed["content"]
       end
 
       private
       def possibly_json?(message)
-        message =~ /^(?:\{|\[)/
+        !!(message =~ /^(?:\{|\[)/)
       end
     end
   end
