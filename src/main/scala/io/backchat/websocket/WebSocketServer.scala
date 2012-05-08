@@ -214,7 +214,7 @@ object WebSocketServer {
 
   trait WebSocketServerClientActor { self: Actor =>
     protected def connection: WebSocketServerClient
-    protected def remoteReceive: WebSocket.Receive
+    protected def remoteReceive: Actor.Receive
   }
 
   trait ActorWebSocketServerClient { self: WebSocketServerClient =>
@@ -479,6 +479,7 @@ object WebSocketServer {
           }
 
         case f: WebSocketInMessage ⇒ client.receive lift f
+
         case f: CloseWebSocketFrame ⇒
           receivedCloseFrame = true
           if (handshaker != null) handshaker.close(ctx.getChannel, f)
@@ -490,13 +491,15 @@ object WebSocketServer {
     }
 
     override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
-      if (client.receive != null) client.receive lift Error(Option(e.getCause))
+      if (client != null && client.receive != null) client.receive lift Error(Option(e.getCause))
       else logger.error("Exception during connection.", e.getCause)
     }
 
     override def channelClosed(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
-      client.receive lift Disconnected(None)
-      client = null
+      if (client != null) {
+        client.receive lift Disconnected(None)
+        client = null
+      }
       ctx.setAttachment(null)
     }
 
@@ -663,7 +666,7 @@ object WebSocketServer {
 
 }
 
-class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)) {
+class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)) extends Server {
   def capabilities = config.capabilities
   def name = config.name
   def version = config.version
@@ -815,6 +818,12 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
 }
 
 trait Server {
+
+  def capabilities: Seq[ServerCapability]
+  def name: String
+  def version: String
+  def listenOn: String
+  def port: Int
 
   def start
 

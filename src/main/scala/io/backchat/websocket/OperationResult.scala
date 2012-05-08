@@ -14,17 +14,11 @@ sealed trait OperationResult {
 }
 case object Success extends OperationResult {
   @BeanProperty
-  override val isSuccess = true
-
-  @BeanProperty
-  override val isCancelled = false
+  override def isSuccess: Boolean = true
 }
 case object Cancelled extends OperationResult {
   @BeanProperty
-  override val isSuccess = false
-
-  @BeanProperty
-  override val isCancelled = true
+  override def isCancelled: Boolean = true
 }
 case class ResultList(results: List[OperationResult]) extends OperationResult {
 
