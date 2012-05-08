@@ -66,7 +66,11 @@ module Backchat
 
       def send(msg)
         m = prepare_for_send(msg)
-        connected? ? @ws.send(m) : (buffered? ? @buffer << m : nil)
+        if connected? then
+          @ws.send(m)
+        else
+          buffered? ? @buffer << m : nil
+        end
       end
 
       def send_acked(msg, options={})
