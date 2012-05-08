@@ -1,0 +1,3 @@
+[submodule "src/main/ruby/vendor/em-rspec"]
+	path = src/main/ruby/vendor/em-rspec
+	url = https://github.com/jcoglan/em-rspec.git
