@@ -1,5 +1,5 @@
 import xml.Group
-//import scalariform.formatter.preferences._
+// import scalariform.formatter.preferences._
 
 publishMavenStyle := true
 
