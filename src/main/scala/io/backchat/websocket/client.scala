@@ -26,36 +26,26 @@ import java.util.concurrent.{ConcurrentSkipListSet, TimeUnit, Executors}
 import reflect.BeanProperty
 
 /**
- * Usage of the simple websocket client:
- *
- * <pre>
- *   new WebSocket {
- *     val uri = new URI("ws://localhost:8080/thesocket")
- *
- *     def receive = {
- *       case Disconnected(_) ⇒ println("The websocket to " + uri.toASCIIString + " disconnected.")
- *       case TextMessage(message) ⇒ {
- *         println("RECV: " + message)
- *         send("ECHO: " + message)
- *       }
- *     }
- *
- *     connect() onSuccess {
- *       case Success ⇒
- *         println("The websocket to " + uri.toASCIIString + "is connected.")
- *       case _ ⇒
- *     }
- *   }
- * </pre>
+ * @see [[io.backchat.websocket.WebSocket]]
  */
 object WebSocket {
 
-
-
+  /**
+   * The websocket inbound message handler
+   */
   type Receive = PartialFunction[WebSocketInMessage, Unit]
 
+  /**
+   * Global logger for a websocket client.
+   */
   private val logger = InternalLoggerFactory.getInstance("WebSocket")
 
+  /**
+   * This handler takes care of translating websocket frames into [[io.backchat.websocket.WebSocketInMessage]] instances
+   * @param handshaker The handshaker to use for this websocket connection
+   * @param host The host to connect to.
+   * @param wireFormat The wireformat to use for this connection.
+   */
   class WebSocketClientHostHandler(handshaker: WebSocketClientHandshaker, host: WebSocketHost)(implicit wireFormat: WireFormat) extends SimpleChannelHandler {
     private val msgCount = new AtomicLong(0)
 
@@ -117,6 +107,14 @@ object WebSocket {
     }
   }
 
+  /**
+   * Implementation detail
+   * the internal represenation of a websocket client.
+   *
+   * @param client The client to decorate
+   * @param executionContext The execution context for futures
+   * @param wireFormat The wireformat to use
+   */
   private final class WebSocketHost(val client: WebSocket)(implicit executionContext: ExecutionContext, wireFormat: WireFormat) extends WebSocketLike with BroadcastChannel with Connectable with Reconnectable {
 
     private[this] val normalized = client.settings.uri.normalize()
@@ -360,6 +358,10 @@ object WebSocket {
     }
   }
 
+  /**
+   * The default execution context for the websocket library.
+   * it uses a ForkJoinPool as underlying threadpool.
+   */
   implicit val executionContext =
     ExecutionContext.fromExecutorService(new ForkJoinPool(
       Runtime.getRuntime.availableProcessors(),
@@ -380,6 +382,10 @@ object WebSocket {
     def this(s: String) = this(s, null)
   }
 
+  /**
+   * Handler to send pings when no data has been sent or received within the timeout.
+   * @param logger A logger for this handler to use.
+   */
   class PingPongHandler(logger: InternalLogger) extends IdleStateAwareChannelHandler {
 
     override def channelIdle(ctx: ChannelHandlerContext, e: IdleStateEvent) {
@@ -389,6 +395,16 @@ object WebSocket {
     }
   }
 
+  /**
+   * A factory method to create a default websocket implementation that uses the specified `recv` as message handler.
+   * This probably not the most useful factory method ever unless you can keep the client around somehow too.
+   *
+   * @param context The configuration for the websocket client
+   * @param recv The message handler
+   * @param jsFormat the lift-json formats
+   * @param wireFormat the [[io.backchat.websocket.WireFormat]] to use
+   * @return a [[io.backchat.websocket.DefaultWebSocket]]
+   */
   def apply(context: WebSocketContext)
            (recv: Receive)
            (implicit jsFormat: Formats = DefaultFormats, wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)): WebSocket = {
@@ -397,33 +413,107 @@ object WebSocket {
     }
   }
 
+  /**
+   * A factory method for the java api. It creates a JavaWebSocket which is a websocket with added helpers for
+   * the java language, so they too can enjoy this library.
+   *
+   * @param context The configuration for the websocket client
+   * @param jsFormat the lift-json formats
+   * @param wireFormat the [[io.backchat.websocket.WireFormat]] to use
+   * @return a [[io.backchat.websocket.JavaWebSocket]]
+   */
   def create(context: WebSocketContext, jsFormat: Formats, wireFormat: WireFormat): JavaWebSocket =
     new JavaWebSocket(context, wireFormat, jsFormat)
 
+  /**
+   * A factory method for the java api. It creates a JavaWebSocket which is a websocket with added helpers for
+   * the java language, so they too can enjoy this library.
+   *
+   * @param context The configuration for the websocket client
+   * @param wireFormat the [[io.backchat.websocket.WireFormat]] to use
+   * @return a [[io.backchat.websocket.JavaWebSocket]]
+   */
   def create(context: WebSocketContext, wireFormat: WireFormat): JavaWebSocket =
     new JavaWebSocket(context, wireFormat)
 
+  /**
+   * A factory method for the java api. It creates a JavaWebSocket which is a websocket with added helpers for
+   * the java language, so they too can enjoy this library.
+   *
+   * @param context The configuration for the websocket client
+   * @param jsFormat the lift-json formats
+   * @return a [[io.backchat.websocket.JavaWebSocket]]
+   */
   def create(context: WebSocketContext, jsFormat: Formats): JavaWebSocket =
     new JavaWebSocket(context, jsFormat)
 
+  /**
+   * A factory method for the java api. It creates a JavaWebSocket which is a websocket with added helpers for
+   * the java language, so they too can enjoy this library.
+   *
+   * @param context The configuration for the websocket client
+   * @return a [[io.backchat.websocket.JavaWebSocket]]
+   */
   def create(context: WebSocketContext): JavaWebSocket =
     new JavaWebSocket(context)
 
 }
 
+/**
+ * A trait describing a client that can connect to something
+ */
 trait Connectable { self: BroadcastChannelLike ⇒
+
+  /**
+   * A flag indicating connection status.
+   * @return a boolean indicating connection status
+   */
+  @BeanProperty
   def isConnected: Boolean
+
+  /**
+   * Connect to the server
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   def connect(): Future[OperationResult]
 }
+
+/**
+ * A trait describing a client that can reconnect to a server.
+ */
 trait Reconnectable {
+
+  /**
+   * Reconnect to the server
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   def reconnect(): Future[OperationResult]
 }
+
+/**
+ * A trait describing an entity that can handle inbound messages
+ */
 trait WebSocketLike extends BroadcastChannelLike {
 
+  /**
+   * Handle inbound [[io.backchat.websocket.WebSocketInMessage]] instances
+   * @return a [[io.backchat.websocket.WebSocket.Receive]] as message handler
+   */
   def receive: WebSocket.Receive
 }
 
-
+/**
+ * The configuration of a websocket client.
+ *
+ * @param uri The [[java.net.URI]] to connect to.
+ * @param version The version of the websocket handshake to use, defaults to the most recent version.
+ * @param initialHeaders The headers to send along with the handshake request.
+ * @param protocols The protocols this websocket client can understand
+ * @param pinging The timeout for pinging.
+ * @param buffer The buffer to use when the connection to the server is lost.
+ * @param throttle The throttle to use as reconnection schedule.
+ * @param executionContext The execution context for futures.
+ */
 case class WebSocketContext(
   @BeanProperty
   uri: URI,
@@ -442,31 +532,96 @@ case class WebSocketContext(
   @BeanProperty
   executionContext: ExecutionContext = WebSocket.executionContext)
 
+/**
+ * Usage of the simple websocket client:
+ *
+ * <pre>
+ *   new WebSocket {
+ *     val uri = new URI("ws://localhost:8080/thesocket")
+ *
+ *     def receive = {
+ *       case Disconnected(_) ⇒ println("The websocket to " + uri.toASCIIString + " disconnected.")
+ *       case TextMessage(message) ⇒ {
+ *         println("RECV: " + message)
+ *         send("ECHO: " + message)
+ *       }
+ *     }
+ *
+ *     connect() onSuccess {
+ *       case Success ⇒
+ *         println("The websocket to " + uri.toASCIIString + "is connected.")
+ *       case _ ⇒
+ *     }
+ *   }
+ * </pre>
+ */
 trait WebSocket extends WebSocketLike with Connectable with Reconnectable with Closeable {
 
   import WebSocket.WebSocketHost
 
+  /**
+   * The configuration of this client.
+   * @return The [[io.backchat.websocket.WebSocketContext]] as configuration object
+   */
   def settings: WebSocketContext
 
+  /**
+   * A flag indicating whether this websocket client can fallback to buffering.
+   * @return whether this websocket client can fallback to buffering or not.
+   */
   def buffered: Boolean = settings.buffer.isDefined
 
   private[websocket] def raiseEvents: Boolean = false
 
+  /**
+   * The execution context for futures within this client.
+   * @return The [[akka.dispatch.ExecutionContext]]
+   */
   implicit protected def executionContext: ExecutionContext = settings.executionContext
 
+  /**
+   * The lift-json formats to use when serializing json values.
+   * @return The [[net.liftweb.json.Formats]]
+   */
   implicit protected def jsonFormats: Formats = DefaultFormats
+
+  /**
+   * The wireformat to use when sending messages over the connection.
+   * @return the [[io.backchat.websocket.WireFormat]]
+   */
   implicit def wireFormat: WireFormat = new JsonProtocolWireFormat
 
   private[websocket] lazy val channel: BroadcastChannel with Connectable with Reconnectable = new WebSocketHost(this)
 
   def isConnected: Boolean = channel.isConnected
 
+  /**
+   * Send a message to the server.
+   *
+   * @param message The [[io.backchat.websocket.WebSocketOutMessage]] to send
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   final def !(message: WebSocketOutMessage) = send(message)
 
+  /**
+   * Connect to the server.
+   *
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   final def connect(): Future[OperationResult] = channel.connect()
 
+  /**
+   * Reconnect to the server.
+   *
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   def reconnect(): Future[OperationResult] = channel.reconnect()
 
+  /**
+   * Disconnect from the server.
+   *
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   final def disconnect(): Future[OperationResult] = channel.disconnect()
 
 
@@ -474,10 +629,38 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable with C
     Await.ready(disconnect(), 30 seconds)
   }
 
+  /**
+   * Send a message to the server.
+   *
+   * @param message The [[io.backchat.websocket.WebSocketOutMessage]] to send
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   final def send(message: WebSocketOutMessage): Future[OperationResult] = channel.send(message)
 
 }
 
+/**
+ * Usage of the simple websocket client:
+ *
+ * <pre>
+ *   new DefaultWebSocket(WebSocketContext(new URI("ws://localhost:8080/thesocket"))) {
+ *
+ *     def receive = {
+ *       case Disconnected(_) ⇒ println("The websocket to " + uri.toASCIIString + " disconnected.")
+ *       case TextMessage(message) ⇒ {
+ *         println("RECV: " + message)
+ *         send("ECHO: " + message)
+ *       }
+ *     }
+ *
+ *     connect() onSuccess {
+ *       case Success ⇒
+ *         println("The websocket is connected.")
+ *       case _ ⇒
+ *     }
+ *   }
+ * </pre>
+ */
 abstract class DefaultWebSocket(val settings: WebSocketContext, wf: WireFormat, jsFormat: Formats) extends WebSocket {
 
   def this(settings: WebSocketContext, wf: WireFormat) = this(settings, wf, DefaultFormats)
@@ -492,66 +675,225 @@ abstract class DefaultWebSocket(val settings: WebSocketContext, wf: WireFormat, 
 
 }
 
+/**
+ * A base class for the java api to listen for websocket events.
+ */
 trait WebSocketListener {
-  def onConnected(): Unit = ()
-  def onDisconnected(reason: Throwable): Unit = ()
-  def onTextMessage(text: String): Unit = ()
-  def onJsonMessage(json: String): Unit = ()
-  def onError(reason: Throwable): Unit = ()
-  def onTextAckFailed(text: String): Unit = ()
-  def onJsonAckFailed(json: String): Unit = ()
+  /**
+   * The callback method for when the client is connected
+   *
+   * @param client The client that connected.
+   */
+  def onConnected(client: WebSocket): Unit = ()
+
+  /**
+   * The callback method for when the client is reconnecting
+   *
+   * @param client The client that is reconnecting.
+   */
+  def onReconnecting(client: WebSocket): Unit = ()
+
+  /**
+   * The callback method for when the client is disconnected
+   *
+   * @param client The client that disconnected.
+   */
+  def onDisconnected(client: WebSocket, reason: Throwable): Unit = ()
+
+  /**
+   * The callback method for when a text message has been received.
+   *
+   * @param client The client that received the message
+   * @param text The message it received
+   */
+  def onTextMessage(client: WebSocket, text: String): Unit = ()
+
+  /**
+   * The callback method for when a json message has been received.
+   *
+   * @param client The client that received the message
+   * @param json The message it received
+   */
+  def onJsonMessage(client: WebSocket, json: String): Unit = ()
+
+  /**
+   * The callback method for when an error has occured
+   *
+   * @param client The client that received the message
+   * @param error The message it received the throwable if any, otherwise null
+   */
+  def onError(client: WebSocket, reason: Throwable): Unit = ()
+
+  /**
+   * The callback method for when a text message has failed to be acknowledged.
+   *
+   * @param client The client that received the message
+   * @param text The message it received
+   */
+  def onTextAckFailed(client: WebSocket, text: String): Unit = ()
+
+  /**
+   * The callback method for when a json message has failed to be acknowledged.
+   *
+   * @param client The client that received the message
+   * @param text The message it received
+   */
+  def onJsonAckFailed(client: WebSocket, json: String): Unit = ()
 }
 
+/**
+ * A mixin for a [[io.backchat.websocket.WebSocket]] with helper methods for the java api.
+ * When mixed into a websocket it is a full implementation that notifies the registered
+ * [[io.backchat.websocket.WebSocketListener]] instances when events occur.
+ */
 trait JavaHelpers extends WebSocketListener { self: WebSocket =>
+
+  /**
+   * Send a text message. If the message is a json string it will still be turned into a json message
+   *
+   * @param message The message to send.
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   def send(message: String): Future[OperationResult] = channel.send(message)
+
+  /**
+   * Send a json message.
+   *
+   * @param message The message to send.
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   def send(json: JValue): Future[OperationResult] = channel.send(json)
+
+  /**
+   * Send a json message. If the message isn't a json string it will throw a [[net.liftweb.json.JsonParser.ParseException]]
+   *
+   * @param message The message to send.
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   def sendJson(json: String): Future[OperationResult] = channel.send(JsonParser.parse(json))
+
+  /**
+   * Send a text message which expects an Ack. If the message is a json string it will still be turned into a json message
+   *
+   * @param message The message to send.
+   * @param timeout the [[akka.util.Duration]] as timeout for the ack operation
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   def sendAcked(message: String, timeout: Duration): Future[OperationResult] = channel.send(message.needsAck(timeout))
+  /**
+   * Send a json message which expects an Ack. If the message isn't a json string it will throw a [[net.liftweb.json.JsonParser.ParseException]]
+   *
+   * @param message The message to send.
+   * @param timeout the [[akka.util.Duration]] as timeout for the ack operation
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   def sendAcked(message: JValue, timeout: Duration): Future[OperationResult] = channel.send(message.needsAck(timeout))
+
+  /**
+   * Send a text message which expects an Ack. If the message is a json string it will still be turned into a json message
+   *
+   * @param message The message to send.
+   * @param timeout the [[akka.util.Duration]] as timeout for the ack operation
+   * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+   */
   def sendJsonAcked(json: String, timeout: Duration): Future[OperationResult] = channel.send(parse(json).needsAck(timeout))
 
   private[this] val listeners = new ConcurrentSkipListSet[WebSocketListener]()
 
+  /**
+   * Add a listener for websocket events, if you want to remove the listener at a later time you need to keep the instance around.
+   * @param listener The [[io.backchat.websocket.WebSocketListener]] to add
+   * @return this to allow for chaining
+   */
   def addListener(listener: WebSocketListener): this.type = {
     listeners.add(listener)
     this
   }
+
+  /**
+   * Remove a listener for websocket events
+   * @param listener The [[io.backchat.websocket.WebSocketListener]] to add
+   * @return this to allow for chaining
+   */
   def removeListener(listener: WebSocketListener): this.type = {
     listeners.remove(listener)
     this
   }
 
+  /**
+   * The implementation of the receive handler for java clients.
+   * it notfies the listeners by iterating over all of them and calling the designated method.
+   * @return The [[io.backchat.websocket.WebSocket.Receive]] message handler
+   */
   def receive: WebSocket.Receive = {
     case Connected =>
-      listeners.asScala foreach (_.onConnected())
-      onConnected()
+      listeners.asScala foreach (_.onConnected(this))
+      onConnected(this)
     case Disconnected(reason) =>
-      listeners.asScala foreach (_.onDisconnected(reason.orNull))
-      onDisconnected(reason.orNull)
+      listeners.asScala foreach (_.onDisconnected(this, reason.orNull))
+      onDisconnected(this, reason.orNull)
+    case Reconnecting =>
+      listeners.asScala foreach (_.onReconnecting(this))
+      onReconnecting(this)
     case TextMessage(text) =>
-      listeners.asScala foreach (_.onTextMessage(text))
-      onTextMessage(text)
+      listeners.asScala foreach (_.onTextMessage(this, text))
+      onTextMessage(this, text)
     case JsonMessage(text) =>
       val str = compact(render(text))
-      listeners.asScala foreach (_.onJsonMessage(str))
-      onJsonMessage(str)
+      listeners.asScala foreach (_.onJsonMessage(this, str))
+      onJsonMessage(this, str)
     case AckFailed(TextMessage(text)) =>
-      listeners.asScala foreach (_.onTextAckFailed(text))
-      onTextAckFailed(text)
+      listeners.asScala foreach (_.onTextAckFailed(this, text))
+      onTextAckFailed(this, text)
     case AckFailed(JsonMessage(json)) =>
       val str = compact(render(json))
-      listeners.asScala foreach (_.onJsonAckFailed(str))
-      onJsonAckFailed(str)
+      listeners.asScala foreach (_.onJsonAckFailed(this, str))
+      onJsonAckFailed(this, str)
     case Error(reason) =>
-      listeners.asScala foreach (_.onError(reason.orNull))
-      onError(reason.orNull)
+      listeners.asScala foreach (_.onError(this, reason.orNull))
+      onError(this, reason.orNull)
   }
 }
 
+/**
+ * A java friendly websocket
+ * @see [[io.backchat.websocket.WebSocket]]
+ * @see [[io.backchat.websocket.JavaHelpers]]
+ *
+ * @param settings The settings to use when creating this websocket.
+ * @param wf The wireformat for this websocket
+ * @param jsFormat the lift-json formats
+ */
 class JavaWebSocket(settings: WebSocketContext, wf: WireFormat, jsFormat: Formats)
   extends DefaultWebSocket(settings, wf, jsFormat) with JavaHelpers {
+
+  /**
+   * A java friendly websocket
+   * @see [[io.backchat.websocket.WebSocket]]
+   * @see [[io.backchat.websocket.JavaHelpers]]
+   *
+   * @param settings The settings to use when creating this websocket.
+   * @param wf The wireformat for this websocket
+   */
   def this(settings: WebSocketContext, wf: WireFormat) = this(settings, wf, DefaultFormats)
+
+  /**
+   * A java friendly websocket
+   * @see [[io.backchat.websocket.WebSocket]]
+   * @see [[io.backchat.websocket.JavaHelpers]]
+   *
+   * @param settings The settings to use when creating this websocket.
+   */
   def this(settings: WebSocketContext) = this(settings, new JsonProtocolWireFormat()(DefaultFormats), DefaultFormats)
+
+  /**
+   * A java friendly websocket
+   * @see [[io.backchat.websocket.WebSocket]]
+   * @see [[io.backchat.websocket.JavaHelpers]]
+   *
+   * @param settings The settings to use when creating this websocket.
+   * @param jsFormats the lift-json formats
+   */
   def this(settings: WebSocketContext, jsFormats: Formats) =
     this(settings, new JsonProtocolWireFormat()(jsFormats), jsFormats)
 
