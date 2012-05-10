@@ -6,6 +6,11 @@ import net.liftweb.json.JsonAST.JValue
 import akka.util.Duration
 import java.util.concurrent.TimeUnit
 
+/**
+ * The package object for the library.
+ * This contains some implicit conversions to smooth the api over and allow for a single import
+ * at the top of a file to get the api working.
+ */
 package object websocket {
 
   private[websocket] implicit def string2richerString(s: String) = new {
@@ -24,12 +29,24 @@ package object websocket {
     def max(upperBound: Duration) = if (duration > upperBound) upperBound else duration
   }
 
+  /**
+   * An implicit conversion from a predicate function that takes a [[io.backchat.websocket.BroadcastChannel]] to
+   * a [[io.backchat.websocket.WebSocketServer.BroadcastFilter]]
+   *
+   * @param fn The predicate function to convert to a filter
+   * @return A [[io.backchat.websocket.WebSocketServer.BroadcastFilter]]
+   */
   implicit def fn2BroadcastFilter(fn: BroadcastChannel ⇒ Boolean): WebSocketServer.BroadcastFilter = {
     new WebSocketServer.BroadcastFilter {
       def apply(v1: BroadcastChannel) = fn(v1)
     }
   }
 
+  /**
+   * An implicit conversion from a [[org.jboss.netty.channel.ChannelFuture]] to an [[akka.dispatch.Future]]
+   * @param fut The [[org.jboss.netty.channel.ChannelFuture]]
+   * @return A [[akka.dispatch.Future]]
+   */
   implicit def channelFutureToAkkaFuture(fut: ChannelFuture) = new {
 
     def toAkkaFuture(implicit context: ExecutionContext): Future[OperationResult] = {
@@ -49,9 +66,25 @@ package object websocket {
     }
   }
 
+  /**
+   * Implicit conversion from a regular string to a [[io.backchat.websocket.TextMessage]]
+   *
+   * @param content The string content of the message
+   * @return A [[io.backchat.websocket.TextMessage]]
+   */
   implicit def string2TextMessage(content: String): WebSocketOutMessage with Ackable = TextMessage(content)
+
+  /**
+   * Implicit conversion from a lift-json jvalue to a [[io.backchat.websocket.JsonMessage]]
+   *
+   * @param content The string content of the message
+   * @return A [[io.backchat.websocket.JsonMessage]]
+   */
   implicit def jvalue2JsonMessage(content: JValue): WebSocketOutMessage with Ackable = JsonMessage(content)
 
+  /**
+   * Type forwarder for a websocket server client
+   */
   type WebSocketServerClient = WebSocketServer.WebSocketServerClient
 
   private[websocket] implicit def nettyChannel2BroadcastChannel(ch: Channel)(implicit executionContext: ExecutionContext): BroadcastChannel =

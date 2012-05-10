@@ -49,7 +49,7 @@ module Backchat
         @uri, @reconnect_schedule = parsed, (options[:reconnect_schedule]||RECONNECT_SCHEDULE.clone)
         @max_retries = options[:max_retries]
         @quiet = !!options[:quiet]
-        @handlers = options[:channel]||EM::Channel.new
+        @handlers = options[:handlers]||{} #EM::Channel.new
         @wire_format = options[:wire_format] || WireFormat.new
         @expected_acks = {}
         @ack_counter = 0
