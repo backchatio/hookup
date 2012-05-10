@@ -374,7 +374,7 @@ object WebSocket {
   /**
    * A WebSocket related exception
    *
-   * Copied from https://github.com/cgbystrom/netty-tools
+   * Copied from [[https://github.com/cgbystrom/netty-tools]]
    */
   class WebSocketException(s: String, th: Throwable) extends java.io.IOException(s, th) {
     def this(s: String) = this(s, null)

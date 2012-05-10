@@ -8,13 +8,13 @@ import org.specs2.execute.Result
 import akka.dispatch.Await
 import java.net.{ServerSocket, URI}
 import org.specs2.specification.{Step, Fragments}
-import akka.util.duration._
 import java.util.concurrent.TimeoutException
 import akka.testkit._
 import akka.actor.ActorSystem
 import net.liftweb.json.JsonAST.{JField, JString, JObject}
+import akka.util.duration._
 
-object WebSocketClientSpec {
+object WebSocketClientSpecification {
 
   def newServer(port: Int)(implicit wireFormat: WireFormat): WebSocketServer =
     WebSocketServer(ServerInfo("Test Echo Server", listenOn = "127.0.0.1", port = port)) {
@@ -27,13 +27,14 @@ object WebSocketClientSpec {
     }
 }
 
-trait WebSocketClientSupport { self: Specification =>
+trait WebSocketClientSpecification extends Specification with NoTimeConversions {
+
   implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
   val serverAddress = {
     val s = new ServerSocket(0);
     try { s.getLocalPort } finally { s.close() }
   }
-  val server = WebSocketClientSpec.newServer(serverAddress)
+  def server: Server
 
 
   override def map(fs: => Fragments) =
@@ -56,13 +57,15 @@ trait WebSocketClientSupport { self: Specification =>
 
 }
 
-class WebSocketClientSpec extends Specification with NoTimeConversions  { def is =
+class WebSocketClientSpec extends  WebSocketClientSpecification { def is =
   "A WebSocketClient should" ^
     "connects to server" ! connectsToServer ^
     "exchange json messages with the server" ! pending ^
   end
 
   implicit val system: ActorSystem = ActorSystem("WebSocketClientSpec")
+  val server = WebSocketClientSpecification.newServer(serverAddress)
+
 
   def connectsToServer = {
     val latch = TestLatch()
