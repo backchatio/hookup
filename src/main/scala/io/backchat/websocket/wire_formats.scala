@@ -3,18 +3,47 @@ package io.backchat.websocket
 import net.liftweb.json._
 import akka.util.duration._
 
+/**
+ * The interface trait for a wire format.
+ * Creating a new wire format means implementing these 3 methods.
+ */
 trait WireFormat {
 
+  /**
+   * Parse an inbound message from a string. This is used when a message is received over a connection.
+   *
+   * @param message The serialized message to parse
+   * @return the resulting [[io.backchat.websocket.WebSocketInMessage]]
+   */
   def parseInMessage(message: String): WebSocketInMessage
 
+  /**
+   * Parse an outbound message from a string. This is used when the buffer is being drained.
+   *
+   * @param message The serialized message to parse
+   * @return the resulting [[io.backchat.websocket.WebSocketOutMessage]]
+   */
   def parseOutMessage(message: String): WebSocketOutMessage
 
+  /**
+   * Render an outbound message to string. This is used when a message is sent to the remote party.
+   *
+   * @param message The message to serialize
+   * @return The string representation of the message
+   */
   def render(message: WebSocketOutMessage): String
 
 }
 
+/**
+ * A protocol format that is just plain and simple json. This protocol doesn't support acking.
+ * It looks at the first character in the message and if it thinks it's JSON it will try to parse it as JSON
+ * otherwise it creates a text message
+ *
+ * @param formats the [[net.liftweb.json.Formats]] for lift-json
+ */
 class SimpleJsonWireFormat(implicit formats: Formats) extends WireFormat {
-  private def parseMessage(message: String) = {
+  private[this] def parseMessage(message: String) = {
     if (message.trim.startsWith("{") || message.trim.startsWith("["))
       parseOpt(message) map (JsonMessage(_)) getOrElse TextMessage(message)
     else TextMessage(message)
@@ -31,9 +60,12 @@ class SimpleJsonWireFormat(implicit formats: Formats) extends WireFormat {
   }
 }
 
+/**
+ * @see [[io.backchat.websocket.JsonProtocolWireFormat]]
+ */
 object JsonProtocolWireFormat {
 
-  object ParseToWebSocketInMessage {
+  private object ParseToWebSocketInMessage {
 
     def apply(message: String)(implicit format: Formats) = inferMessageTypeFromContent(message)
 
@@ -74,7 +106,7 @@ object JsonProtocolWireFormat {
     }
   }
 
-  object ParseToWebSocketOutMessage {
+  private object ParseToWebSocketOutMessage {
     def apply(message: String)(implicit format: Formats): WebSocketOutMessage = inferMessageTypeFromContent(message)
 
     private def inferMessageTypeFromContent(content: String)(implicit format: Formats): WebSocketOutMessage = {
@@ -112,7 +144,7 @@ object JsonProtocolWireFormat {
     }
   }
 
-  object RenderOutMessage {
+  private object RenderOutMessage {
 
     import JsonDSL._
 
@@ -135,6 +167,13 @@ object JsonProtocolWireFormat {
 
 }
 
+/**
+ * A protocol that supports all the features of the websocket server.
+ * This wireformat knows about acking and the related protocol messages.
+ * it uses a json object to transfer meaning everything has a property name.
+ *
+ * @param formats  the [[net.liftweb.json.Formats]] for lift-json
+ */
 class JsonProtocolWireFormat(implicit formats: Formats) extends WireFormat {
   import JsonProtocolWireFormat._
   def parseInMessage(message: String): WebSocketInMessage = ParseToWebSocketInMessage(message)

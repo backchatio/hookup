@@ -38,6 +38,9 @@ import org.jboss.netty.handler.codec.http.HttpHeaders._
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone}
 
+/**
+ * A marker trait to indicate something is a a configuration for the server.
+ */
 trait ServerCapability
 
 /**
@@ -52,19 +55,72 @@ case class SslSupport(
   keystorePassword: String = sys.props("keystore.file.password"),
   algorithm: String = sys.props.get("ssl.KeyManagerFactory.algorithm").flatMap(_.blankOption) | "SunX509") extends ServerCapability
 
+/**
+ * Configuration for content compression
+ *
+ * @param level the compression level
+ */
 case class ContentCompression(level: Int = 6) extends ServerCapability
+
+/**
+ * The subprotocols this server can respond to.
+ *
+ * @param protocol A supported protocol name
+ * @param protocols remaining supported protocols
+ */
 case class SubProtocols(protocol: String, protocols: String*) extends ServerCapability
+
+/**
+ * The configuration for sending pings to a client. (Some websocket clients don't support ping frames)
+ *
+ * @param timeout the timeout for a connection to be idle before sending a ping.
+ */
 case class Ping(timeout: Timeout) extends ServerCapability
-case class FlashPolicy(domain: String, port: Seq[Int]) extends ServerCapability
+
+/**
+ * The configuration for the flash policy xml
+ *
+ * @param domain the domain to accept connections for
+ * @param ports the ports to accept connections on
+ */
+case class FlashPolicy(domain: String, ports: Seq[Int]) extends ServerCapability
+
 case class MaxFrameSize(size: Long = Long.MaxValue) extends ServerCapability
+
+/**
+ * Private object used in unit tests
+ */
 private[websocket] case object RaiseAckEvents extends ServerCapability
+
+/**
+ * Private object used in unit tests
+ */
 private[websocket] case object RaisePingEvents extends ServerCapability
 
+/**
+ * @see [[io.backchat.websocket.ServerInfo]]
+ */
 object ServerInfo {
+  /**
+   * The default server name ''BackchatWebSocketServer''
+   */
   val DefaultServerName = "BackChatWebSocketServer"
 
+  /**
+   * Creates a [[io.backchat.websocket.ServerInfo]] with the [[io.backchat.websocket.ServerInfo.DefaultServerName]]
+   *
+   * @param config A [[com.typesafe.config.Config]] object
+   * @return the created [[io.backchat.websocket.ServerInfo]]
+   */
   def apply(config: Config): ServerInfo = apply(config, DefaultServerName)
 
+  /**
+   * Creates a [[io.backchat.websocket.ServerInfo]]
+   *
+   * @param config A [[com.typesafe.config.Config]] object
+   * @param name the name of the server
+   * @return the created [[io.backchat.websocket.ServerInfo]]
+   */
   def apply(config: Config, name: String): ServerInfo = {
     import collection.JavaConverters._
 
@@ -116,7 +172,7 @@ object ServerInfo {
  * @param version The version of the server
  * @param listenOn Which address the server should listen on
  * @param port The port the server should listen on
- * @param capabilities A varargs of extra capabilities of this server
+ * @param capabilities A sequence of [[io.backchat.websocket.ServerCapability]] configurations for this server
  */
 case class ServerInfo(
     name: String = ServerInfo.DefaultServerName,
@@ -125,7 +181,10 @@ case class ServerInfo(
     port: Int = 8765,
     capabilities: Seq[ServerCapability] = Seq.empty) {
 
-  val sslContext = (capabilities collect {
+  /**
+   * If the server should support SSL this will be filled with the ssl context to use
+   */
+  val sslContext: Option[SSLContext] = (capabilities collect {
     case cfg: SslSupport ⇒ {
       val ks = KeyStore.getInstance("JKS")
       val fin = new FileInputStream(new File(cfg.keystorePath).getAbsoluteFile)
@@ -138,20 +197,36 @@ case class ServerInfo(
     }
   }).headOption
 
-  val contentCompression = (capabilities collect { case c: ContentCompression ⇒ c }).headOption
+  /**
+   * If the server should support content compression this will have the configuration for it.
+   */
+  val contentCompression: Option[ContentCompression] =
+    (capabilities collect { case c: ContentCompression ⇒ c }).headOption
 
+  /**
+   * If the server should support sub-protocols this will have the configuration for it.
+   */
   val subProtocols = (capabilities collect {
     case sp: SubProtocols if sp.protocols.nonEmpty ⇒ sp.protocol :+ sp.protocols
   }).headOption
 
+  /**
+   * If the server should support pinging this will have the configuration for it.
+   */
   val pingTimeout = (capabilities collect {
     case Ping(timeout) ⇒ timeout
-  }).headOption | Timeout(90 seconds)
+  }).headOption
 
+  /**
+   * If the server should support max frame sizes for websocket frames this will have the configuration for it.
+   */
   val maxFrameSize: Long = (capabilities collect {
     case MaxFrameSize(size) => size
   }).headOption | Long.MaxValue
 
+  /**
+   * The configuration for the flash policy, by default it allows all..
+   */
   val flashPolicy = (capabilities collect {
     case FlashPolicy(domain, policyPorts) ⇒
       (<cross-domain-policy>
@@ -165,24 +240,7 @@ case class ServerInfo(
 }
 
 /**
- * Netty based WebSocketServer
- * requires netty 3.4.x or later
- *
- * Usage:
- * <pre>
- *   val server = WebSocketServer(ServerInfo("MyWebSocketServer")) {
- *     new WebSocketServerClient {
- *       protected val receive = {
- *         case Connected ⇒ println("got a client connection")
- *         case TextMessage(text) ⇒ send(TextMessage("ECHO: " + text))
- *         case Disconnected(_) ⇒ println("client disconnected")
- *       }
- *     }
- *   }
- *   server.start
- *   // time passes......
- *   server.stop
- * </pre>
+ * @see [[io.backchat.websocket.WebSocketServer]]
  */
 object WebSocketServer {
 
@@ -191,56 +249,142 @@ object WebSocketServer {
 
   import WebSocket.{ executionContext, Receive }
 
+  /**
+   * A filter for broadcast channels, a predicate that can't be null
+   */
   trait BroadcastFilter extends (BroadcastChannel ⇒ Boolean) with NotNull
 
+  /**
+   * Companion object for [[io.backchat.websocket.WebSocketServer.Include]]
+   */
   object Include {
+    /**
+     * Create an include filter from varargs
+     *
+     * @param clients The available clients to filter
+     * @return a [[io.backchat.websocket.WebSocketServer.BroadcastFilter]]
+     */
     def apply(clients: WebSocketServerClient*): BroadcastFilter = new Include(clients)
   }
+
+  /**
+   * An include filter, if the channel exists in the list of open connections it will match
+   *
+   * @param clients The open connections
+   */
   class Include(clients: Seq[WebSocketServerClient]) extends BroadcastFilter {
+
+    /**
+     * Execute the matcher against the provided channel
+     *
+     * @param channel The [[io.backchat.websocket.BroadcastChannel]]
+     * @return A [[scala.Boolean]] indicating success or failure
+     */
     def apply(channel: BroadcastChannel) = clients.exists(_.id == channel.id)
   }
 
+  /**
+   * Companion object for [[io.backchat.websocket.WebSocketServer.Exclude]]
+   */
   object Exclude {
+
+    /**
+     * Create an exclude filter from varargs
+     *
+     * @param clients The available clients to filter
+     * @return a [[io.backchat.websocket.WebSocketServer.BroadcastFilter]]
+     */
     def apply(clients: WebSocketServerClient*): BroadcastFilter = new Exclude(clients)
   }
 
+  /**
+   * An exclude filter, if the channel does not exists in the list of open connections it will match
+   *
+   * @param clients The open connections
+   */
   class Exclude(clients: Seq[WebSocketServerClient]) extends BroadcastFilter {
+    /**
+     * Execute the matcher against the provided channel
+     *
+     * @param channel The [[io.backchat.websocket.BroadcastChannel]]
+     * @return A [[scala.Boolean]] indicating success or failure
+     */
     def apply(v1: BroadcastChannel) = !clients.exists(_.id == v1.id)
   }
 
-  //  private implicit def wsServerClient2BroadcastChannel(ch: WebSocketServerClientHandler): BroadcastChannel =
-  //    new { val id = ch.id } with BroadcastChannel { def send(msg: String) { ch.send(msg) } }
-  //
-
+  /**
+   * A convenience mixin for using an actor as an event handler
+   */
   trait WebSocketServerClientActor { self: Actor =>
+    /**
+     * The actual websocket connection.
+     *
+     * @return A [[io.backchat.websocket.WebSocketServerClient]]
+     */
     protected def connection: WebSocketServerClient
+
+    /**
+     * The event handler for websocket events.
+     *
+     * @return The partial function to handle inbound websocket messages.
+     */
     protected def remoteReceive: Actor.Receive
   }
 
+  /**
+   * A convenience trait for bridging a websocket to an actor.
+   */
   trait ActorWebSocketServerClient { self: WebSocketServerClient =>
 
+    /**
+     * The factory to use to create the actor handler
+     *
+     * @return A function that takes a [[io.backchat.websocket.WebSocketServerClient]] and returns an [[akka.actor.ActorRef]]
+     */
     protected def actorFactory: WebSocketServerClient => ActorRef
 
+    /**
+     * A lazy value of the actor being linked to.
+     */
     lazy val linkedTo: ActorRef = actorFactory(this)
+
+    /**
+     * The message event handler, defers creating the linked actor until the first message is received
+     */
     val receive: Actor.Receive = {
       case m => linkedTo ! m
     }
   }
 
+  /**
+   * Represents a broadcast operation.
+   */
   trait Broadcast {
     def apply(message: WebSocketOutMessage, allowsOnly: BroadcastFilter): Future[OperationResult]
   }
 
   private implicit def nettyChannelGroup2Broadcaster(allChannels: ChannelGroup): Broadcast = new Broadcast {
     def apply(message: WebSocketOutMessage, matchingOnly: BroadcastFilter) = {
-      val lst = allChannels.asScala map (x ⇒ x: BroadcastChannel) filter matchingOnly map (_ send message)
+      val lst = allChannels.asScala map (x => x: BroadcastChannel) filter matchingOnly map (_ send message)
       Future.sequence(lst) map (l ⇒ ResultList(l.toList))
     }
   }
 
+  /**
+   * The interface library users use when implementing a websocket server to represent a client.
+   * For every new connection made to the server it will create one of these guys.
+   *
+   * You can use it to maintain state for your client, but be aware that multiple threads maybe accessing the state
+   * at the same time so you should take care of thread safety.
+   */
   trait WebSocketServerClient extends BroadcastChannel {
 
+    /**
+     * The default broadcast filter broadcast operations use, it skips publishing to the sending channel
+     */
     val SkipSelf = Exclude(this)
+
+
     final def id = if (_handler != null) _handler.id else 0
     final def remoteAddress = if (_handler != null) _handler.remoteAddress else null
 
@@ -267,10 +411,18 @@ object WebSocketServer {
     }
 
     /**
-     * alias for [[send]] @see send
+     * alias for [[io.backchat.websocket.WebSocketServer.WebSocketServerClient.send]]
+     * @see [[io.backchat.websocket.WebSocketServer.WebSocketServerClient.send]]
      */
     final def !(msg: WebSocketOutMessage) { send(msg) }
 
+    /**
+     * Broadcast this message to all connections matching the filter
+     *
+     * @param msg The [[io.backchat.websocket.WebSocketOutMessage]] to broadcast
+     * @param onlyTo The filter to determine the connections to send to. Defaults to all but self.
+     * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+     */
     final def broadcast(msg: WebSocketOutMessage, onlyTo: BroadcastFilter = SkipSelf): Future[OperationResult] = {
       if (_handler != null) {
         val futures = new ListBuffer[Future[OperationResult]]
@@ -284,8 +436,17 @@ object WebSocketServer {
         Promise.successful(Success)
       }
     }
+
+    /**
+     * Alias for [[io.backchat.websocket.WebSocketServer.WebSocketServerClient.broadcast]]
+     * @see [[io.backchat.websocket.WebSocketServer.WebSocketServerClient.broadcast]]
+     */
     final def ><(msg: WebSocketOutMessage, onlyTo: BroadcastFilter = SkipSelf): Future[OperationResult] = broadcast(msg, onlyTo)
 
+    /**
+     * Abstract method to implement a handler for inbound messages
+     * @return a [[io.backchat.websocket.WebSocket.Receive]] handler
+     */
     def receive: Receive
 
     final def disconnect() = {
@@ -296,7 +457,7 @@ object WebSocketServer {
   }
 
   /**
-   * Represents a client connection to this server
+   * Represents a client connection handle to this server
    */
   private abstract class WebSocketServerClientHandler(channel: BroadcastChannel, client: WebSocketServerClient, logger: InternalLogger, broadcaster: Broadcast) {
 
@@ -319,14 +480,30 @@ object WebSocketServer {
     final def send(message: WebSocketOutMessage) = channel.send(message)
 
     /**
-     * alias for [[send]] @see send
+     * alias for [[io.backchat.websocket.WebSocketServer.WebSocketServerClientHandler.send]]
+     * @see [[io.backchat.websocket.WebSocketServer.WebSocketServerClientHandler.send]]
      */
     def !(msg: WebSocketOutMessage) { send(msg) }
 
+    /**
+     * Broadcast this message to all connections matching the filter
+     *
+     * @param msg The [[io.backchat.websocket.WebSocketOutMessage]] to broadcast
+     * @param onlyTo The filter to determine the connections to send to. Defaults to all but self.
+     * @return A [[akka.dispatch.Future]] with the [[io.backchat.websocket.OperationResult]]
+     */
     final def broadcast(msg: WebSocketOutMessage, matchingOnly: BroadcastFilter) = broadcaster(msg, matchingOnly)
 
+    /**
+     * alias for [[io.backchat.websocket.WebSocketServer.WebSocketServerClientHandler.send]]
+     * @see [[io.backchat.websocket.WebSocketServer.WebSocketServerClientHandler.send]]
+     */
     final def ><(msg: WebSocketOutMessage, matchingOnly: BroadcastFilter) { broadcaster(msg, matchingOnly) }
 
+    /**
+     * Abstract method to implement a handler for inbound messages
+     * @return a [[io.backchat.websocket.WebSocket.Receive]] handler
+     */
     def receive: Receive = client.receive orElse defaultReceive
 
     private val defaultReceive: Receive = {
@@ -334,7 +511,8 @@ object WebSocketServer {
         logger.error("Received an error.", ex)
       case Error(_) ⇒
         logger.error("Unknown error occurred")
-      case _ ⇒
+      case m ⇒
+        logger.warn("Unhandled message: %s" format m)
     }
 
     def close() = {
@@ -343,30 +521,89 @@ object WebSocketServer {
   }
 
 
+  /**
+   * Creates a [[io.backchat.websocket.WebSocketServer]] with the specified params
+   *
+   * @param capabilities The a varargs sequence of [[io.backchat.websocket.ServerCapability]] objects to configure this server with
+   * @param factory The factor for creating the [[io.backchat.websocket.WebSocketServerClient]] instances
+   * @param wireFormat The wireformat to use for this server.
+   * @return A [[io.backchat.websocket.WebSocketServer]]
+   */
   def apply(capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, capabilities = capabilities))(factory)
   }
 
+  /**
+   * Creates a [[io.backchat.websocket.WebSocketServer]] with the specified params
+   *
+   * @param port The port this server will listen on.
+   * @param capabilities The a varargs sequence of [[io.backchat.websocket.ServerCapability]] objects to configure this server with
+   * @param factory The factor for creating the [[io.backchat.websocket.WebSocketServerClient]] instances
+   * @param wireFormat The wireformat to use for this server.
+   * @return A [[io.backchat.websocket.WebSocketServer]]
+   */
   def apply(port: Int, capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, port = port, capabilities = capabilities))(factory)
   }
 
+  /**
+   * Creates a [[io.backchat.websocket.WebSocketServer]] with the specified params
+   *
+   * @param listenOn The host/network address this server will listen on
+   * @param capabilities The a varargs sequence of [[io.backchat.websocket.ServerCapability]] objects to configure this server with
+   * @param factory The factor for creating the [[io.backchat.websocket.WebSocketServerClient]] instances
+   * @param wireFormat The wireformat to use for this server.
+   * @return A [[io.backchat.websocket.WebSocketServer]]
+   */
   def apply(listenOn: String, capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, capabilities = capabilities))(factory)
   }
 
+  /**
+   * Creates a [[io.backchat.websocket.WebSocketServer]] with the specified params
+   *
+   * @param listenOn The host/network address this server will listen on
+   * @param port The port this server will listen on.
+   * @param capabilities The a varargs sequence of [[io.backchat.websocket.ServerCapability]] objects to configure this server with
+   * @param factory The factor for creating the [[io.backchat.websocket.WebSocketServerClient]] instances
+   * @param wireFormat The wireformat to use for this server.
+   * @return A [[io.backchat.websocket.WebSocketServer]]
+   */
   def apply(listenOn: String, port: Int, capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, port = port, capabilities = capabilities))(factory)
   }
 
+  /**
+   * Creates a [[io.backchat.websocket.WebSocketServer]] with the specified params
+   *
+   * @param name The name of this server
+   * @param listenOn The host/network address this server will listen on
+   * @param port The port this server will listen on.
+   * @param capabilities The a varargs sequence of [[io.backchat.websocket.ServerCapability]] objects to configure this server with
+   * @param factory The factor for creating the [[io.backchat.websocket.WebSocketServerClient]] instances
+   * @param wireFormat The wireformat to use for this server.
+   * @return A [[io.backchat.websocket.WebSocketServer]]
+   */
   def apply(name: String, listenOn: String, port: Int, capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, port = port, capabilities = capabilities))(factory)
   }
 
+  /**
+   * Creates a [[io.backchat.websocket.WebSocketServer]] with the specified params
+   *
+   * @param info The [[io.backchat.websocket.ServerInfo]] to use to configure this server
+   * @param factory The factor for creating the [[io.backchat.websocket.WebSocketServerClient]] instances
+   * @param wireFormat The wireformat to use for this server.
+   * @return A [[io.backchat.websocket.WebSocketServer]]
+   */
   def apply(info: ServerInfo)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
     new WebSocketServer(info, factory)
   }
 
+  /**
+   * Keep track of the open connections
+   * @param channels The open connections
+   */
   private class ConnectionTracker(channels: ChannelGroup) extends SimpleChannelUpstreamHandler {
     override def channelClosed(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
       channels remove e.getChannel
@@ -388,6 +625,13 @@ object WebSocketServer {
   private[this] val PolicyXml = <cross-domain-policy><allow-access-from domain="*" to-ports="*"/></cross-domain-policy>
   private val AllowAllPolicy = ChannelBuffers.copiedBuffer(PolicyXml.toString(), CharsetUtil.UTF_8)
 
+  /**
+   * A flash policy handler for netty. This needs to be included in the pipeline before anything else has touched
+   * the message.
+   *
+   * @see [[https://github.com/cgbystrom/netty-tools/blob/master/src/main/java/se/cgbystrom/netty/FlashPolicyHandler.java]]
+   * @param policyResponse The response xml to send for a request
+   */
   class FlashPolicyHandler(policyResponse: ChannelBuffer = AllowAllPolicy) extends FrameDecoder {
 
     def decode(ctx: ChannelHandlerContext, channel: Channel, buffer: ChannelBuffer) = {
@@ -422,7 +666,11 @@ object WebSocketServer {
     }
   }
 
+  /**
+   * A 100 Continue response
+   */
   private[this] object OneHundredContinueResponse extends DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CONTINUE)
+
   private final class WebSocketClientFactoryHandler(logger: InternalLogger,
       allChannels: ChannelGroup,
       factory: ⇒ WebSocketServerClient,
@@ -486,6 +734,8 @@ object WebSocketServer {
 
         case _: PingWebSocketFrame ⇒ e.getChannel.write(new PongWebSocketFrame)
 
+        case _: PongWebSocketFrame => // drop, all is well
+
         case _                     ⇒ ctx.sendUpstream(e)
       }
     }
@@ -538,6 +788,13 @@ object WebSocketServer {
     }
   }
 
+  /**
+   * Uses the [[io.backchat.websocket.WireFormat]]] to serialize outgoing messages.
+   * It serializes the message and then writes it as a text websocket frame to the connection
+   *
+   * @param logger The [[org.jboss.netty.logging.InternalLogger]] to use in this adapter
+   * @param wireFormat The [[io.backchat.websocket.WireFormat]] to serialize messages with.
+   */
   class WebSocketMessageAdapter(logger: InternalLogger)(implicit wireFormat: WireFormat) extends SimpleChannelDownstreamHandler {
 
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
@@ -559,6 +816,10 @@ object WebSocketServer {
     }
   }
 
+  /**
+   * implementation of an [[akka.actor.Cancellable]] with a [[org.jboss.netty.util.Timeout]]
+   * @param timeout a [[org.jboss.netty.util.Timeout]]
+   */
   private class WebSocketCancellable(timeout: NettyTimeout) extends Cancellable {
     def cancel() {
       timeout.cancel()
@@ -568,6 +829,13 @@ object WebSocketServer {
 
   }
 
+  /**
+   * Responds to ack requests as they are received, and forwards on the inbound message.
+   *
+   * @param logger The [[org.jboss.netty.logging.InternalLogger]] to use in this adapter
+   * @param raiseEvents A boolean flag to raise events or not, only valuable during testing.
+   * @param wireFormat The [[io.backchat.websocket.WireFormat]] to serialize messages with.
+   */
   class MessageAckingHandler(logger: InternalLogger, raiseEvents: Boolean = false)(implicit wireFormat: WireFormat) extends SimpleChannelHandler {
 
     private[this] val messageCounter = new AtomicLong
@@ -629,6 +897,11 @@ object WebSocketServer {
     }
   }
 
+  /**
+   * A http request handler that responses to `ping` requests with the word `pong` for the specified path
+   *
+   * @param path The path for the ping endpoint
+   */
   class LoadBalancerPing(path: String) extends SimpleChannelUpstreamHandler {
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
@@ -649,6 +922,12 @@ object WebSocketServer {
     }
   }
 
+  /**
+   * An unfinished implementation of a favico handler.
+   * currently always responds with 404.
+   *
+   * @param favico the file that is the favico. (not used currently)
+   */
   class Favico(favico: Option[File] = None) extends SimpleChannelUpstreamHandler {
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
@@ -666,15 +945,70 @@ object WebSocketServer {
 
 }
 
+/**
+ * Netty based WebSocketServer
+ * requires netty 3.4.x or later
+ *
+ * Usage:
+ * {{{
+ *   val server = WebSocketServer(ServerInfo("MyWebSocketServer")) {
+ *     new WebSocketServerClient {
+ *       protected val receive = {
+ *         case Connected ⇒ println("got a client connection")
+ *         case TextMessage(text) ⇒ send(TextMessage("ECHO: " + text))
+ *         case Disconnected(_) ⇒ println("client disconnected")
+ *       }
+ *     }
+ *   }
+ *   server.start
+ *   // time passes......
+ *   server.stop
+ * }}}
+ */
 class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)) extends Server {
+
+  /**
+   * The capabilities this server is configured with
+   *
+   * @return a sequence of [[io.backchat.websocket.ServerCapability]] objects
+   */
   def capabilities = config.capabilities
+
+  /**
+   * The name of this server
+   *
+   * @return The name
+   */
   def name = config.name
+
+  /**
+   * The version of this server.
+   *
+   * @return The version number of this server, defaults to the version of the build.
+   */
   def version = config.version
+
+  /**
+   * The network address/host to listen on.
+   *
+   * @return The address
+   */
   def listenOn = config.listenOn
+
+  /**
+   * The port this server listens on.
+   * @return The port number
+   */
   def port = config.port
 
   import WebSocketServer._
   import WebSocket.executionContext
+
+  /**
+   * the [[org.jboss.netty.logging.InternalLogger]] to use as logger for this server.
+   * This logger is shared with the handlers by default so you only ever see a single source of messages
+   * The logger has the same name as the server.
+   */
   protected val logger = InternalLoggerFactory.getInstance(name)
   private[this] val timer = new HashedWheelTimer()
   private[this] var server: ServerBootstrap = null
@@ -683,6 +1017,7 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
 
   /**
    * If you want to override the entire Netty Channel Pipeline that gets created override this method.
+   * But you're basically throwing away all the features of this server.
    *
    * @return the created [[org.jboss.netty.channel.ChannelPipeline]]
    */
@@ -720,7 +1055,12 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
     }
   }
 
-  private[this] def configureHttpSupport(pipe: ChannelPipeline) {
+  /**
+   * If you want to replace the way http requests are handled and read this is the place to do it.
+   *
+   * @param pipe The pipeline to configure
+   */
+  protected def configureHttpSupport(pipe: ChannelPipeline) {
     pipe.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192))
     pipe.addLast("aggregator", new HttpChunkAggregator(64 * 1024))
     pipe.addLast("encoder", new HttpResponseEncoder)
@@ -730,12 +1070,12 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
   }
 
   private[this] def configureFlashPolicySupport(pipe: ChannelPipeline) {
-    val hasFlashPolicy = config.capabilities exists {
-      case _: FlashPolicy => true
-      case _ => false
-    }
-    if (hasFlashPolicy)
-      pipe.addLast("flash-policy", new FlashPolicyHandler(ChannelBuffers.copiedBuffer(config.flashPolicy, CharsetUtil.UTF_8)))
+//    val hasFlashPolicy = config.capabilities exists {
+//      case _: FlashPolicy => true
+//      case _ => false
+//    }
+//    if (hasFlashPolicy)
+    pipe.addLast("flash-policy", new FlashPolicyHandler(ChannelBuffers.copiedBuffer(config.flashPolicy, CharsetUtil.UTF_8)))
   }
 
   private[this] def configureSslSupport(pipe: ChannelPipeline) {
@@ -746,26 +1086,58 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
     }
   }
 
-  private[this] def addPingSupport(pipe: ChannelPipeline) {
-    val ping = config.pingTimeout.duration.toSeconds.toInt
-    if (ping > 0) {
-      pipe.addLast("timeouts", new IdleStateHandler(timer, 0, ping, 0))
-      pipe.addLast("connection-reaper", new WebSocket.PingPongHandler(logger))
+  /**
+   * If you want to replace the way pings are handled (for example to support sending new lines on a http stream)
+   * This is where you can override the handler addition to the pipeline
+   */
+  protected def addPingSupport(pipe: ChannelPipeline) {
+    config.pingTimeout foreach { png =>
+      val ping = png.duration.toSeconds.toInt
+      if (ping > 0) {
+        pipe.addLast("timeouts", new IdleStateHandler(timer, 0, ping, 0))
+        pipe.addLast("connection-reaper", new WebSocket.PingPongHandler(logger))
+      }
     }
   }
 
+  /**
+   * This is the first place where you can add additional handlers to the pipeline.
+   * The flashpolicy handler and connection tracker have been added at this point.
+   * if a message arrives in this handler it's been untouched.
+   *
+   * @param pipe The pipeline to configure.
+   */
   protected def addFirstInPipeline(pipe: ChannelPipeline) {
 
   }
 
+  /**
+   * At this point the pipeline has been configured with flashpolicy, ssl, pinging and connection tracking.
+   * HTTP support has also been added to the pipeline. if websocket related messages arrive in this handler
+   * it should send them to upstream. And a http request that is a websocket upgrade request should also be
+   * sent upstream.
+   *
+   * @param pipe The pipeline to configure
+   */
   protected def configurePipeline(pipe: ChannelPipeline) {
 
   }
 
+  /**
+   * This is the best place to add your application handler.
+   * If you want to use a web framework that uses it's own request abstraction, then this is the place to plug it in.
+   *
+   * @param pipe The pipeline to configure.
+   */
   protected def addLastInPipeline(pipe: ChannelPipeline) {
 
   }
 
+  /**
+   * Configure the server bootstrap.
+   * This is the place to set socket options.
+   * By default it sets soLinger to 0, reuseAddress to true and child.tcpNoDelay to true
+   */
   protected def configureBootstrap() {
     server.setOption("soLinger", 0)
     server.setOption("reuseAddress", true)
@@ -779,27 +1151,49 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
   private[this] val startCallbacks = new ListBuffer[() ⇒ Any]()
   private[this] val stopCallbacks = new ListBuffer[() ⇒ Any]()
 
+  /**
+   * Attach blocks of code to be run when the server starts.
+   *
+   * @param thunk the code to execute when the server starts
+   */
   def onStart(thunk: ⇒ Any) = startCallbacks += { () ⇒ thunk }
+
+  /**
+   * Attach blocks of code to be run when the server stops
+   *
+   * @param thunk the code to execute when the server stops
+   */
   def onStop(thunk: ⇒ Any) = stopCallbacks += { () ⇒ thunk }
 
+  /**
+   * Broadcast a message to '''all''' open connections
+   *
+   * @param message the [[io.backchat.websocket.WebSocketOutMessage]] to send.
+   * @return A future with the result of the operation, a [[io.backchat.websocket.ResultList]]
+   */
   def broadcast(message: WebSocketOutMessage) = {
     val lst = allChannels.asScala map (x ⇒ x: BroadcastChannel) map (_ send message)
     Future.sequence(lst) map (l ⇒ ResultList(l.toList))
   }
 
+  /**
+   * Start this server
+   */
   final def start = synchronized {
     server = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool()))
     configureBootstrap()
     server.setPipelineFactory(pipelineFactory)
-    println("Starting server with: %s" format config)
-    val addr = config.listenOn.blankOption.map(l ⇒ new InetSocketAddress(l, config.port)) | new InetSocketAddress(config.port)
+    val addr = config.listenOn.blankOption.map(l ⇒ new InetSocketAddress(l, port)) | new InetSocketAddress(config.port)
     val sc = server.bind(addr)
     allChannels add sc
     sys.addShutdownHook(stop)
     startCallbacks foreach (_.apply())
-    logger info "Started %s on [%s:%d]".format(config.name, config.listenOn, config.port)
+    logger info "Started %s %s on [%s:%d]".format(name, version, listenOn, port)
   }
 
+  /**
+   * Stop this server.
+   */
   final def stop = synchronized {
     stopCallbacks foreach (_.apply())
     allChannels.close().awaitUninterruptibly()
@@ -817,15 +1211,52 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
   }
 }
 
+/**
+ * A trait to wrap a server in so it can be used by components that depend on a most basic interfae.
+ */
 trait Server {
 
+  /**
+   * The capabilities this server is configured with
+   *
+   * @return a sequence of [[io.backchat.websocket.ServerCapability]] objects
+   */
   def capabilities: Seq[ServerCapability]
+
+  /**
+   * The name of this server
+   *
+   * @return The name
+   */
   def name: String
+
+  /**
+   * The version of this server.
+   *
+   * @return The version number of this server, defaults to the version of the build.
+   */
   def version: String
+
+  /**
+   * The network address/host to listen on.
+   *
+   * @return The address
+   */
   def listenOn: String
+
+  /**
+   * The port this server listens on.
+   * @return The port number
+   */
   def port: Int
 
+  /**
+   * Start this server
+   */
   def start
 
+  /**
+   * Stop this server
+   */
   def stop
 }
