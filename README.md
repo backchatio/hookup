@@ -3,7 +3,7 @@
 A scala based client and server for websockets based on netty and akka futures.
 It draws its inspiration from finagle, faye-websocket, zeromq, akka, ...
 
-The aim of this project is to provide a websocket client to be used in non-browser applications.
+The aim of this project is to provide a websocket client in multiple languages an to be used in non-browser applications.
 This client should be reliable by making a best effort not to lose any messages and gracefully recover from disconnections.
 
 The server should serve regular websocket applications but can be configured for more reliability too.
@@ -29,16 +29,16 @@ In addition to the shared items the client optionally does:
 This library is available on maven central.
 
 ```scala
-libraryDependencies += "io.backchat.hookup" %% "hookup" % "0.2.2"
+libraryDependencies += "io.backchat.websocket" %% "scala-websocket" % "0.1.0"
 ```
 
 #### Create a websocket server
 
 ```scala
-import io.backchat.hookup._
+import io.backchat.websocket._
 
-(HookupServer(8125) {
-  new HookupServerClient {
+(WebSocketServer(8125) {
+  new WebSocketServerClient {
     def receive = {
       case TextMessage(text) =>
         println(text)
@@ -51,9 +51,10 @@ import io.backchat.hookup._
 #### Create a websocket client
 
 ```scala
-import io.backchat.hookup._
+import io.backchat.websocket._
 
-new DefaultHookupClient(HookupClientConfig(URI.create("ws://localhost:8125/"), buffer = new FileBuffer())) {
+new WebSocket with BufferedWebSocket {
+  val uri = URI.create("ws://localhost:8125/")
 
   def receive = {
     case TextMessage(text) =>
@@ -62,7 +63,7 @@ new DefaultHookupClient(HookupClientConfig(URI.create("ws://localhost:8125/"), b
 
   connect() onSuccess {
     case _ =>
-      println("connected to: %s" format settings.uri.toASCIIString)
+      println("connected to: %s" format uri.toASCIIString)
       system.scheduler.schedule(0 seconds, 1 second) {
         send("message " + messageCounter.incrementAndGet().toString)
       }

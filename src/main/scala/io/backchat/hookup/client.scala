@@ -533,7 +533,11 @@ case class HookupClientConfig(
   executionContext: ExecutionContext = HookupClient.executionContext)
 
 /**
- * Usage of the simple websocket client:
+ * The Hookup client provides a client for the hookup server, it doesn't lock you in to using a specific message format.
+ * The default implementation uses websockets to communicate with the server.
+ * You can opt-in or opt-out of every feature in the hookup client through configuration.
+ *
+ * Usage of the simple hookup client:
  *
  * <pre>
  *   new HookupClient {
@@ -554,6 +558,8 @@ case class HookupClientConfig(
  *     }
  *   }
  * </pre>
+ *
+ * @see [[io.backchat.hookup.HookupClientConfig]]
  */
 trait HookupClient extends HookupClientLike with Connectable with Reconnectable with Closeable {
 
