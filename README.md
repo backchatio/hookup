@@ -1,6 +1,6 @@
-# Backchat WebSocket
+# BackChat.io Hookup
 
-A scala based client for websockets based on netty and akka futures.
+A scala based client and server for websockets based on netty and akka futures.
 It draws its inspiration from finagle, faye-websocket, zeromq, akka, ...
 
 The aim of this project is to provide a websocket client to be used in non-browser applications.
@@ -29,13 +29,13 @@ In addition to the shared items the client optionally does:
 This library is available on maven central.
 
 ```scala
-libraryDependencies += "io.backchat.websocket" %% "scala-websocket" % "0.1.0"
+libraryDependencies += "io.backchat.hookup" %% "hookup" % "0.2.2"
 ```
 
 #### Create a websocket server
 
 ```scala
-import io.backchat.websocket._
+import io.backchat.hookup._
 
 (WebSocketServer(8125) {
   new WebSocketServerClient {
@@ -51,7 +51,7 @@ import io.backchat.websocket._
 #### Create a websocket client
 
 ```scala
-import io.backchat.websocket._
+import io.backchat.hookup._
 
 new WebSocket with BufferedWebSocket {
   val uri = URI.create("ws://localhost:8125/")

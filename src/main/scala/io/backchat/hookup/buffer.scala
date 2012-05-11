@@ -1,4 +1,4 @@
-package io.backchat.websocket
+package io.backchat.hookup
 
 import java.io._
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -10,7 +10,7 @@ import java.util.Queue
 import collection.mutable.{ Queue ⇒ ScalaQueue }
 
 /**
- * Companion object for the [[io.backchat.websocket.FileBuffer]]
+ * Companion object for the [[io.backchat.hookup.FileBuffer]]
  */
 object FileBuffer {
   private object State extends Enumeration {
@@ -36,7 +36,7 @@ trait BackupBuffer extends Closeable {
 
   /**
    * Write a line to the buffer
-   * @param line A [[io.backchat.websocket.WebSocketOutMessage]]
+   * @param line A [[io.backchat.hookup.WebSocketOutMessage]]
    */
   def write(line: WebSocketOutMessage)
   def drain(readLine: (WebSocketOutMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult]
@@ -52,7 +52,7 @@ trait BackupBuffer extends Closeable {
  *
  * @param file
  */
-class FileBuffer private[websocket] (file: File, writeToFile: Boolean, memoryBuffer: Queue[String])(implicit wireFormat: WireFormat) extends BackupBuffer {
+class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer: Queue[String])(implicit wireFormat: WireFormat) extends BackupBuffer {
 
   def this(file: File)(implicit wireFormat: WireFormat) = this(file, true, new ConcurrentLinkedQueue[String]())
 
@@ -80,7 +80,7 @@ class FileBuffer private[websocket] (file: File, writeToFile: Boolean, memoryBuf
    * When the buffer is closed it will open the buffer and then write the new line.
    * When the buffer is being drained it will buffer to memory
    * When an exception is thrown it will first buffer the message to memory and then rethrow the exception
-   * @param message A [[io.backchat.websocket.WebSocketOutMessage]]
+   * @param message A [[io.backchat.hookup.WebSocketOutMessage]]
    */
   def write(message: WebSocketOutMessage): Unit = synchronized {
     val msg = wireFormat.render(message)
@@ -109,9 +109,9 @@ class FileBuffer private[websocket] (file: File, writeToFile: Boolean, memoryBuf
    * Drain the buffer using the `readLine` function to process each message in the buffer.
    * This method works with [[akka.dispatch.Future]] objects and needs an [[akka.dispatch.ExecutionContext]] in scope
    *
-   * @param readLine A function that takes a [[io.backchat.websocket.WebSocketOutMessage]] and produces a [[akka.dispatch.Future]] of [[io.backchat.websocket.OperationResult]]
+   * @param readLine A function that takes a [[io.backchat.hookup.WebSocketOutMessage]] and produces a [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
    * @param executionContext An [[akka.dispatch.ExecutionContext]]
-   * @return A [[akka.dispatch.Future]] of [[io.backchat.websocket.OperationResult]]
+   * @return A [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
    */
   def drain(readLine: (WebSocketOutMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult] = synchronized {
     var futures = mutable.ListBuffer[Future[OperationResult]]()

@@ -1,4 +1,4 @@
-package io.backchat.websocket
+package io.backchat.hookup
 
 import net.liftweb.json._
 import akka.util.duration._
@@ -13,7 +13,7 @@ trait WireFormat {
    * Parse an inbound message from a string. This is used when a message is received over a connection.
    *
    * @param message The serialized message to parse
-   * @return the resulting [[io.backchat.websocket.WebSocketInMessage]]
+   * @return the resulting [[io.backchat.hookup.WebSocketInMessage]]
    */
   def parseInMessage(message: String): WebSocketInMessage
 
@@ -21,7 +21,7 @@ trait WireFormat {
    * Parse an outbound message from a string. This is used when the buffer is being drained.
    *
    * @param message The serialized message to parse
-   * @return the resulting [[io.backchat.websocket.WebSocketOutMessage]]
+   * @return the resulting [[io.backchat.hookup.WebSocketOutMessage]]
    */
   def parseOutMessage(message: String): WebSocketOutMessage
 
@@ -61,7 +61,7 @@ class SimpleJsonWireFormat(implicit formats: Formats) extends WireFormat {
 }
 
 /**
- * @see [[io.backchat.websocket.JsonProtocolWireFormat]]
+ * @see [[io.backchat.hookup.JsonProtocolWireFormat]]
  */
 object JsonProtocolWireFormat {
 

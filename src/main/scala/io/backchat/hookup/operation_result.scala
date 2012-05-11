@@ -1,4 +1,4 @@
-package io.backchat.websocket
+package io.backchat.hookup
 
 import reflect.BeanProperty
 import collection.JavaConverters._
@@ -58,13 +58,13 @@ case object Cancelled extends OperationResult {
 
 /**
  * A list of operation results, contains some aggregate helper methods in addition to a populated list of children
- * @param results a [[scala.List]] of [[io.backchat.websocket.OperationResult]] objects
+ * @param results a [[scala.List]] of [[io.backchat.hookup.OperationResult]] objects
  */
 case class ResultList(results: List[OperationResult]) extends OperationResult {
 
   /**
    * Flag for the java api to indicate success, returns true when the list is empty or all the
-   * elements in the list are [[io.backchat.websocket.Success]] objects.
+   * elements in the list are [[io.backchat.hookup.Success]] objects.
    * @return A boolean indicating success
    */
   @BeanProperty
@@ -72,7 +72,7 @@ case class ResultList(results: List[OperationResult]) extends OperationResult {
 
   /**
    * Flag for the java api to indicate cancellation, returns true when the list is not empty and at least
-   * one of the elements in the list is a [[io.backchat.websocket.Cancelled]] object.
+   * one of the elements in the list is a [[io.backchat.hookup.Cancelled]] object.
    * @return A boolean indicating cancellation
    */
   @BeanProperty
@@ -80,21 +80,21 @@ case class ResultList(results: List[OperationResult]) extends OperationResult {
 
   /**
    * A list of child operation results.
-   * @return a [[java.util.List]] of [[io.backchat.websocket.OperationResult]] objects
+   * @return a [[java.util.List]] of [[io.backchat.hookup.OperationResult]] objects
    */
   @BeanProperty
   override def children: java.util.List[OperationResult] = results.asJava
 
   /**
    * A list of child cancellation results.
-   * @return a [[java.util.List]] of [[io.backchat.websocket.Cancelled]] objects
+   * @return a [[java.util.List]] of [[io.backchat.hookup.Cancelled]] objects
    */
   @BeanProperty
   def cancellations: java.util.List[OperationResult] = (results filter (_.isCancelled)).asJava
 
   /**
    * A list of child success results.
-   * @return a [[java.util.List]] of [[io.backchat.websocket.Success]] objects
+   * @return a [[java.util.List]] of [[io.backchat.hookup.Success]] objects
    */
   @BeanProperty
   def sucesses: java.util.List[OperationResult] = (results filter (_.isSuccess)).asJava

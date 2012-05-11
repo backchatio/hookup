@@ -1,4 +1,4 @@
-package io.backchat.websocket
+package io.backchat.hookup
 
 import akka.dispatch.Future
 
@@ -20,14 +20,14 @@ trait BroadcastChannelLike {
 
   /**
    * Send a message over the current connection
-   * @param message A [[io.backchat.websocket.WebSocketOutMessage]] message
-   * @return An [[akka.dispatch.Future]] of [[io.backchat.websocket.OperationResult]]
+   * @param message A [[io.backchat.hookup.WebSocketOutMessage]] message
+   * @return An [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
    */
   def send(message: WebSocketOutMessage): Future[OperationResult]
 
   /**
    * Disconnect from the socket, perform closing handshake if necessary
-   * @return An [[akka.dispatch.Future]] of [[io.backchat.websocket.OperationResult]]
+   * @return An [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
    */
   def disconnect(): Future[OperationResult]
 }

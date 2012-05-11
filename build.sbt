@@ -36,14 +36,14 @@ homepage := Some(url("https://backchat.io"))
 
 startYear := Some(2012)
 
-licenses := Seq(("MIT", url("http://github.com/backchat/scala-websocket/raw/HEAD/LICENSE")))
+licenses := Seq(("MIT", url("http://github.com/backchatio/hookup/raw/HEAD/LICENSE")))
 
 pomExtra <<= (pomExtra, name, description) {(pom, name, desc) => pom ++ Group(
-  <url>http://github.com/backchat/scala-websocket</url>
+  <url>http://github.com/backchatio/hookup</url>
   <scm>
-    <connection>scm:git:git://github.com/backchat/scala-websocket.git</connection>
-    <developerConnection>scm:git:git@github.com:backchat/scala-websocket.git</developerConnection>
-    <url>https://github.com/backchat/scala-websocket.git</url>
+    <connection>scm:git:git://github.com/backchatio/hookup.git</connection>
+    <developerConnection>scm:git:git@github.com:backchatio/hookup.git</developerConnection>
+    <url>https://github.com/backchatio/hookup.git</url>
   </scm>
   <developers>
     <developer>

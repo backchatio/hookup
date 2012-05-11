@@ -2,12 +2,12 @@ import sbt._
 import Keys._
 import xml.Group
 
-object BackchatWebSocketBuild extends Build {
+object HookupBuild extends Build {
   
   val projectSettings = Defaults.defaultSettings ++ Seq(
-    organization := "io.backchat.websocket",
-    name := "backchat-websocket",
-    version := "0.2.1-SNAPSHOT",
+    organization := "io.backchat.hookup",
+    name := "hookup",
+    version := "0.2.2-SNAPSHOT",
     scalaVersion := "2.9.1",
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
@@ -37,7 +37,7 @@ object BackchatWebSocketBuild extends Build {
     })
 
   lazy val root =
-    Project("backchat-websocket", file("."), settings = projectSettings)
+    Project("hookup", file("."), settings = projectSettings)
 
 
 

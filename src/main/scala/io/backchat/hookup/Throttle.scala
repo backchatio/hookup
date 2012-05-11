@@ -1,4 +1,4 @@
-package io.backchat.websocket
+package io.backchat.hookup
 
 import akka.util.Duration
 import akka.util.duration._
@@ -23,7 +23,7 @@ trait Throttle {
 
   /**
    * Calculate the next delay and return a new throttle
-   * @return A new [[io.backchat.websocket.Throttle]]
+   * @return A new [[io.backchat.hookup.Throttle]]
    */
   def next(): Throttle
 }
@@ -44,8 +44,8 @@ case object NoThrottle extends Throttle {
   val maxWait = 0.millis
 
   /**
-   * Always returns a [[io.backchat.websocket.NoThrottle]]
-   * @return A [[io.backchat.websocket.NoThrottle]]
+   * Always returns a [[io.backchat.hookup.NoThrottle]]
+   * @return A [[io.backchat.hookup.NoThrottle]]
    */
   def next(): Throttle = NoThrottle
 }
@@ -66,7 +66,7 @@ case class IndefiniteThrottle(delay: Duration, maxWait: Duration) extends Thrott
 
 /**
  * Represents a back off strategy that will retry for `maxTimes` when the maximum wait has been reached
- * When it can't connect within the `maxTimes` a `maxValue` can occur it will return a [[io.backchat.websocket.NoThrottle]] strategy
+ * When it can't connect within the `maxTimes` a `maxValue` can occur it will return a [[io.backchat.hookup.NoThrottle]] strategy
  *
  * @param delay An [[akka.util.Duration]] indicating how long to wait for the next operation can occur
  * @param maxWait An [[akka.util.Duration]] indicating the maximum value a `delay` can have

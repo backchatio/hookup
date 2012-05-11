@@ -1,4 +1,4 @@
-package io.backchat.websocket
+package io.backchat.hookup
 package examples
 
 import java.net.URI
@@ -8,17 +8,20 @@ import akka.util.duration._
 import java.util.concurrent.atomic.AtomicInteger
 import java.io.File
 
-object PrintingEchoClient {
+object ChatClient {
 
   implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
   val messageCounter = new AtomicInteger(0)
 
   def main(args: Array[String]) {
 
-    val system = ActorSystem("PrintingEchoClient")
+    if (args.isEmpty) {
+      sys.error("Specify a name as the argument")
+    }
+    val system = ActorSystem("ChatClient")
 
     new WebSocket {
-      val uri = URI.create("ws://localhost:8125/")
+      val uri = URI.create("ws://localhost:8127/")
 
       val settings: WebSocketContext = WebSocketContext(
         uri = uri,
@@ -27,14 +30,14 @@ object PrintingEchoClient {
 
       def receive = {
         case TextMessage(text) ⇒
-          println("RECV: " + text)
+          println(text)
       }
 
       connect() onSuccess {
         case _ ⇒
           println("connected to: %s" format uri.toASCIIString)
-          system.scheduler.schedule(0 seconds, 1 second) {
-            send("message " + messageCounter.incrementAndGet().toString)
+          system.scheduler.schedule(2 seconds, 5 second) {
+            send(args(0) + ": message " + messageCounter.incrementAndGet().toString)
           }
       }
     }

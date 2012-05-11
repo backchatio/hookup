@@ -11,30 +11,30 @@ import java.util.concurrent.TimeUnit
  * This contains some implicit conversions to smooth the api over and allow for a single import
  * at the top of a file to get the api working.
  */
-package object websocket {
+package object hookup {
 
-  private[websocket] implicit def string2richerString(s: String) = new {
+  private[hookup] implicit def string2richerString(s: String) = new {
     def blankOption = if (isBlank) None else Some(s)
     def isBlank = s == null || s.trim.isEmpty
     def nonBlank = !isBlank
   }
 
-  private[websocket] implicit def option2richerOption[T](opt: Option[T]) = new {
+  private[hookup] implicit def option2richerOption[T](opt: Option[T]) = new {
     def `|`(other: ⇒ T): T = opt getOrElse other
   }
 
-  private[websocket] implicit def richerDuration(duration: Duration) = new {
+  private[hookup] implicit def richerDuration(duration: Duration) = new {
     def doubled = Duration(duration.toMillis * 2, TimeUnit.MILLISECONDS)
 
     def max(upperBound: Duration) = if (duration > upperBound) upperBound else duration
   }
 
   /**
-   * An implicit conversion from a predicate function that takes a [[io.backchat.websocket.BroadcastChannel]] to
-   * a [[io.backchat.websocket.WebSocketServer.BroadcastFilter]]
+   * An implicit conversion from a predicate function that takes a [[io.backchat.hookup.BroadcastChannel]] to
+   * a [[io.backchat.hookup.WebSocketServer.BroadcastFilter]]
    *
    * @param fn The predicate function to convert to a filter
-   * @return A [[io.backchat.websocket.WebSocketServer.BroadcastFilter]]
+   * @return A [[io.backchat.hookup.WebSocketServer.BroadcastFilter]]
    */
   implicit def fn2BroadcastFilter(fn: BroadcastChannel ⇒ Boolean): WebSocketServer.BroadcastFilter = {
     new WebSocketServer.BroadcastFilter {
@@ -67,18 +67,18 @@ package object websocket {
   }
 
   /**
-   * Implicit conversion from a regular string to a [[io.backchat.websocket.TextMessage]]
+   * Implicit conversion from a regular string to a [[io.backchat.hookup.TextMessage]]
    *
    * @param content The string content of the message
-   * @return A [[io.backchat.websocket.TextMessage]]
+   * @return A [[io.backchat.hookup.TextMessage]]
    */
   implicit def string2TextMessage(content: String): WebSocketOutMessage with Ackable = TextMessage(content)
 
   /**
-   * Implicit conversion from a lift-json jvalue to a [[io.backchat.websocket.JsonMessage]]
+   * Implicit conversion from a lift-json jvalue to a [[io.backchat.hookup.JsonMessage]]
    *
    * @param content The string content of the message
-   * @return A [[io.backchat.websocket.JsonMessage]]
+   * @return A [[io.backchat.hookup.JsonMessage]]
    */
   implicit def jvalue2JsonMessage(content: JValue): WebSocketOutMessage with Ackable = JsonMessage(content)
 
@@ -87,7 +87,7 @@ package object websocket {
    */
   type WebSocketServerClient = WebSocketServer.WebSocketServerClient
 
-  private[websocket] implicit def nettyChannel2BroadcastChannel(ch: Channel)(implicit executionContext: ExecutionContext): BroadcastChannel =
+  private[hookup] implicit def nettyChannel2BroadcastChannel(ch: Channel)(implicit executionContext: ExecutionContext): BroadcastChannel =
     new { val id: Int = ch.getId } with BroadcastChannel {
       def send(msg: WebSocketOutMessage) = ch.write(msg).toAkkaFuture
       def disconnect() = ch.close().toAkkaFuture

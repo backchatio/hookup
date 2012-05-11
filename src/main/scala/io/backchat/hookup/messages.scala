@@ -1,4 +1,4 @@
-package io.backchat.websocket
+package io.backchat.hookup
 
 import akka.util.duration._
 import net.liftweb.json.JsonAST.JValue
@@ -24,7 +24,7 @@ trait Ackable { self: WebSocketOutMessage ⇒
    * Request that this message will be acked upon receipt by the server.
    *
    * @param within An [[akka.util.Duration]] representing the timeout for the ack
-   * @return A [[io.backchat.websocket.WebSocketOutMessage]] with this message wrapped in a [[io.backchat.websocket.NeedsAck]] envelope
+   * @return A [[io.backchat.hookup.WebSocketOutMessage]] with this message wrapped in a [[io.backchat.hookup.NeedsAck]] envelope
    */
   def needsAck(within: Duration = 1 second): WebSocketOutMessage = NeedsAck(this, within)
 }
@@ -50,7 +50,7 @@ case object Connected extends WebSocketInMessage
  * is trying to reconnect. Every reconnect attempt fires this message.
  *
  * Typically you don't need to do anything when this happens, if you use a backoff like
- * [[io.backchat.websocket.IndefiniteThrottle]] then the client does the reconnection bit automatically, it's only then
+ * [[io.backchat.hookup.IndefiniteThrottle]] then the client does the reconnection bit automatically, it's only then
  * that you can expect these events.
  */
 case object Reconnecting extends WebSocketInMessage
@@ -79,29 +79,29 @@ case class BinaryMessage(content: Array[Byte]) extends ProtocolMessage[Array[Byt
 /**
  * A message envelope to request acking for an outbound message
  *
- * @param message The [[io.backchat.websocket.Ackable]] message to be acknowledged
+ * @param message The [[io.backchat.hookup.Ackable]] message to be acknowledged
  * @param timeout An [[akka.util.Duration]] specifying the timeout for the operation
  */
-private[websocket] case class NeedsAck(message: Ackable, timeout: Duration = 1 second) extends WebSocketOutMessage
+private[hookup] case class NeedsAck(message: Ackable, timeout: Duration = 1 second) extends WebSocketOutMessage
 
 /**
  * An Inbound message for an ack operation, this is an implementation detail and not visible to the library user
  *
- * @param message The [[io.backchat.websocket.Ackable]] message to be acknowledged
+ * @param message The [[io.backchat.hookup.Ackable]] message to be acknowledged
  * @param id The id of the ack operation
  */
-private[websocket] case class AckRequest(message: Ackable, id: Long) extends WebSocketInMessage
+private[hookup] case class AckRequest(message: Ackable, id: Long) extends WebSocketInMessage
 
 /**
  * A callback event signaling failure of an ack request.
  * This is not handled automatically and you have to decide what you want to do with the message,
  * you could send it again, send it somewhere else, drop it ...
  *
- * @param message An [[io.backchat.websocket.WebSocketOutMessage]] outbound message
+ * @param message An [[io.backchat.hookup.WebSocketOutMessage]] outbound message
  */
 case class AckFailed(message: WebSocketOutMessage) extends WebSocketInMessage
 
-private[websocket] case class Ack(id: Long) extends WebSocketInMessage with WebSocketOutMessage
+private[hookup] case class Ack(id: Long) extends WebSocketInMessage with WebSocketOutMessage
 
 /**
  * A callback event signaling that an error has occurred. if the error was an exception thrown
@@ -119,5 +119,5 @@ case class Error(cause: Option[Throwable]) extends WebSocketInMessage
  */
 case class Disconnected(cause: Option[Throwable]) extends WebSocketInMessage
 
-private[websocket] case object Disconnect extends WebSocketOutMessage
+private[hookup] case object Disconnect extends WebSocketOutMessage
 

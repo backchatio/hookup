@@ -1,4 +1,4 @@
-package io.backchat.websocket
+package io.backchat.hookup
 package examples
 
 import net.liftweb.json._

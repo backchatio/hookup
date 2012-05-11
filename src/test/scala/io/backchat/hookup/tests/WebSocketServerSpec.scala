@@ -1,4 +1,4 @@
-package io.backchat.websocket
+package io.backchat.hookup
 package tests
 
 import org.specs2.Specification
@@ -6,13 +6,14 @@ import org.specs2.specification.{Step, Fragments, After}
 import akka.util.duration._
 import akka.dispatch.{Await, ExecutionContext, Promise}
 import org.specs2.time.NoTimeConversions
-import java.util.concurrent.{TimeUnit, CountDownLatch, Executors}
 import org.specs2.execute.Result
 import java.net.{URI, ServerSocket}
 import akka.util.Timeout
 import net.liftweb.json._
 import JsonDSL._
 import java.io.File
+import akka.testkit.TestLatch
+import java.util.concurrent.{TimeoutException, TimeUnit, CountDownLatch, Executors}
 
 class WebSocketServerSpec extends Specification with NoTimeConversions { def is = sequential ^
   "A WebSocketServer should" ^
@@ -39,7 +40,7 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
 
 
   case class webSocketServerContext(protocols: String*) extends After {
-    import io.backchat.websocket.Connected
+    import io.backchat.hookup.Connected
     val serverAddress = {
       val s = new ServerSocket(0);
       try { s.getLocalPort } finally { s.close() }
@@ -88,7 +89,7 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
           throttle = IndefiniteThrottle(1 second, 1 second),
           buffer = Some(new FileBuffer(new File("./work/buffer-test.log"))),
           protocols = protos)
-        override private[websocket] def raiseEvents = true
+        override private[hookup] def raiseEvents = true
         def receive = handler
       }
       try {
@@ -139,11 +140,15 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       val txt = "this is some text you know"
       val toSend: JValue = ("data" -> txt)
       var rcvd: JValue = null
+      val l = new CountDownLatch(1)
       withClient({
+        case Connected => l.countDown()
         case JsonMessage(text) => rcvd = text
       }) { c =>
-        c send toSend
-        jsonMessages.contains(toSend) must beTrue.eventually
+        l.await(3, TimeUnit.SECONDS) must beTrue and {
+          c send toSend
+          jsonMessages.contains(toSend) must beTrue.eventually
+        }
       }
     }
 
@@ -195,13 +200,17 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
     def clientExpectsAnAck = this {
       val txt = "this is some text you know"
       val toSend: JValue = ("data" -> txt)
-      val latch = new CountDownLatch(1)
+      val connected = new CountDownLatch(1)
+      val latch = new CountDownLatch(2)
       withClient({
+        case Connected => connected.countDown
         case m: AckRequest => latch.countDown
         case m: Ack => latch.countDown
       }) { c =>
-        c send toSend.needsAck(within = 5 seconds)
-        latch.await(3, TimeUnit.SECONDS) must beTrue
+        connected.await(3, TimeUnit.SECONDS) must beTrue and {
+          c send toSend.needsAck(within = 5 seconds)
+          latch.await(3, TimeUnit.SECONDS) must beTrue
+        }
       }
     }
 
