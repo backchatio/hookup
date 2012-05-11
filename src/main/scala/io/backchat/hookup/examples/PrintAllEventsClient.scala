@@ -20,10 +20,10 @@ object PrintAllEventsClient {
     val system = ActorSystem("PrintAllEventsClient") // the actor system is only for the scheduler in the example
     var timeout: Cancellable = null
 
-    new WebSocket {
+    new HookupClient {
       val uri = URI.create("ws://localhost:8126/")
 
-      val settings: WebSocketContext = WebSocketContext(
+      val settings: HookupClientConfig = HookupClientConfig(
         uri,
         throttle = IndefiniteThrottle(5 seconds, 30 minutes),
         buffer = Some(new FileBuffer(new File("./work/buffer.log"))))

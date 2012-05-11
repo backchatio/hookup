@@ -20,10 +20,10 @@ trait BroadcastChannelLike {
 
   /**
    * Send a message over the current connection
-   * @param message A [[io.backchat.hookup.WebSocketOutMessage]] message
+   * @param message A [[io.backchat.hookup.OutboundMessage]] message
    * @return An [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
    */
-  def send(message: WebSocketOutMessage): Future[OperationResult]
+  def send(message: OutboundMessage): Future[OperationResult]
 
   /**
    * Disconnect from the socket, perform closing handshake if necessary

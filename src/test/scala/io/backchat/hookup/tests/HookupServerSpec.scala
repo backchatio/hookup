@@ -15,23 +15,23 @@ import java.io.File
 import akka.testkit.TestLatch
 import java.util.concurrent.{TimeoutException, TimeUnit, CountDownLatch, Executors}
 
-class WebSocketServerSpec extends Specification with NoTimeConversions { def is = sequential ^
-  "A WebSocketServer should" ^
-    "fails connecting when none of the protocols match" ! webSocketServerContext("irc", "minutes").failsWithWrongSubProtocols ^ bt^
+class HookupServerSpec extends Specification with NoTimeConversions { def is = sequential ^
+  "A HookupServer should" ^
+    "fails connecting when none of the protocols match" ! hookupServerContext("irc", "minutes").failsWithWrongSubProtocols ^ bt^
     "accept connections" ^ t ^
-      "without subprotocols" ! webSocketServerContext().acceptsWithoutSubProtocols ^
-      "with subprotocols" ! webSocketServerContext("irc", "minutes").acceptsWithSubProtocols ^ bt(2) ^
+      "without subprotocols" ! hookupServerContext().acceptsWithoutSubProtocols ^
+      "with subprotocols" ! hookupServerContext("irc", "minutes").acceptsWithSubProtocols ^ bt(2) ^
     "perform messaging and" ^ t^
-      "receive a message from a client" ! webSocketServerContext().receivesClientMessages ^
-      "detect when a json message is received" ! webSocketServerContext().receivesJsonClientMessages ^
-      "detect when a json message is sent" ! webSocketServerContext().sendsJsonClientMessages ^
-      "send a message to a client" ! webSocketServerContext().canSendMessagesToTheClient ^ bt(2) ^
+      "receive a message from a client" ! hookupServerContext().receivesClientMessages ^
+      "detect when a json message is received" ! hookupServerContext().receivesJsonClientMessages ^
+      "detect when a json message is sent" ! hookupServerContext().sendsJsonClientMessages ^
+      "send a message to a client" ! hookupServerContext().canSendMessagesToTheClient ^ bt(2) ^
     "close the connection" ^ t^
-      "initiated by the server" ! webSocketServerContext().notifiesClientOfClose ^
-      "initiated by the client" ! webSocketServerContext().removesClientOnClose ^ bt(2) ^
+      "initiated by the server" ! hookupServerContext().notifiesClientOfClose ^
+      "initiated by the client" ! hookupServerContext().removesClientOnClose ^ bt(2) ^
     "provide acking by" ^ t ^
-      "expecting an ack on the server" ! webSocketServerContext().serverExpectsAnAck ^
-      "expecting an ack on the client" ! webSocketServerContext().clientExpectsAnAck ^ bt(3) ^
+      "expecting an ack on the server" ! hookupServerContext().serverExpectsAnAck ^
+      "expecting an ack on the client" ! hookupServerContext().clientExpectsAnAck ^ bt(3) ^
   end
 
   implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
@@ -39,7 +39,7 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
   override def map(fs: => Fragments) = super.map(fs) ^ Step(executionContext.shutdown())
 
 
-  case class webSocketServerContext(protocols: String*) extends After {
+  case class hookupServerContext(protocols: String*) extends After {
     import io.backchat.hookup.Connected
     val serverAddress = {
       val s = new ServerSocket(0);
@@ -47,11 +47,11 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
     }
     var messages = List.empty[String]
     var jsonMessages = List.empty[JValue]
-    var client = Promise[WebSocketServerClient]()
+    var client = Promise[HookupServerClient]()
     val disconnectionLatch = new CountDownLatch(1)
     val ackRequest = new CountDownLatch(2)
 
-    class WsClient extends WebSocketServerClient {
+    class WsClient extends HookupServerClient {
       def receive = {
         case Connected => client.complete(Right(this))
         case TextMessage(text) => {
@@ -70,8 +70,8 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       }
     }
     val server = {
-      if (protocols.isEmpty) WebSocketServer("127.0.0.1", serverAddress, Ping(Timeout(2 seconds)), RaiseAckEvents)(new WsClient)
-      else WebSocketServer("127.0.0.1", serverAddress, SubProtocols(protocols.head, protocols.tail:_*))(new WsClient)
+      if (protocols.isEmpty) HookupServer("127.0.0.1", serverAddress, Ping(Timeout(2 seconds)), RaiseAckEvents)(new WsClient)
+      else HookupServer("127.0.0.1", serverAddress, SubProtocols(protocols.head, protocols.tail:_*))(new WsClient)
 
     }
 
@@ -80,11 +80,11 @@ class WebSocketServerSpec extends Specification with NoTimeConversions { def is 
       server.stop
     }
 
-    def withClient[T <% Result](handler: WebSocket.Receive, protocols: String*)(thunk: WebSocket => T): T = {
+    def withClient[T <% Result](handler: HookupClient.Receive, protocols: String*)(thunk: HookupClient => T): T = {
       val protos = protocols
-      val cl = new WebSocket {
+      val cl = new HookupClient {
         val uri = new URI("ws://127.0.0.1:"+serverAddress.toString+"/")
-        val settings: WebSocketContext = WebSocketContext(
+        val settings: HookupClientConfig = HookupClientConfig(
           uri = uri,
           throttle = IndefiniteThrottle(1 second, 1 second),
           buffer = Some(new FileBuffer(new File("./work/buffer-test.log"))),

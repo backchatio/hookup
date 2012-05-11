@@ -14,11 +14,11 @@ import akka.actor.ActorSystem
 import net.liftweb.json.JsonAST.{JField, JString, JObject}
 import akka.util.duration._
 
-object WebSocketClientSpecification {
+object HookupClientSpecification {
 
-  def newServer(port: Int)(implicit wireFormat: WireFormat): WebSocketServer =
-    WebSocketServer(ServerInfo("Test Echo Server", listenOn = "127.0.0.1", port = port)) {
-      new WebSocketServerClient {
+  def newServer(port: Int)(implicit wireFormat: WireFormat): HookupServer =
+    HookupServer(ServerInfo("Test Echo Server", listenOn = "127.0.0.1", port = port)) {
+      new HookupServerClient {
         def receive = {
           case TextMessage(text) ⇒ send(text)
           case JsonMessage(json) => send(json)
@@ -27,7 +27,7 @@ object WebSocketClientSpecification {
     }
 }
 
-trait WebSocketClientSpecification extends Specification with NoTimeConversions {
+trait HookupClientSpecification extends Specification with NoTimeConversions {
 
   implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
   val serverAddress = {
@@ -40,13 +40,13 @@ trait WebSocketClientSpecification extends Specification with NoTimeConversions 
   override def map(fs: => Fragments) =
     Step(server.start) ^ super.map(fs) ^ Step(server.stop)
 
-  type Handler = PartialFunction[(WebSocket, WebSocketInMessage), Any]
+  type Handler = PartialFunction[(HookupClient, InboundMessage), Any]
 
-  def withWebSocket[T <% Result](handler: Handler)(t: WebSocket => T) = {
-    val client = new WebSocket {
+  def withWebSocket[T <% Result](handler: Handler)(t: HookupClient => T) = {
+    val client = new HookupClient {
       val uri = new URI("ws://127.0.0.1:"+serverAddress.toString+"/")
       override implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(jsonFormats)
-      val settings = WebSocketContext(uri)
+      val settings = HookupClientConfig(uri)
       def receive = {
         case m  => handler.lift((this, m))
       }
@@ -57,14 +57,14 @@ trait WebSocketClientSpecification extends Specification with NoTimeConversions 
 
 }
 
-class WebSocketClientSpec extends  WebSocketClientSpecification { def is =
+class HookupClientSpec extends  HookupClientSpecification { def is =
   "A WebSocketClient should" ^
     "connects to server" ! connectsToServer ^
     "exchange json messages with the server" ! pending ^
   end
 
-  implicit val system: ActorSystem = ActorSystem("WebSocketClientSpec")
-  val server = WebSocketClientSpecification.newServer(serverAddress)
+  implicit val system: ActorSystem = ActorSystem("HookupClientSpec")
+  val server = HookupClientSpecification.newServer(serverAddress)
 
 
   def connectsToServer = {

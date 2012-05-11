@@ -7,33 +7,33 @@ import akka.util.Duration
 /**
  * A marker trait for inbound messages
  */
-sealed trait WebSocketInMessage
+sealed trait InboundMessage
 
 /**
  * A marker trait for outbound messages
  */
-sealed trait WebSocketOutMessage
+sealed trait OutboundMessage
 
 /**
  * Adds acking support to a message
  * This can only be included in a websocket out message
  */
-trait Ackable { self: WebSocketOutMessage ⇒
+trait Ackable { self: OutboundMessage ⇒
 
   /**
    * Request that this message will be acked upon receipt by the server.
    *
    * @param within An [[akka.util.Duration]] representing the timeout for the ack
-   * @return A [[io.backchat.hookup.WebSocketOutMessage]] with this message wrapped in a [[io.backchat.hookup.NeedsAck]] envelope
+   * @return A [[io.backchat.hookup.OutboundMessage]] with this message wrapped in a [[io.backchat.hookup.NeedsAck]] envelope
    */
-  def needsAck(within: Duration = 1 second): WebSocketOutMessage = NeedsAck(this, within)
+  def needsAck(within: Duration = 1 second): OutboundMessage = NeedsAck(this, within)
 }
 
 /**
  * A base trait for creating messages of different content types
  * @tparam T The type of content this protocol message represents
  */
-trait ProtocolMessage[T] extends WebSocketInMessage with WebSocketOutMessage with Ackable {
+trait ProtocolMessage[T] extends InboundMessage with OutboundMessage with Ackable {
   def content: T
 }
 
@@ -43,7 +43,7 @@ trait ProtocolMessage[T] extends WebSocketInMessage with WebSocketOutMessage wit
  *
  * When you receive this callback message you can be sure there is someone on the other end.
  */
-case object Connected extends WebSocketInMessage
+case object Connected extends InboundMessage
 
 /**
  * A callback event signaling that the connection to the server has been broken and the client
@@ -53,7 +53,7 @@ case object Connected extends WebSocketInMessage
  * [[io.backchat.hookup.IndefiniteThrottle]] then the client does the reconnection bit automatically, it's only then
  * that you can expect these events.
  */
-case object Reconnecting extends WebSocketInMessage
+case object Reconnecting extends InboundMessage
 
 /**
  * A message representing a json object sent to/received from a remote party.
@@ -82,7 +82,7 @@ case class BinaryMessage(content: Array[Byte]) extends ProtocolMessage[Array[Byt
  * @param message The [[io.backchat.hookup.Ackable]] message to be acknowledged
  * @param timeout An [[akka.util.Duration]] specifying the timeout for the operation
  */
-private[hookup] case class NeedsAck(message: Ackable, timeout: Duration = 1 second) extends WebSocketOutMessage
+private[hookup] case class NeedsAck(message: Ackable, timeout: Duration = 1 second) extends OutboundMessage
 
 /**
  * An Inbound message for an ack operation, this is an implementation detail and not visible to the library user
@@ -90,18 +90,18 @@ private[hookup] case class NeedsAck(message: Ackable, timeout: Duration = 1 seco
  * @param message The [[io.backchat.hookup.Ackable]] message to be acknowledged
  * @param id The id of the ack operation
  */
-private[hookup] case class AckRequest(message: Ackable, id: Long) extends WebSocketInMessage
+private[hookup] case class AckRequest(message: Ackable, id: Long) extends InboundMessage
 
 /**
  * A callback event signaling failure of an ack request.
  * This is not handled automatically and you have to decide what you want to do with the message,
  * you could send it again, send it somewhere else, drop it ...
  *
- * @param message An [[io.backchat.hookup.WebSocketOutMessage]] outbound message
+ * @param message An [[io.backchat.hookup.OutboundMessage]] outbound message
  */
-case class AckFailed(message: WebSocketOutMessage) extends WebSocketInMessage
+case class AckFailed(message: OutboundMessage) extends InboundMessage
 
-private[hookup] case class Ack(id: Long) extends WebSocketInMessage with WebSocketOutMessage
+private[hookup] case class Ack(id: Long) extends InboundMessage with OutboundMessage
 
 /**
  * A callback event signaling that an error has occurred. if the error was an exception thrown
@@ -109,7 +109,7 @@ private[hookup] case class Ack(id: Long) extends WebSocketInMessage with WebSock
  *
  * @param cause A [[scala.Option]] of [[java.lang.Throwable]]
  */
-case class Error(cause: Option[Throwable]) extends WebSocketInMessage
+case class Error(cause: Option[Throwable]) extends InboundMessage
 
 /**
  * A callback event signaling that the connection has ended, if the cause was an exception thrown
@@ -117,7 +117,7 @@ case class Error(cause: Option[Throwable]) extends WebSocketInMessage
  *
  * @param cause A [[scala.Option]] of [[java.lang.Throwable]]
  */
-case class Disconnected(cause: Option[Throwable]) extends WebSocketInMessage
+case class Disconnected(cause: Option[Throwable]) extends InboundMessage
 
-private[hookup] case object Disconnect extends WebSocketOutMessage
+private[hookup] case object Disconnect extends OutboundMessage
 

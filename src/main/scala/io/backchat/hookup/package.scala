@@ -31,13 +31,13 @@ package object hookup {
 
   /**
    * An implicit conversion from a predicate function that takes a [[io.backchat.hookup.BroadcastChannel]] to
-   * a [[io.backchat.hookup.WebSocketServer.BroadcastFilter]]
+   * a [[io.backchat.hookup.HookupServer.BroadcastFilter]]
    *
    * @param fn The predicate function to convert to a filter
-   * @return A [[io.backchat.hookup.WebSocketServer.BroadcastFilter]]
+   * @return A [[io.backchat.hookup.HookupServer.BroadcastFilter]]
    */
-  implicit def fn2BroadcastFilter(fn: BroadcastChannel ⇒ Boolean): WebSocketServer.BroadcastFilter = {
-    new WebSocketServer.BroadcastFilter {
+  implicit def fn2BroadcastFilter(fn: BroadcastChannel ⇒ Boolean): HookupServer.BroadcastFilter = {
+    new HookupServer.BroadcastFilter {
       def apply(v1: BroadcastChannel) = fn(v1)
     }
   }
@@ -72,7 +72,7 @@ package object hookup {
    * @param content The string content of the message
    * @return A [[io.backchat.hookup.TextMessage]]
    */
-  implicit def string2TextMessage(content: String): WebSocketOutMessage with Ackable = TextMessage(content)
+  implicit def string2TextMessage(content: String): OutboundMessage with Ackable = TextMessage(content)
 
   /**
    * Implicit conversion from a lift-json jvalue to a [[io.backchat.hookup.JsonMessage]]
@@ -80,16 +80,16 @@ package object hookup {
    * @param content The string content of the message
    * @return A [[io.backchat.hookup.JsonMessage]]
    */
-  implicit def jvalue2JsonMessage(content: JValue): WebSocketOutMessage with Ackable = JsonMessage(content)
+  implicit def jvalue2JsonMessage(content: JValue): OutboundMessage with Ackable = JsonMessage(content)
 
   /**
    * Type forwarder for a websocket server client
    */
-  type WebSocketServerClient = WebSocketServer.WebSocketServerClient
+  type HookupServerClient = HookupServer.HookupServerClient
 
   private[hookup] implicit def nettyChannel2BroadcastChannel(ch: Channel)(implicit executionContext: ExecutionContext): BroadcastChannel =
     new { val id: Int = ch.getId } with BroadcastChannel {
-      def send(msg: WebSocketOutMessage) = ch.write(msg).toAkkaFuture
+      def send(msg: OutboundMessage) = ch.write(msg).toAkkaFuture
       def disconnect() = ch.close().toAkkaFuture
     }
 

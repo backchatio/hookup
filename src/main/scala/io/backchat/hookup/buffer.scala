@@ -36,10 +36,10 @@ trait BackupBuffer extends Closeable {
 
   /**
    * Write a line to the buffer
-   * @param line A [[io.backchat.hookup.WebSocketOutMessage]]
+   * @param line A [[io.backchat.hookup.OutboundMessage]]
    */
-  def write(line: WebSocketOutMessage)
-  def drain(readLine: (WebSocketOutMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult]
+  def write(line: OutboundMessage)
+  def drain(readLine: (OutboundMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult]
 }
 
 /**
@@ -80,9 +80,9 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
    * When the buffer is closed it will open the buffer and then write the new line.
    * When the buffer is being drained it will buffer to memory
    * When an exception is thrown it will first buffer the message to memory and then rethrow the exception
-   * @param message A [[io.backchat.hookup.WebSocketOutMessage]]
+   * @param message A [[io.backchat.hookup.OutboundMessage]]
    */
-  def write(message: WebSocketOutMessage): Unit = synchronized {
+  def write(message: OutboundMessage): Unit = synchronized {
     val msg = wireFormat.render(message)
     try {
       state match {
@@ -101,7 +101,7 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
 
   }
 
-  private[this] def serializeAndSave(message: WebSocketOutMessage)(save: String ⇒ Unit) = {
+  private[this] def serializeAndSave(message: OutboundMessage)(save: String ⇒ Unit) = {
     save(wireFormat.render(message))
   }
 
@@ -109,11 +109,11 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
    * Drain the buffer using the `readLine` function to process each message in the buffer.
    * This method works with [[akka.dispatch.Future]] objects and needs an [[akka.dispatch.ExecutionContext]] in scope
    *
-   * @param readLine A function that takes a [[io.backchat.hookup.WebSocketOutMessage]] and produces a [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
+   * @param readLine A function that takes a [[io.backchat.hookup.OutboundMessage]] and produces a [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
    * @param executionContext An [[akka.dispatch.ExecutionContext]]
    * @return A [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
    */
-  def drain(readLine: (WebSocketOutMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult] = synchronized {
+  def drain(readLine: (OutboundMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult] = synchronized {
     var futures = mutable.ListBuffer[Future[OperationResult]]()
     state = State.Draining
     close()

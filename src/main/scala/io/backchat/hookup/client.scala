@@ -14,7 +14,7 @@ import java.lang.Thread.UncaughtExceptionHandler
 import org.jboss.netty.handler.timeout.{ IdleStateAwareChannelHandler, IdleStateEvent, IdleState, IdleStateHandler }
 import org.jboss.netty.logging.{ InternalLogger, InternalLoggerFactory }
 import java.util.concurrent.atomic.AtomicLong
-import io.backchat.hookup.WebSocketServer.MessageAckingHandler
+import io.backchat.hookup.HookupServer.MessageAckingHandler
 import org.jboss.netty.util.{ Timeout ⇒ NettyTimeout, TimerTask, HashedWheelTimer, CharsetUtil }
 import akka.util.{ Duration, Timeout }
 import java.net.{ ConnectException, InetSocketAddress, URI }
@@ -26,27 +26,27 @@ import java.util.concurrent.{ConcurrentSkipListSet, TimeUnit, Executors}
 import reflect.BeanProperty
 
 /**
- * @see [[io.backchat.hookup.WebSocket]]
+ * @see [[io.backchat.hookup.HookupClient]]
  */
-object WebSocket {
+object HookupClient {
 
   /**
    * The websocket inbound message handler
    */
-  type Receive = PartialFunction[WebSocketInMessage, Unit]
+  type Receive = PartialFunction[InboundMessage, Unit]
 
   /**
    * Global logger for a websocket client.
    */
-  private val logger = InternalLoggerFactory.getInstance("WebSocket")
+  private val logger = InternalLoggerFactory.getInstance("HookupClient")
 
   /**
-   * This handler takes care of translating websocket frames into [[io.backchat.hookup.WebSocketInMessage]] instances
+   * This handler takes care of translating websocket frames into [[io.backchat.hookup.InboundMessage]] instances
    * @param handshaker The handshaker to use for this websocket connection
    * @param host The host to connect to.
    * @param wireFormat The wireformat to use for this connection.
    */
-  class WebSocketClientHostHandler(handshaker: WebSocketClientHandshaker, host: WebSocketHost)(implicit wireFormat: WireFormat) extends SimpleChannelHandler {
+  class WebSocketClientHostHandler(handshaker: WebSocketClientHandshaker, host: HookupClientHost)(implicit wireFormat: WireFormat) extends SimpleChannelHandler {
     private val msgCount = new AtomicLong(0)
 
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
@@ -91,12 +91,12 @@ object WebSocket {
         case m: TextMessage         ⇒ sendOutMessage(m, e.getChannel)
         case BinaryMessage(content) ⇒ e.getChannel.write(new BinaryWebSocketFrame(ChannelBuffers.copiedBuffer(content)))
         case Disconnect             ⇒ // ignore here
-        case _: WebSocketOutMessage ⇒
+        case _: OutboundMessage ⇒
         case _                      ⇒ ctx.sendDownstream(e)
       }
     }
 
-    private def sendOutMessage(msg: WebSocketOutMessage with Ackable, channel: Channel) {
+    private def sendOutMessage(msg: OutboundMessage with Ackable, channel: Channel) {
       channel.write(new TextWebSocketFrame(wireFormat.render(msg)))
     }
 
@@ -115,7 +115,7 @@ object WebSocket {
    * @param executionContext The execution context for futures
    * @param wireFormat The wireformat to use
    */
-  private final class WebSocketHost(val client: WebSocket)(implicit executionContext: ExecutionContext, wireFormat: WireFormat) extends WebSocketLike with BroadcastChannel with Connectable with Reconnectable {
+  private final class HookupClientHost(val client: HookupClient)(implicit executionContext: ExecutionContext, wireFormat: WireFormat) extends HookupClientLike with BroadcastChannel with Connectable with Reconnectable {
 
     private[this] val normalized = client.settings.uri.normalize()
     private[this] val tgt = if (normalized.getPath == null || normalized.getPath.trim().isEmpty) {
@@ -312,7 +312,7 @@ object WebSocket {
 
     def id = if (channel == null) 0 else channel.id
 
-    def send(message: WebSocketOutMessage): Future[OperationResult] = {
+    def send(message: OutboundMessage): Future[OperationResult] = {
       if (isConnected) {
         channel.write(message).toAkkaFuture
       } else {
@@ -374,7 +374,7 @@ object WebSocket {
       true))
 
   /**
-   * A WebSocket related exception
+   * A HookupClient related exception
    *
    * Copied from [[https://github.com/cgbystrom/netty-tools]]
    */
@@ -403,59 +403,59 @@ object WebSocket {
    * @param recv The message handler
    * @param jsFormat the lift-json formats
    * @param wireFormat the [[io.backchat.hookup.WireFormat]] to use
-   * @return a [[io.backchat.hookup.DefaultWebSocket]]
+   * @return a [[io.backchat.hookup.DefaultHookupClient]]
    */
-  def apply(context: WebSocketContext)
+  def apply(context: HookupClientConfig)
            (recv: Receive)
-           (implicit jsFormat: Formats = DefaultFormats, wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)): WebSocket = {
-    new DefaultWebSocket(context, wireFormat, jsFormat) {
+           (implicit jsFormat: Formats = DefaultFormats, wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)): HookupClient = {
+    new DefaultHookupClient(context, wireFormat, jsFormat) {
       val receive = recv
     }
   }
 
   /**
-   * A factory method for the java api. It creates a JavaWebSocket which is a websocket with added helpers for
+   * A factory method for the java api. It creates a JavaHookupClient which is a websocket with added helpers for
    * the java language, so they too can enjoy this library.
    *
    * @param context The configuration for the websocket client
    * @param jsFormat the lift-json formats
    * @param wireFormat the [[io.backchat.hookup.WireFormat]] to use
-   * @return a [[io.backchat.hookup.JavaWebSocket]]
+   * @return a [[io.backchat.hookup.JavaHookupClient]]
    */
-  def create(context: WebSocketContext, jsFormat: Formats, wireFormat: WireFormat): JavaWebSocket =
-    new JavaWebSocket(context, wireFormat, jsFormat)
+  def create(context: HookupClientConfig, jsFormat: Formats, wireFormat: WireFormat): JavaHookupClient =
+    new JavaHookupClient(context, wireFormat, jsFormat)
 
   /**
-   * A factory method for the java api. It creates a JavaWebSocket which is a websocket with added helpers for
+   * A factory method for the java api. It creates a JavaHookupClient which is a websocket with added helpers for
    * the java language, so they too can enjoy this library.
    *
    * @param context The configuration for the websocket client
    * @param wireFormat the [[io.backchat.hookup.WireFormat]] to use
-   * @return a [[io.backchat.hookup.JavaWebSocket]]
+   * @return a [[io.backchat.hookup.JavaHookupClient]]
    */
-  def create(context: WebSocketContext, wireFormat: WireFormat): JavaWebSocket =
-    new JavaWebSocket(context, wireFormat)
+  def create(context: HookupClientConfig, wireFormat: WireFormat): JavaHookupClient =
+    new JavaHookupClient(context, wireFormat)
 
   /**
-   * A factory method for the java api. It creates a JavaWebSocket which is a websocket with added helpers for
+   * A factory method for the java api. It creates a JavaHookupClient which is a websocket with added helpers for
    * the java language, so they too can enjoy this library.
    *
    * @param context The configuration for the websocket client
    * @param jsFormat the lift-json formats
-   * @return a [[io.backchat.hookup.JavaWebSocket]]
+   * @return a [[io.backchat.hookup.JavaHookupClient]]
    */
-  def create(context: WebSocketContext, jsFormat: Formats): JavaWebSocket =
-    new JavaWebSocket(context, jsFormat)
+  def create(context: HookupClientConfig, jsFormat: Formats): JavaHookupClient =
+    new JavaHookupClient(context, jsFormat)
 
   /**
-   * A factory method for the java api. It creates a JavaWebSocket which is a websocket with added helpers for
+   * A factory method for the java api. It creates a JavaHookupClient which is a websocket with added helpers for
    * the java language, so they too can enjoy this library.
    *
    * @param context The configuration for the websocket client
-   * @return a [[io.backchat.hookup.JavaWebSocket]]
+   * @return a [[io.backchat.hookup.JavaHookupClient]]
    */
-  def create(context: WebSocketContext): JavaWebSocket =
-    new JavaWebSocket(context)
+  def create(context: HookupClientConfig): JavaHookupClient =
+    new JavaHookupClient(context)
 
 }
 
@@ -493,13 +493,13 @@ trait Reconnectable {
 /**
  * A trait describing an entity that can handle inbound messages
  */
-trait WebSocketLike extends BroadcastChannelLike {
+trait HookupClientLike extends BroadcastChannelLike {
 
   /**
-   * Handle inbound [[io.backchat.hookup.WebSocketInMessage]] instances
-   * @return a [[io.backchat.hookup.WebSocket.Receive]] as message handler
+   * Handle inbound [[io.backchat.hookup.InboundMessage]] instances
+   * @return a [[io.backchat.hookup.HookupClient.Receive]] as message handler
    */
-  def receive: WebSocket.Receive
+  def receive: HookupClient.Receive
 }
 
 /**
@@ -514,7 +514,7 @@ trait WebSocketLike extends BroadcastChannelLike {
  * @param throttle The throttle to use as reconnection schedule.
  * @param executionContext The execution context for futures.
  */
-case class WebSocketContext(
+case class HookupClientConfig(
   @BeanProperty
   uri: URI,
   @BeanProperty
@@ -530,13 +530,13 @@ case class WebSocketContext(
   @BeanProperty
   throttle: Throttle = NoThrottle,
   @BeanProperty
-  executionContext: ExecutionContext = WebSocket.executionContext)
+  executionContext: ExecutionContext = HookupClient.executionContext)
 
 /**
  * Usage of the simple websocket client:
  *
  * <pre>
- *   new WebSocket {
+ *   new HookupClient {
  *     val uri = new URI("ws://localhost:8080/thesocket")
  *
  *     def receive = {
@@ -555,15 +555,15 @@ case class WebSocketContext(
  *   }
  * </pre>
  */
-trait WebSocket extends WebSocketLike with Connectable with Reconnectable with Closeable {
+trait HookupClient extends HookupClientLike with Connectable with Reconnectable with Closeable {
 
-  import WebSocket.WebSocketHost
+  import HookupClient.HookupClientHost
 
   /**
    * The configuration of this client.
-   * @return The [[io.backchat.hookup.WebSocketContext]] as configuration object
+   * @return The [[io.backchat.hookup.HookupClientConfig]] as configuration object
    */
-  def settings: WebSocketContext
+  def settings: HookupClientConfig
 
   /**
    * A flag indicating whether this websocket client can fallback to buffering.
@@ -591,17 +591,17 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable with C
    */
   implicit def wireFormat: WireFormat = new JsonProtocolWireFormat
 
-  private[hookup] lazy val channel: BroadcastChannel with Connectable with Reconnectable = new WebSocketHost(this)
+  private[hookup] lazy val channel: BroadcastChannel with Connectable with Reconnectable = new HookupClientHost(this)
 
   def isConnected: Boolean = channel.isConnected
 
   /**
    * Send a message to the server.
    *
-   * @param message The [[io.backchat.hookup.WebSocketOutMessage]] to send
+   * @param message The [[io.backchat.hookup.OutboundMessage]] to send
    * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
-  final def !(message: WebSocketOutMessage) = send(message)
+  final def !(message: OutboundMessage) = send(message)
 
   /**
    * Connect to the server.
@@ -632,10 +632,10 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable with C
   /**
    * Send a message to the server.
    *
-   * @param message The [[io.backchat.hookup.WebSocketOutMessage]] to send
+   * @param message The [[io.backchat.hookup.OutboundMessage]] to send
    * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
-  final def send(message: WebSocketOutMessage): Future[OperationResult] = channel.send(message)
+  final def send(message: OutboundMessage): Future[OperationResult] = channel.send(message)
 
 }
 
@@ -643,7 +643,7 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable with C
  * Usage of the simple websocket client:
  *
  * <pre>
- *   new DefaultWebSocket(WebSocketContext(new URI("ws://localhost:8080/thesocket"))) {
+ *   new DefaultHookupClient(HookupClientConfig(new URI("ws://localhost:8080/thesocket"))) {
  *
  *     def receive = {
  *       case Disconnected(_) ⇒ println("The websocket to " + uri.toASCIIString + " disconnected.")
@@ -661,11 +661,11 @@ trait WebSocket extends WebSocketLike with Connectable with Reconnectable with C
  *   }
  * </pre>
  */
-abstract class DefaultWebSocket(val settings: WebSocketContext, wf: WireFormat, jsFormat: Formats) extends WebSocket {
+abstract class DefaultHookupClient(val settings: HookupClientConfig, wf: WireFormat, jsFormat: Formats) extends HookupClient {
 
-  def this(settings: WebSocketContext, wf: WireFormat) = this(settings, wf, DefaultFormats)
-  def this(settings: WebSocketContext) = this(settings, new JsonProtocolWireFormat()(DefaultFormats), DefaultFormats)
-  def this(settings: WebSocketContext, jsFormats: Formats) =
+  def this(settings: HookupClientConfig, wf: WireFormat) = this(settings, wf, DefaultFormats)
+  def this(settings: HookupClientConfig) = this(settings, new JsonProtocolWireFormat()(DefaultFormats), DefaultFormats)
+  def this(settings: HookupClientConfig, jsFormats: Formats) =
     this(settings, new JsonProtocolWireFormat()(jsFormats), jsFormats)
 
 
@@ -684,21 +684,21 @@ trait WebSocketListener {
    *
    * @param client The client that connected.
    */
-  def onConnected(client: WebSocket): Unit = ()
+  def onConnected(client: HookupClient): Unit = ()
 
   /**
    * The callback method for when the client is reconnecting
    *
    * @param client The client that is reconnecting.
    */
-  def onReconnecting(client: WebSocket): Unit = ()
+  def onReconnecting(client: HookupClient): Unit = ()
 
   /**
    * The callback method for when the client is disconnected
    *
    * @param client The client that disconnected.
    */
-  def onDisconnected(client: WebSocket, reason: Throwable): Unit = ()
+  def onDisconnected(client: HookupClient, reason: Throwable): Unit = ()
 
   /**
    * The callback method for when a text message has been received.
@@ -706,7 +706,7 @@ trait WebSocketListener {
    * @param client The client that received the message
    * @param text The message it received
    */
-  def onTextMessage(client: WebSocket, text: String): Unit = ()
+  def onTextMessage(client: HookupClient, text: String): Unit = ()
 
   /**
    * The callback method for when a json message has been received.
@@ -714,7 +714,7 @@ trait WebSocketListener {
    * @param client The client that received the message
    * @param json The message it received
    */
-  def onJsonMessage(client: WebSocket, json: String): Unit = ()
+  def onJsonMessage(client: HookupClient, json: String): Unit = ()
 
   /**
    * The callback method for when an error has occured
@@ -722,7 +722,7 @@ trait WebSocketListener {
    * @param client The client that received the message
    * @param error The message it received the throwable if any, otherwise null
    */
-  def onError(client: WebSocket, reason: Throwable): Unit = ()
+  def onError(client: HookupClient, reason: Throwable): Unit = ()
 
   /**
    * The callback method for when a text message has failed to be acknowledged.
@@ -730,7 +730,7 @@ trait WebSocketListener {
    * @param client The client that received the message
    * @param text The message it received
    */
-  def onTextAckFailed(client: WebSocket, text: String): Unit = ()
+  def onTextAckFailed(client: HookupClient, text: String): Unit = ()
 
   /**
    * The callback method for when a json message has failed to be acknowledged.
@@ -738,15 +738,15 @@ trait WebSocketListener {
    * @param client The client that received the message
    * @param text The message it received
    */
-  def onJsonAckFailed(client: WebSocket, json: String): Unit = ()
+  def onJsonAckFailed(client: HookupClient, json: String): Unit = ()
 }
 
 /**
- * A mixin for a [[io.backchat.hookup.WebSocket]] with helper methods for the java api.
+ * A mixin for a [[io.backchat.hookup.HookupClient]] with helper methods for the java api.
  * When mixed into a websocket it is a full implementation that notifies the registered
  * [[io.backchat.hookup.WebSocketListener]] instances when events occur.
  */
-trait JavaHelpers extends WebSocketListener { self: WebSocket =>
+trait JavaHelpers extends WebSocketListener { self: HookupClient =>
 
   /**
    * Send a text message. If the message is a json string it will still be turned into a json message
@@ -823,9 +823,9 @@ trait JavaHelpers extends WebSocketListener { self: WebSocket =>
   /**
    * The implementation of the receive handler for java clients.
    * it notfies the listeners by iterating over all of them and calling the designated method.
-   * @return The [[io.backchat.hookup.WebSocket.Receive]] message handler
+   * @return The [[io.backchat.hookup.HookupClient.Receive]] message handler
    */
-  def receive: WebSocket.Receive = {
+  def receive: HookupClient.Receive = {
     case Connected =>
       listeners.asScala foreach (_.onConnected(this))
       onConnected(this)
@@ -857,49 +857,49 @@ trait JavaHelpers extends WebSocketListener { self: WebSocket =>
 
 /**
  * A java friendly websocket
- * @see [[io.backchat.hookup.WebSocket]]
+ * @see [[io.backchat.hookup.HookupClient]]
  * @see [[io.backchat.hookup.JavaHelpers]]
  *
  * @param settings The settings to use when creating this websocket.
  * @param wf The wireformat for this websocket
  * @param jsFormat the lift-json formats
  */
-class JavaWebSocket(settings: WebSocketContext, wf: WireFormat, jsFormat: Formats)
-  extends DefaultWebSocket(settings, wf, jsFormat) with JavaHelpers {
+class JavaHookupClient(settings: HookupClientConfig, wf: WireFormat, jsFormat: Formats)
+  extends DefaultHookupClient(settings, wf, jsFormat) with JavaHelpers {
 
   /**
    * A java friendly websocket
-   * @see [[io.backchat.hookup.WebSocket]]
+   * @see [[io.backchat.hookup.HookupClient]]
    * @see [[io.backchat.hookup.JavaHelpers]]
    *
    * @param settings The settings to use when creating this websocket.
    * @param wf The wireformat for this websocket
    */
-  def this(settings: WebSocketContext, wf: WireFormat) = this(settings, wf, DefaultFormats)
+  def this(settings: HookupClientConfig, wf: WireFormat) = this(settings, wf, DefaultFormats)
 
   /**
    * A java friendly websocket
-   * @see [[io.backchat.hookup.WebSocket]]
+   * @see [[io.backchat.hookup.HookupClient]]
    * @see [[io.backchat.hookup.JavaHelpers]]
    *
    * @param settings The settings to use when creating this websocket.
    */
-  def this(settings: WebSocketContext) = this(settings, new JsonProtocolWireFormat()(DefaultFormats), DefaultFormats)
+  def this(settings: HookupClientConfig) = this(settings, new JsonProtocolWireFormat()(DefaultFormats), DefaultFormats)
 
   /**
    * A java friendly websocket
-   * @see [[io.backchat.hookup.WebSocket]]
+   * @see [[io.backchat.hookup.HookupClient]]
    * @see [[io.backchat.hookup.JavaHelpers]]
    *
    * @param settings The settings to use when creating this websocket.
    * @param jsFormats the lift-json formats
    */
-  def this(settings: WebSocketContext, jsFormats: Formats) =
+  def this(settings: HookupClientConfig, jsFormats: Formats) =
     this(settings, new JsonProtocolWireFormat()(jsFormats), jsFormats)
 
 }
 
-//trait BufferedWebSocket { self: WebSocket ⇒
+//trait BufferedWebSocket { self: HookupClient ⇒
 //
 //  override def throttle = IndefiniteThrottle(500 millis, 30 minutes)
 //

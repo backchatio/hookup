@@ -20,10 +20,10 @@ object ChatClient {
     }
     val system = ActorSystem("ChatClient")
 
-    new WebSocket {
+    new HookupClient {
       val uri = URI.create("ws://localhost:8127/")
 
-      val settings: WebSocketContext = WebSocketContext(
+      val settings: HookupClientConfig = HookupClientConfig(
         uri = uri,
         throttle = IndefiniteThrottle(5 seconds, 30 minutes),
         buffer = Some(new FileBuffer(new File("./work/buffer.log"))))

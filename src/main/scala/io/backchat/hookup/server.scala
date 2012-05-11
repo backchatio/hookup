@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicLong
 import net.liftweb.json._
 import JsonDSL._
 import java.util.concurrent.{ ConcurrentHashMap, ConcurrentLinkedQueue, TimeUnit, Executors }
-import _root_.io.backchat.hookup.WebSocketServer.{ WebSocketCancellable }
+import _root_.io.backchat.hookup.HookupServer.{ WebSocketCancellable }
 import akka.util.{ Index, Timeout }
 import annotation.switch
 import org.jboss.netty.handler.codec.frame.FrameDecoder
@@ -102,9 +102,9 @@ private[hookup] case object RaisePingEvents extends ServerCapability
  */
 object ServerInfo {
   /**
-   * The default server name ''BackchatWebSocketServer''
+   * The default server name ''BackChat.io Hookup Server''
    */
-  val DefaultServerName = "BackChatWebSocketServer"
+  val DefaultServerName = "BackChat.io Hookup Server"
 
   /**
    * Creates a [[io.backchat.hookup.ServerInfo]] with the [[io.backchat.hookup.ServerInfo.DefaultServerName]]
@@ -240,14 +240,14 @@ case class ServerInfo(
 }
 
 /**
- * @see [[io.backchat.hookup.WebSocketServer]]
+ * @see [[io.backchat.hookup.HookupServer]]
  */
-object WebSocketServer {
+object HookupServer {
 
   import ServerInfo.DefaultServerName
   //  type WebSocketHandler = PartialFunction[WebSocketMessage, Unit]
 
-  import WebSocket.{ executionContext, Receive }
+  import HookupClient.{ executionContext, Receive }
 
   /**
    * A filter for broadcast channels, a predicate that can't be null
@@ -255,16 +255,16 @@ object WebSocketServer {
   trait BroadcastFilter extends (BroadcastChannel ⇒ Boolean) with NotNull
 
   /**
-   * Companion object for [[io.backchat.hookup.WebSocketServer.Include]]
+   * Companion object for [[io.backchat.hookup.HookupServer.Include]]
    */
   object Include {
     /**
      * Create an include filter from varargs
      *
      * @param clients The available clients to filter
-     * @return a [[io.backchat.hookup.WebSocketServer.BroadcastFilter]]
+     * @return a [[io.backchat.hookup.HookupServer.BroadcastFilter]]
      */
-    def apply(clients: WebSocketServerClient*): BroadcastFilter = new Include(clients)
+    def apply(clients: HookupServerClient*): BroadcastFilter = new Include(clients)
   }
 
   /**
@@ -272,7 +272,7 @@ object WebSocketServer {
    *
    * @param clients The open connections
    */
-  class Include(clients: Seq[WebSocketServerClient]) extends BroadcastFilter {
+  class Include(clients: Seq[HookupServerClient]) extends BroadcastFilter {
 
     /**
      * Execute the matcher against the provided channel
@@ -284,7 +284,7 @@ object WebSocketServer {
   }
 
   /**
-   * Companion object for [[io.backchat.hookup.WebSocketServer.Exclude]]
+   * Companion object for [[io.backchat.hookup.HookupServer.Exclude]]
    */
   object Exclude {
 
@@ -292,9 +292,9 @@ object WebSocketServer {
      * Create an exclude filter from varargs
      *
      * @param clients The available clients to filter
-     * @return a [[io.backchat.hookup.WebSocketServer.BroadcastFilter]]
+     * @return a [[io.backchat.hookup.HookupServer.BroadcastFilter]]
      */
-    def apply(clients: WebSocketServerClient*): BroadcastFilter = new Exclude(clients)
+    def apply(clients: HookupServerClient*): BroadcastFilter = new Exclude(clients)
   }
 
   /**
@@ -302,7 +302,7 @@ object WebSocketServer {
    *
    * @param clients The open connections
    */
-  class Exclude(clients: Seq[WebSocketServerClient]) extends BroadcastFilter {
+  class Exclude(clients: Seq[HookupServerClient]) extends BroadcastFilter {
     /**
      * Execute the matcher against the provided channel
      *
@@ -319,9 +319,9 @@ object WebSocketServer {
     /**
      * The actual websocket connection.
      *
-     * @return A [[io.backchat.hookup.WebSocketServerClient]]
+     * @return A [[io.backchat.hookup.HookupServerClient]]
      */
-    protected def connection: WebSocketServerClient
+    protected def connection: HookupServerClient
 
     /**
      * The event handler for websocket events.
@@ -334,14 +334,14 @@ object WebSocketServer {
   /**
    * A convenience trait for bridging a websocket to an actor.
    */
-  trait ActorWebSocketServerClient { self: WebSocketServerClient =>
+  trait ActorWebSocketServerClient { self: HookupServerClient =>
 
     /**
      * The factory to use to create the actor handler
      *
-     * @return A function that takes a [[io.backchat.hookup.WebSocketServerClient]] and returns an [[akka.actor.ActorRef]]
+     * @return A function that takes a [[io.backchat.hookup.HookupServerClient]] and returns an [[akka.actor.ActorRef]]
      */
-    protected def actorFactory: WebSocketServerClient => ActorRef
+    protected def actorFactory: HookupServerClient => ActorRef
 
     /**
      * A lazy value of the actor being linked to.
@@ -360,11 +360,11 @@ object WebSocketServer {
    * Represents a broadcast operation.
    */
   trait Broadcast {
-    def apply(message: WebSocketOutMessage, allowsOnly: BroadcastFilter): Future[OperationResult]
+    def apply(message: OutboundMessage, allowsOnly: BroadcastFilter): Future[OperationResult]
   }
 
   private implicit def nettyChannelGroup2Broadcaster(allChannels: ChannelGroup): Broadcast = new Broadcast {
-    def apply(message: WebSocketOutMessage, matchingOnly: BroadcastFilter) = {
+    def apply(message: OutboundMessage, matchingOnly: BroadcastFilter) = {
       val lst = allChannels.asScala map (x => x: BroadcastChannel) filter matchingOnly map (_ send message)
       Future.sequence(lst) map (l ⇒ ResultList(l.toList))
     }
@@ -377,7 +377,7 @@ object WebSocketServer {
    * You can use it to maintain state for your client, but be aware that multiple threads maybe accessing the state
    * at the same time so you should take care of thread safety.
    */
-  trait WebSocketServerClient extends BroadcastChannel {
+  trait HookupServerClient extends BroadcastChannel {
 
     /**
      * The default broadcast filter broadcast operations use, it skips publishing to the sending channel
@@ -388,15 +388,15 @@ object WebSocketServer {
     final def id = if (_handler != null) _handler.id else 0
     final def remoteAddress = if (_handler != null) _handler.remoteAddress else null
 
-    private[WebSocketServer] var _handler: WebSocketServerClientHandler = null
-    private val _buffer = new ConcurrentLinkedQueue[WebSocketOutMessage]()
-    private val _broadcastBuffer = new ConcurrentLinkedQueue[(WebSocketOutMessage, BroadcastFilter)]()
+    private[HookupServer] var _handler: HookupServerClientHandler = null
+    private val _buffer = new ConcurrentLinkedQueue[OutboundMessage]()
+    private val _broadcastBuffer = new ConcurrentLinkedQueue[(OutboundMessage, BroadcastFilter)]()
 
     /**
      * Send a text message to this client
      * @param message the message to send
      */
-    final def send(message: WebSocketOutMessage): Future[OperationResult] = {
+    final def send(message: OutboundMessage): Future[OperationResult] = {
       if (_handler != null) {
         val futures = new ListBuffer[Future[OperationResult]]
         while (!_buffer.isEmpty) {
@@ -411,19 +411,19 @@ object WebSocketServer {
     }
 
     /**
-     * alias for [[io.backchat.hookup.WebSocketServer.WebSocketServerClient.send]]
-     * @see [[io.backchat.hookup.WebSocketServer.WebSocketServerClient.send]]
+     * alias for [[io.backchat.hookup.HookupServer.HookupServerClient.send]]
+     * @see [[io.backchat.hookup.HookupServer.HookupServerClient.send]]
      */
-    final def !(msg: WebSocketOutMessage) { send(msg) }
+    final def !(msg: OutboundMessage) { send(msg) }
 
     /**
      * Broadcast this message to all connections matching the filter
      *
-     * @param msg The [[io.backchat.hookup.WebSocketOutMessage]] to broadcast
+     * @param msg The [[io.backchat.hookup.OutboundMessage]] to broadcast
      * @param onlyTo The filter to determine the connections to send to. Defaults to all but self.
      * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
      */
-    final def broadcast(msg: WebSocketOutMessage, onlyTo: BroadcastFilter = SkipSelf): Future[OperationResult] = {
+    final def broadcast(msg: OutboundMessage, onlyTo: BroadcastFilter = SkipSelf): Future[OperationResult] = {
       if (_handler != null) {
         val futures = new ListBuffer[Future[OperationResult]]
         while (!_broadcastBuffer.isEmpty) {
@@ -438,14 +438,14 @@ object WebSocketServer {
     }
 
     /**
-     * Alias for [[io.backchat.hookup.WebSocketServer.WebSocketServerClient.broadcast]]
-     * @see [[io.backchat.hookup.WebSocketServer.WebSocketServerClient.broadcast]]
+     * Alias for [[io.backchat.hookup.HookupServer.HookupServerClient.broadcast]]
+     * @see [[io.backchat.hookup.HookupServer.HookupServerClient.broadcast]]
      */
-    final def ><(msg: WebSocketOutMessage, onlyTo: BroadcastFilter = SkipSelf): Future[OperationResult] = broadcast(msg, onlyTo)
+    final def ><(msg: OutboundMessage, onlyTo: BroadcastFilter = SkipSelf): Future[OperationResult] = broadcast(msg, onlyTo)
 
     /**
      * Abstract method to implement a handler for inbound messages
-     * @return a [[io.backchat.hookup.WebSocket.Receive]] handler
+     * @return a [[io.backchat.hookup.HookupClient.Receive]] handler
      */
     def receive: Receive
 
@@ -459,7 +459,7 @@ object WebSocketServer {
   /**
    * Represents a client connection handle to this server
    */
-  private abstract class WebSocketServerClientHandler(channel: BroadcastChannel, client: WebSocketServerClient, logger: InternalLogger, broadcaster: Broadcast) {
+  private abstract class HookupServerClientHandler(channel: BroadcastChannel, client: HookupServerClient, logger: InternalLogger, broadcaster: Broadcast) {
 
     client._handler = this
 
@@ -477,32 +477,32 @@ object WebSocketServer {
      * Send a text message to this client
      * @param message the message to send
      */
-    final def send(message: WebSocketOutMessage) = channel.send(message)
+    final def send(message: OutboundMessage) = channel.send(message)
 
     /**
-     * alias for [[io.backchat.hookup.WebSocketServer.WebSocketServerClientHandler.send]]
-     * @see [[io.backchat.hookup.WebSocketServer.WebSocketServerClientHandler.send]]
+     * alias for [[io.backchat.hookup.HookupServer.HookupServerClientHandler.send]]
+     * @see [[io.backchat.hookup.HookupServer.HookupServerClientHandler.send]]
      */
-    def !(msg: WebSocketOutMessage) { send(msg) }
+    def !(msg: OutboundMessage) { send(msg) }
 
     /**
      * Broadcast this message to all connections matching the filter
      *
-     * @param msg The [[io.backchat.hookup.WebSocketOutMessage]] to broadcast
+     * @param msg The [[io.backchat.hookup.OutboundMessage]] to broadcast
      * @param onlyTo The filter to determine the connections to send to. Defaults to all but self.
      * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
      */
-    final def broadcast(msg: WebSocketOutMessage, matchingOnly: BroadcastFilter) = broadcaster(msg, matchingOnly)
+    final def broadcast(msg: OutboundMessage, matchingOnly: BroadcastFilter) = broadcaster(msg, matchingOnly)
 
     /**
-     * alias for [[io.backchat.hookup.WebSocketServer.WebSocketServerClientHandler.send]]
-     * @see [[io.backchat.hookup.WebSocketServer.WebSocketServerClientHandler.send]]
+     * alias for [[io.backchat.hookup.HookupServer.HookupServerClientHandler.send]]
+     * @see [[io.backchat.hookup.HookupServer.HookupServerClientHandler.send]]
      */
-    final def ><(msg: WebSocketOutMessage, matchingOnly: BroadcastFilter) { broadcaster(msg, matchingOnly) }
+    final def ><(msg: OutboundMessage, matchingOnly: BroadcastFilter) { broadcaster(msg, matchingOnly) }
 
     /**
      * Abstract method to implement a handler for inbound messages
-     * @return a [[io.backchat.hookup.WebSocket.Receive]] handler
+     * @return a [[io.backchat.hookup.HookupClient.Receive]] handler
      */
     def receive: Receive = client.receive orElse defaultReceive
 
@@ -522,82 +522,82 @@ object WebSocketServer {
 
 
   /**
-   * Creates a [[io.backchat.hookup.WebSocketServer]] with the specified params
+   * Creates a [[io.backchat.hookup.HookupServer]] with the specified params
    *
    * @param capabilities The a varargs sequence of [[io.backchat.hookup.ServerCapability]] objects to configure this server with
-   * @param factory The factor for creating the [[io.backchat.hookup.WebSocketServerClient]] instances
+   * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
    * @param wireFormat The wireformat to use for this server.
-   * @return A [[io.backchat.hookup.WebSocketServer]]
+   * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
+  def apply(capabilities: ServerCapability*)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
     apply(ServerInfo(DefaultServerName, capabilities = capabilities))(factory)
   }
 
   /**
-   * Creates a [[io.backchat.hookup.WebSocketServer]] with the specified params
+   * Creates a [[io.backchat.hookup.HookupServer]] with the specified params
    *
    * @param port The port this server will listen on.
    * @param capabilities The a varargs sequence of [[io.backchat.hookup.ServerCapability]] objects to configure this server with
-   * @param factory The factor for creating the [[io.backchat.hookup.WebSocketServerClient]] instances
+   * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
    * @param wireFormat The wireformat to use for this server.
-   * @return A [[io.backchat.hookup.WebSocketServer]]
+   * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(port: Int, capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
+  def apply(port: Int, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
     apply(ServerInfo(DefaultServerName, port = port, capabilities = capabilities))(factory)
   }
 
   /**
-   * Creates a [[io.backchat.hookup.WebSocketServer]] with the specified params
+   * Creates a [[io.backchat.hookup.HookupServer]] with the specified params
    *
    * @param listenOn The host/network address this server will listen on
    * @param capabilities The a varargs sequence of [[io.backchat.hookup.ServerCapability]] objects to configure this server with
-   * @param factory The factor for creating the [[io.backchat.hookup.WebSocketServerClient]] instances
+   * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
    * @param wireFormat The wireformat to use for this server.
-   * @return A [[io.backchat.hookup.WebSocketServer]]
+   * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(listenOn: String, capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
+  def apply(listenOn: String, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, capabilities = capabilities))(factory)
   }
 
   /**
-   * Creates a [[io.backchat.hookup.WebSocketServer]] with the specified params
+   * Creates a [[io.backchat.hookup.HookupServer]] with the specified params
    *
    * @param listenOn The host/network address this server will listen on
    * @param port The port this server will listen on.
    * @param capabilities The a varargs sequence of [[io.backchat.hookup.ServerCapability]] objects to configure this server with
-   * @param factory The factor for creating the [[io.backchat.hookup.WebSocketServerClient]] instances
+   * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
    * @param wireFormat The wireformat to use for this server.
-   * @return A [[io.backchat.hookup.WebSocketServer]]
+   * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(listenOn: String, port: Int, capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
+  def apply(listenOn: String, port: Int, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, port = port, capabilities = capabilities))(factory)
   }
 
   /**
-   * Creates a [[io.backchat.hookup.WebSocketServer]] with the specified params
+   * Creates a [[io.backchat.hookup.HookupServer]] with the specified params
    *
    * @param name The name of this server
    * @param listenOn The host/network address this server will listen on
    * @param port The port this server will listen on.
    * @param capabilities The a varargs sequence of [[io.backchat.hookup.ServerCapability]] objects to configure this server with
-   * @param factory The factor for creating the [[io.backchat.hookup.WebSocketServerClient]] instances
+   * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
    * @param wireFormat The wireformat to use for this server.
-   * @return A [[io.backchat.hookup.WebSocketServer]]
+   * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(name: String, listenOn: String, port: Int, capabilities: ServerCapability*)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
+  def apply(name: String, listenOn: String, port: Int, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, port = port, capabilities = capabilities))(factory)
   }
 
   /**
-   * Creates a [[io.backchat.hookup.WebSocketServer]] with the specified params
+   * Creates a [[io.backchat.hookup.HookupServer]] with the specified params
    *
    * @param info The [[io.backchat.hookup.ServerInfo]] to use to configure this server
-   * @param factory The factor for creating the [[io.backchat.hookup.WebSocketServerClient]] instances
+   * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
    * @param wireFormat The wireformat to use for this server.
-   * @return A [[io.backchat.hookup.WebSocketServer]]
+   * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(info: ServerInfo)(factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat): WebSocketServer = {
-    new WebSocketServer(info, factory)
+  def apply(info: ServerInfo)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
+    new HookupServer(info, factory)
   }
 
   /**
@@ -673,7 +673,7 @@ object WebSocketServer {
 
   private final class WebSocketClientFactoryHandler(logger: InternalLogger,
       allChannels: ChannelGroup,
-      factory: ⇒ WebSocketServerClient,
+      factory: ⇒ HookupServerClient,
       subProtocols: Traversable[String] = Nil,
       maxFrameSize: Long = Long.MaxValue,
       raiseEvents: Boolean = false)(implicit wireFormat: WireFormat) extends SimpleChannelUpstreamHandler {
@@ -682,16 +682,16 @@ object WebSocketServer {
 
     private[this] var handshaker: WebSocketServerHandshaker = _
 
-    private[this] var client: WebSocketServerClientHandler = null
+    private[this] var client: HookupServerClientHandler = null
 
     private[this] var receivedCloseFrame: Boolean = false
 
-    private[this] def clientFrom(ctx: ChannelHandlerContext): WebSocketServerClientHandler = {
+    private[this] def clientFrom(ctx: ChannelHandlerContext): HookupServerClientHandler = {
       (Option(ctx.getAttachment) collect {
-        case h: WebSocketServerClientHandler ⇒ h
+        case h: HookupServerClientHandler ⇒ h
       }) getOrElse {
         val sockAddr = ctx.getChannel.getRemoteAddress
-        val h = new WebSocketServerClientHandler(ctx.getChannel, factory, logger, allChannels) {
+        val h = new HookupServerClientHandler(ctx.getChannel, factory, logger, allChannels) {
           val remoteAddress = sockAddr
         }
         ctx.setAttachment(h)
@@ -726,7 +726,7 @@ object WebSocketServer {
             collectedFrames :+= m
           }
 
-        case f: WebSocketInMessage ⇒ client.receive lift f
+        case f: InboundMessage ⇒ client.receive lift f
 
         case f: CloseWebSocketFrame ⇒
           receivedCloseFrame = true
@@ -811,7 +811,7 @@ object WebSocketServer {
       }
     }
 
-    private def writeOutMessage(ctx: ChannelHandlerContext, msg: WebSocketOutMessage) {
+    private def writeOutMessage(ctx: ChannelHandlerContext, msg: OutboundMessage) {
       ctx.getChannel.write(new TextWebSocketFrame(wireFormat.render(msg)))
     }
   }
@@ -880,7 +880,7 @@ object WebSocketServer {
 
       val to: NettyTimeout = ackScavenger.newTimeout(new TimerTask {
         def run(timeout: NettyTimeout) {
-          if (!timeout.isCancelled) Channels.fireMessageReceived(ctx, AckFailed(message.asInstanceOf[WebSocketOutMessage]))
+          if (!timeout.isCancelled) Channels.fireMessageReceived(ctx, AckFailed(message.asInstanceOf[OutboundMessage]))
         }
       }, timeout.duration.toMillis, TimeUnit.MILLISECONDS)
       val exp = new WebSocketCancellable(to)
@@ -946,13 +946,13 @@ object WebSocketServer {
 }
 
 /**
- * Netty based WebSocketServer
+ * Netty based HookupServer
  * requires netty 3.4.x or later
  *
  * Usage:
  * {{{
- *   val server = WebSocketServer(ServerInfo("MyWebSocketServer")) {
- *     new WebSocketServerClient {
+ *   val server = HookupServer(ServerInfo("MyWebSocketServer")) {
+ *     new HookupServerClient {
  *       protected val receive = {
  *         case Connected ⇒ println("got a client connection")
  *         case TextMessage(text) ⇒ send(TextMessage("ECHO: " + text))
@@ -965,7 +965,7 @@ object WebSocketServer {
  *   server.stop
  * }}}
  */
-class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient)(implicit wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)) extends Server {
+class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)) extends Server {
 
   /**
    * The capabilities this server is configured with
@@ -1001,8 +1001,8 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
    */
   def port = config.port
 
-  import WebSocketServer._
-  import WebSocket.executionContext
+  import HookupServer._
+  import HookupClient.executionContext
 
   /**
    * the [[org.jboss.netty.logging.InternalLogger]] to use as logger for this server.
@@ -1042,10 +1042,10 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
     pipe.addLast("acking", new MessageAckingHandler(logger, raiseEvents))
     if (raiseEvents) {
       pipe.addLast("eventsHook", new SimpleChannelHandler {
-        var theclient: WebSocketServerClientHandler = null
+        var theclient: HookupServerClientHandler = null
         override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
           e.getMessage match {
-            case ("client", c: WebSocketServerClientHandler) ⇒ theclient = c
+            case ("client", c: HookupServerClientHandler) ⇒ theclient = c
             case m: Ack ⇒ theclient.receive lift m
             case m: AckRequest ⇒ theclient.receive lift m
             case _ ⇒ ctx.sendUpstream(e)
@@ -1095,7 +1095,7 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
       val ping = png.duration.toSeconds.toInt
       if (ping > 0) {
         pipe.addLast("timeouts", new IdleStateHandler(timer, 0, ping, 0))
-        pipe.addLast("connection-reaper", new WebSocket.PingPongHandler(logger))
+        pipe.addLast("connection-reaper", new HookupClient.PingPongHandler(logger))
       }
     }
   }
@@ -1145,7 +1145,7 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
   }
 
   private[this] def pipelineFactory = new ChannelPipelineFactory {
-    def getPipeline = WebSocketServer.this.getPipeline
+    def getPipeline = HookupServer.this.getPipeline
   }
 
   private[this] val startCallbacks = new ListBuffer[() ⇒ Any]()
@@ -1168,10 +1168,10 @@ class WebSocketServer(val config: ServerInfo, factory: ⇒ WebSocketServerClient
   /**
    * Broadcast a message to '''all''' open connections
    *
-   * @param message the [[io.backchat.hookup.WebSocketOutMessage]] to send.
+   * @param message the [[io.backchat.hookup.OutboundMessage]] to send.
    * @return A future with the result of the operation, a [[io.backchat.hookup.ResultList]]
    */
-  def broadcast(message: WebSocketOutMessage) = {
+  def broadcast(message: OutboundMessage) = {
     val lst = allChannels.asScala map (x ⇒ x: BroadcastChannel) map (_ send message)
     Future.sequence(lst) map (l ⇒ ResultList(l.toList))
   }

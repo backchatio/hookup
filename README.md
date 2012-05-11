@@ -37,8 +37,8 @@ libraryDependencies += "io.backchat.hookup" %% "hookup" % "0.2.2"
 ```scala
 import io.backchat.hookup._
 
-(WebSocketServer(8125) {
-  new WebSocketServerClient {
+(HookupServer(8125) {
+  new HookupServerClient {
     def receive = {
       case TextMessage(text) =>
         println(text)
@@ -53,8 +53,7 @@ import io.backchat.hookup._
 ```scala
 import io.backchat.hookup._
 
-new WebSocket with BufferedWebSocket {
-  val uri = URI.create("ws://localhost:8125/")
+new DefaultHookupClient(HookupClientConfig(URI.create("ws://localhost:8125/"), buffer = new FileBuffer())) {
 
   def receive = {
     case TextMessage(text) =>
@@ -63,7 +62,7 @@ new WebSocket with BufferedWebSocket {
 
   connect() onSuccess {
     case _ =>
-      println("connected to: %s" format uri.toASCIIString)
+      println("connected to: %s" format settings.uri.toASCIIString)
       system.scheduler.schedule(0 seconds, 1 second) {
         send("message " + messageCounter.incrementAndGet().toString)
       }

@@ -17,10 +17,10 @@ object PrintingEchoClient {
 
     val system = ActorSystem("PrintingEchoClient")
 
-    new WebSocket {
+    new HookupClient {
       val uri = URI.create("ws://localhost:8125/")
 
-      val settings: WebSocketContext = WebSocketContext(
+      val settings: HookupClientConfig = HookupClientConfig(
         uri = uri,
         throttle = IndefiniteThrottle(5 seconds, 30 minutes),
         buffer = Some(new FileBuffer(new File("./work/buffer.log"))))

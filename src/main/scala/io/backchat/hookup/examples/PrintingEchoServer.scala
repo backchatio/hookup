@@ -8,8 +8,8 @@ object PrintingEchoServer {
   implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
 
   def main(args: Array[String]) {
-    val server = WebSocketServer(8125) {
-      new WebSocketServerClient {
+    val server = HookupServer(8125) {
+      new HookupServerClient {
         def receive = {
           case TextMessage(text) ⇒
             println(text)

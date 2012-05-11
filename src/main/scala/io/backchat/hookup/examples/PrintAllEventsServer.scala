@@ -8,8 +8,8 @@ object PrintAllEventsServer {
   implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
 
   def main(args: Array[String]) {
-    val server = WebSocketServer(8126) {
-      new WebSocketServerClient {
+    val server = HookupServer(8126) {
+      new HookupServerClient {
         def receive = {
           case Connected ⇒
             println("client connected")

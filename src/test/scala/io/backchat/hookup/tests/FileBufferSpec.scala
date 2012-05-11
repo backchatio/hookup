@@ -79,7 +79,7 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
     buff.open()
     buff.write(exp1)
     buff.write(exp2)
-    val lines = new ListBuffer[WebSocketOutMessage]
+    val lines = new ListBuffer[OutboundMessage]
     Await.ready(buff drain { out =>
       Future {
         lines += out
@@ -95,7 +95,7 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
     val system = ActorSystem("filebufferconc")
     val logPath = new File("./test-work5/buffer.log")
     val buff = new FileBuffer(logPath)
-    val lines = new ArrayBuffer[WebSocketOutMessage] with SynchronizedBuffer[WebSocketOutMessage]
+    val lines = new ArrayBuffer[OutboundMessage] with SynchronizedBuffer[OutboundMessage]
     buff.open()
     val reader = system.scheduler.schedule(50 millis, 50 millis) {
       Await.ready(buff drain { out =>

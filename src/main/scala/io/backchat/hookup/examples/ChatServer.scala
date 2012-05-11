@@ -8,8 +8,8 @@ object ChatServer {
   implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
 
   def main(args: Array[String]) {
-    val server = WebSocketServer(ServerInfo("ChatServer", port = 8127)){
-      new WebSocketServerClient {
+    val server = HookupServer(ServerInfo("ChatServer", port = 8127)){
+      new HookupServerClient {
         def receive = {
           case Disconnected(_) ⇒
             println("%s has left" format id)

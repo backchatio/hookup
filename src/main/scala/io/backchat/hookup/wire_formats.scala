@@ -13,17 +13,17 @@ trait WireFormat {
    * Parse an inbound message from a string. This is used when a message is received over a connection.
    *
    * @param message The serialized message to parse
-   * @return the resulting [[io.backchat.hookup.WebSocketInMessage]]
+   * @return the resulting [[io.backchat.hookup.InboundMessage]]
    */
-  def parseInMessage(message: String): WebSocketInMessage
+  def parseInMessage(message: String): InboundMessage
 
   /**
    * Parse an outbound message from a string. This is used when the buffer is being drained.
    *
    * @param message The serialized message to parse
-   * @return the resulting [[io.backchat.hookup.WebSocketOutMessage]]
+   * @return the resulting [[io.backchat.hookup.OutboundMessage]]
    */
-  def parseOutMessage(message: String): WebSocketOutMessage
+  def parseOutMessage(message: String): OutboundMessage
 
   /**
    * Render an outbound message to string. This is used when a message is sent to the remote party.
@@ -31,7 +31,7 @@ trait WireFormat {
    * @param message The message to serialize
    * @return The string representation of the message
    */
-  def render(message: WebSocketOutMessage): String
+  def render(message: OutboundMessage): String
 
 }
 
@@ -49,11 +49,11 @@ class SimpleJsonWireFormat(implicit formats: Formats) extends WireFormat {
     else TextMessage(message)
   }
 
-  def parseOutMessage(message: String): WebSocketOutMessage = parseMessage(message)
+  def parseOutMessage(message: String): OutboundMessage = parseMessage(message)
 
-  def parseInMessage(message: String): WebSocketInMessage = parseMessage(message)
+  def parseInMessage(message: String): InboundMessage = parseMessage(message)
 
-  def render(message: WebSocketOutMessage) = message match {
+  def render(message: OutboundMessage) = message match {
     case TextMessage(text) => text
     case JsonMessage(json) => compact(JsonAST.render(json))
     case _ => ""
@@ -69,7 +69,7 @@ object JsonProtocolWireFormat {
 
     def apply(message: String)(implicit format: Formats) = inferMessageTypeFromContent(message)
 
-    private def inferMessageTypeFromContent(content: String)(implicit format: Formats): WebSocketInMessage = {
+    private def inferMessageTypeFromContent(content: String)(implicit format: Formats): InboundMessage = {
       val possiblyJson = content.trim.startsWith("{") || content.trim.startsWith("[")
       if (!possiblyJson) TextMessage(content)
       else parseOpt(content) map inferJsonMessageFromContent getOrElse TextMessage(content)
@@ -107,15 +107,15 @@ object JsonProtocolWireFormat {
   }
 
   private object ParseToWebSocketOutMessage {
-    def apply(message: String)(implicit format: Formats): WebSocketOutMessage = inferMessageTypeFromContent(message)
+    def apply(message: String)(implicit format: Formats): OutboundMessage = inferMessageTypeFromContent(message)
 
-    private def inferMessageTypeFromContent(content: String)(implicit format: Formats): WebSocketOutMessage = {
+    private def inferMessageTypeFromContent(content: String)(implicit format: Formats): OutboundMessage = {
       val possiblyJson = content.trim.startsWith("{") || content.trim.startsWith("[")
       if (!possiblyJson) TextMessage(content)
       else parseOpt(content) map inferJsonMessageFromContent getOrElse TextMessage(content)
     }
 
-    private def inferJsonMessageFromContent(content: JValue)(implicit format: Formats): WebSocketOutMessage = {
+    private def inferJsonMessageFromContent(content: JValue)(implicit format: Formats): OutboundMessage = {
       val contentType = (content \ "type").extractOpt[String].map(_.toLowerCase) getOrElse "none"
       (contentType) match {
         case "ack" => Ack((content \ "id").extract[Long])
@@ -148,7 +148,7 @@ object JsonProtocolWireFormat {
 
     import JsonDSL._
 
-    def apply(message: WebSocketOutMessage): String = {
+    def apply(message: OutboundMessage): String = {
       message match {
         case Ack(id) ⇒ compact(render(("type" -> "ack") ~ ("id" -> id)))
         case m: TextMessage ⇒ compact(render(contentFrom(m)))
@@ -176,7 +176,7 @@ object JsonProtocolWireFormat {
  */
 class JsonProtocolWireFormat(implicit formats: Formats) extends WireFormat {
   import JsonProtocolWireFormat._
-  def parseInMessage(message: String): WebSocketInMessage = ParseToWebSocketInMessage(message)
-  def parseOutMessage(message: String): WebSocketOutMessage = ParseToWebSocketOutMessage(message)
-  def render(message: WebSocketOutMessage) = RenderOutMessage(message)
+  def parseInMessage(message: String): InboundMessage = ParseToWebSocketInMessage(message)
+  def parseOutMessage(message: String): OutboundMessage = ParseToWebSocketOutMessage(message)
+  def render(message: OutboundMessage) = RenderOutMessage(message)
 }
