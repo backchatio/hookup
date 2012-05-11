@@ -99,7 +99,7 @@ img {
 .backchatio {
   nav {
     background: #fff;
-    padding: $baseLineHeight $sidePadding;
+    padding: $baseLineHeight 0;
 
     img {
       float: left;
@@ -135,7 +135,7 @@ img {
   }
   .centered {
     margin: 0 auto;
-    padding: 0;
+    padding: 0 $sidePadding;
     overflow: hidden; /* clearfix */
     max-width: $siteWidth;
     background: transparent;

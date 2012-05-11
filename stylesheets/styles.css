@@ -128,7 +128,7 @@ img {
 /* line 100, ../scss/styles.scss */
 .backchatio nav {
   background: #fff;
-  padding: 50px 30px;
+  padding: 50px 0;
 }
 /* line 104, ../scss/styles.scss */
 .backchatio nav img {
@@ -169,7 +169,7 @@ img {
 /* line 136, ../scss/styles.scss */
 .backchatio .centered {
   margin: 0 auto;
-  padding: 0;
+  padding: 0 30px;
   overflow: hidden;
   /* clearfix */
   max-width: 1200px;
