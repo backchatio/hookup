@@ -1,1 +1,6 @@
 _site
+.idea*
+project
+src
+target
+work
