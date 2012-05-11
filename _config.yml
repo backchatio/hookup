@@ -1,0 +1,5 @@
+---
+auto        : false
+pygments    : false
+markdown    : rdiscount
+charset     : UTF-8
