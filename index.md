@@ -22,9 +22,9 @@ These features are baked into the default `JsonProtocolWireFormat` or in the Web
 #### Message Acking: 
 You can decide if you want to ack a message on a per message basis.
 
-```scala
+{% highlight scala %}
 client ! "the message".needsAck(within = 5 seconds)
-```
+{% endhighlight %}
 
 #### PingPong
 This is baked into the websocket protocol, the library ensures it really happens
@@ -45,13 +45,13 @@ During phases of disconnection it will buffer the messages to a file so that upo
 
 This library is available on maven central.
 
-```scala
+{% highlight scala %}
 libraryDependencies += "io.backchat.hookup" %% "hookup" % "0.2.2"
-```
+{% endhighlight %}
 
 #### Create a websocket server
 
-```scala
+{% highlight scala %}
 import io.backchat.hookup._
 
 (HookupServer(8125) {
@@ -63,11 +63,11 @@ import io.backchat.hookup._
     }
   }
 }).start
-```
+{% endhighlight %}
 
 #### Create a websocket client
 
-```scala
+{% highlight scala %}
 import io.backchat.hookup._
 
 new DefaultHookupClient(HookupClientConfig(new URI("ws://localhost:8080/thesocket"))) {
@@ -90,7 +90,7 @@ new DefaultHookupClient(HookupClientConfig(new URI("ws://localhost:8080/thesocke
     case _ ⇒
   }
 }
-```
+{% endhighlight %}
 
 There are [code examples](https://github.com/backchatio/hookup/tree/master/src/main/scala/io/backchat/hookup /examples) that show all the events being raised and a chat server/client.
 
