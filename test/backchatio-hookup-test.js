@@ -129,7 +129,7 @@ vows.describe("BackChat.io Hookup").addBatch({
           ws.on('reconnecting', function() {
             reconnecting++;
           });
-          ws.on('connected', function() {
+          ws.on('open', function() {
             ws.send({data: "the message"});
           });
           ws.connect();
@@ -168,7 +168,7 @@ vows.describe("BackChat.io Hookup").addBatch({
           ws.on('ack_request', function(data) { 
             ackRequests++ 
           });
-          ws.on('connected', function() {
+          ws.on('open', function() {
             ws.sendAcked({ data: "the first message"});
             ws.sendAcked({ data: "the second message"}, { timeout: 500});
             killSwitch = setTimeout(function() { if (ws && ws.isConnected()) ws.close() }, 5000);
@@ -207,7 +207,7 @@ vows.describe("BackChat.io Hookup").addBatch({
           ws.on('reconnecting', function() {
             reconnecting++;
           });
-          ws.on('connected', function() {
+          ws.on('open', function() {
             server.close(true);
           });
           ws.connect();
@@ -245,7 +245,7 @@ vows.describe("BackChat.io Hookup").addBatch({
           ws.on('reconnecting', function() {
             reconnecting++;
           });
-          ws.on('connected', function() {
+          ws.on('open', function() {
             ws.close();
           });
           ws.connect();

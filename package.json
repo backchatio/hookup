@@ -2,8 +2,8 @@
   "author": "Ivan Porto Carrero <ivan@backchat.io> (https://backchat.io)",
   "name": "backchatio-hookup",
   "description": "Provides a reliable messaging layer on top of websockets",
-  "version": "0.1.7",
-  "homepage": "https://backchat.io",
+  "version": "0.1.8",
+  "homepage": "https://backchatio.github.com/hookup",
   "repository": {
     "type": "git",
     "url": "https://github.com/backchatio/hookup.git"
