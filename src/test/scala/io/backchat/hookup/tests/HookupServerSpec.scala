@@ -178,11 +178,15 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
     def removesClientOnClose = this {
       val toSend = TextMessage("this is some text you know")
       var rcvd: String = null
+      val latch = new CountDownLatch(1)
       withClient({
+        case Connected => latch.countDown
         case Disconnected(_) =>
       }) { c =>
-        c.disconnect()
-        disconnectionLatch.await(2, TimeUnit.SECONDS) must beTrue and (c.isConnected must beFalse.eventually)
+        latch.await(3, TimeUnit.SECONDS) must beTrue and {
+          c.disconnect()
+          disconnectionLatch.await(2, TimeUnit.SECONDS) must beTrue and (c.isConnected must beFalse.eventually)
+        }
       }
 
     }
