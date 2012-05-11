@@ -193,9 +193,9 @@ article.wrapper header {
   width: 340px;
   float: left;
   padding-right: 30px;
-  position: fixed;
+  position: absolute;
 }
-/* line 161, ../scss/styles.scss */
+/* line 162, ../scss/styles.scss */
 article.wrapper header ul {
   list-style: none;
   height: 40px;
@@ -214,7 +214,7 @@ article.wrapper header ul {
   box-shadow: inset white 0 1px 0, inset rgba(0, 0, 0, 0.03) 0 -1px 0;
   width: 280px;
 }
-/* line 177, ../scss/styles.scss */
+/* line 178, ../scss/styles.scss */
 article.wrapper header li {
   width: 33%;
   float: left;
@@ -223,15 +223,15 @@ article.wrapper header li {
   height: 40px;
   white-space: nowrap;
 }
-/* line 185, ../scss/styles.scss */
+/* line 186, ../scss/styles.scss */
 article.wrapper header li:first-child a {
   border-radius: 5px 0 0 5px;
 }
-/* line 187, ../scss/styles.scss */
+/* line 188, ../scss/styles.scss */
 article.wrapper header li:last-child a {
   border-radius: 0 5px 5px 0;
 }
-/* line 189, ../scss/styles.scss */
+/* line 190, ../scss/styles.scss */
 article.wrapper header ul a {
   line-height: 1;
   font-size: 14px;
@@ -241,7 +241,7 @@ article.wrapper header ul a {
   padding-top: 6px;
   height: 34px;
 }
-/* line 197, ../scss/styles.scss */
+/* line 198, ../scss/styles.scss */
 article.wrapper header ul a:hover {
   color: #999;
   background: -moz-linear-gradient(top, white 0%, #dddddd 100%);
@@ -251,49 +251,49 @@ article.wrapper header ul a:hover {
   background: -ms-linear-gradient(top, white 0%, #dddddd 100%);
   background: linear-gradient(top, #ffffff 0%, #dddddd 100%);
 }
-/* line 205, ../scss/styles.scss */
+/* line 206, ../scss/styles.scss */
 article.wrapper header ul a:active {
   -webkit-box-shadow: inset 0px 2px 2px 0px #dddddd;
   -moz-box-shadow: inset 0px 2px 2px 0px #dddddd;
   box-shadow: inset 0px 2px 2px 0px #dddddd;
 }
-/* line 211, ../scss/styles.scss */
+/* line 212, ../scss/styles.scss */
 article.wrapper strong {
   color: #222;
   font-weight: 700;
 }
-/* line 216, ../scss/styles.scss */
+/* line 217, ../scss/styles.scss */
 article.wrapper header ul li + li {
   border-left: 1px solid #fff;
 }
-/* line 219, ../scss/styles.scss */
+/* line 220, ../scss/styles.scss */
 article.wrapper header ul li + li + li {
   border-right: none;
 }
-/* line 224, ../scss/styles.scss */
+/* line 225, ../scss/styles.scss */
 article.wrapper header ul a strong {
   font-size: 12px;
   display: block;
   color: #222;
 }
-/* line 229, ../scss/styles.scss */
+/* line 230, ../scss/styles.scss */
 article.wrapper section {
   float: right;
   padding-bottom: 50px;
   margin-left: 340px;
 }
-/* line 236, ../scss/styles.scss */
+/* line 237, ../scss/styles.scss */
 article.wrapper small {
   font-size: 11px;
 }
-/* line 239, ../scss/styles.scss */
+/* line 240, ../scss/styles.scss */
 article.wrapper hr {
   border: 0;
   background: #e5e5e5;
   height: 1px;
   margin: 0 0 20px;
 }
-/* line 245, ../scss/styles.scss */
+/* line 246, ../scss/styles.scss */
 article.wrapper footer {
   width: 340px;
   float: left;
@@ -301,33 +301,33 @@ article.wrapper footer {
   bottom: 50px;
 }
 @media print, screen and (max-width: 960px) {
-  /* line 252, ../scss/styles.scss */
+  /* line 253, ../scss/styles.scss */
   article.wrapper div.wrapper {
     width: auto;
     margin: 0;
   }
-  /* line 255, ../scss/styles.scss */
+  /* line 256, ../scss/styles.scss */
   article.wrapper header, article.wrapper section, article.wrapper footer {
     float: none;
     position: static;
     width: auto;
   }
-  /* line 259, ../scss/styles.scss */
+  /* line 260, ../scss/styles.scss */
   article.wrapper header {
-    padding-right: 320px;
+    position: static !important;
   }
-  /* line 261, ../scss/styles.scss */
+  /* line 264, ../scss/styles.scss */
   article.wrapper section {
     border: 1px solid #e5e5e5;
     border-width: 1px 0;
     padding: 20px 0;
     margin: 0 0 20px;
   }
-  /* line 267, ../scss/styles.scss */
+  /* line 270, ../scss/styles.scss */
   article.wrapper header a small {
     display: inline;
   }
-  /* line 269, ../scss/styles.scss */
+  /* line 272, ../scss/styles.scss */
   article.wrapper header ul {
     position: absolute;
     right: 50px;
@@ -336,38 +336,38 @@ article.wrapper footer {
 }
 
 @media print, screen and (max-width: 720px) {
-  /* line 275, ../scss/styles.scss */
+  /* line 278, ../scss/styles.scss */
   body {
     word-wrap: break-word;
   }
 
-  /* line 277, ../scss/styles.scss */
+  /* line 280, ../scss/styles.scss */
   header {
     padding: 0;
   }
-  /* line 279, ../scss/styles.scss */
+  /* line 282, ../scss/styles.scss */
   header ul, header p.view {
     position: static;
   }
 
-  /* line 281, ../scss/styles.scss */
+  /* line 284, ../scss/styles.scss */
   pre, code {
     word-wrap: normal;
   }
 }
 @media print, screen and (max-width: 480px) {
-  /* line 288, ../scss/styles.scss */
+  /* line 291, ../scss/styles.scss */
   article.wrapper header {
     width: 100%;
     padding-right: 0;
   }
-  /* line 291, ../scss/styles.scss */
+  /* line 294, ../scss/styles.scss */
   article.wrapper header ul {
     display: none;
   }
 }
 @media print {
-  /* line 297, ../scss/styles.scss */
+  /* line 300, ../scss/styles.scss */
   body {
     padding: 0.4in;
     font-size: 12pt;

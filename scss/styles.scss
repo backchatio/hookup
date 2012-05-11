@@ -156,7 +156,8 @@ article.wrapper {
     width: $leftColWidth;
     float: left;
     padding-right: $sidePadding;
-    position: fixed;
+    position: absolute;
+    //top: 0;
 
     ul {
       list-style: none;
@@ -257,7 +258,9 @@ article.wrapper {
     position: static;
     width: auto; }
   header {
-    padding-right: 320px; }
+    //padding-right: 320px; 
+    position: static !important;
+  }
   section {
     border: 1px solid #e5e5e5;
     border-width: 1px 0;
