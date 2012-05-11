@@ -7,6 +7,7 @@ $sidePadding: 30px;
 $siteWidth : 1200px;
 $leftColWidth: 340px;
 $rightColWidth: 70%;
+$codeFontSize: 12px;
 
 * { 
   -moz-box-sizing: border-box; 
@@ -65,12 +66,12 @@ blockquote {
 code {
   font-family: Monaco, Bitstream Vera Sans Mono, Lucida Console, Terminal;
   color: #333;
-  font-size: 14px; }
+  font-size: $codeFontSize; }
 
 pre {
   font-family: Monaco, Bitstream Vera Sans Mono, Lucida Console, Terminal;
   color: #333;
-  font-size: 14px;
+  font-size: $codeFontSize;
   padding: 8px 15px;
   background: #f8f8f8;
   border-radius: 5px;
@@ -107,7 +108,7 @@ img {
   }
   hgroup {
     margin: 0 auto;
-    padding: $baseLineHeight $sidePadding;
+    padding: $baseLineHeight ($sidePadding - 10px); /* minus the H1 padding */
     max-width: $siteWidth;
     overflow: hidden; /* clearfix */
 
