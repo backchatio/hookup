@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: minimalist
 ---
 
 # BackChat.io Hookup
