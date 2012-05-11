@@ -1,287 +1,376 @@
-@import url(https://fonts.googleapis.com/css?family=Lato:300italic,700italic,300,700);
+@import url("https://fonts.googleapis.com/css?family=Lato:300italic,700italic,300,700");
+/* line 11, ../scss/styles.scss */
+* {
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+}
 
+/* line 17, ../scss/styles.scss */
 body {
-  padding:50px;
-  font:14px/1.5 Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  color:#777;
-  font-weight:300;
+  padding: 0;
+  margin: 0;
+  font: 15px/1.5 Lato, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: #777;
+  font-weight: 300;
+  background: #f6f6f2 url(../imgs/bg-watercolor.jpg) repeat-x 50% 150px;
 }
 
+/* line 26, ../scss/styles.scss */
 h1, h2, h3, h4, h5, h6 {
-  color:#222;
-  margin:0 0 20px;
+  color: #222;
+  margin: 0 0 20px;
 }
 
+/* line 30, ../scss/styles.scss */
 p, ul, ol, table, pre, dl {
-  margin:0 0 20px;
+  margin: 0 0 20px;
 }
 
+/* line 33, ../scss/styles.scss */
 h1, h2, h3 {
-  line-height:1.1;
+  line-height: 1.1;
 }
 
+/* line 36, ../scss/styles.scss */
 h1 {
-  font-size:28px;
+  font-size: 28px;
 }
 
+/* line 39, ../scss/styles.scss */
 h2 {
-  color:#393939;
+  color: #393939;
 }
 
+/* line 42, ../scss/styles.scss */
 h3, h4, h5, h6 {
-  color:#494949;
+  color: #494949;
 }
 
+/* line 45, ../scss/styles.scss */
 a {
-  color:#39c;
-  font-weight:400;
-  text-decoration:none;
+  color: #39c;
+  font-weight: 400;
+  text-decoration: none;
 }
-
+/* line 49, ../scss/styles.scss */
 a:hover {
-  color:#069;
+  color: #069;
 }
-
+/* line 51, ../scss/styles.scss */
 a small {
-  font-size:11px;
-  color:#777;
-  margin-top:-0.6em;
-  display:block;
+  font-size: 11px;
+  color: #777;
+  margin-top: -0.6em;
+  display: block;
 }
-
+/* line 56, ../scss/styles.scss */
 a:hover small {
-  color:#777;
+  color: #777;
 }
 
-.wrapper {
-  width:860px;
-  margin:0 auto;
-}
-
+/* line 59, ../scss/styles.scss */
 blockquote {
-  border-left:1px solid #e5e5e5;
-  margin:0;
-  padding:0 0 0 20px;
-  font-style:italic;
+  border-left: 1px solid #e5e5e5;
+  margin: 0;
+  padding: 0 0 0 20px;
+  font-style: italic;
 }
 
-code, pre {
-  font-family:Monaco, Bitstream Vera Sans Mono, Lucida Console, Terminal;
-  color:#333;
-  font-size:12px;
+/* line 65, ../scss/styles.scss */
+code {
+  font-family: Monaco, Bitstream Vera Sans Mono, Lucida Console, Terminal;
+  color: #333;
+  font-size: 14px;
 }
 
+/* line 70, ../scss/styles.scss */
 pre {
-  padding:8px 15px;
-  background: #f8f8f8;  
-  border-radius:5px;
-  border:1px solid #e5e5e5;
+  font-family: Monaco, Bitstream Vera Sans Mono, Lucida Console, Terminal;
+  color: #333;
+  font-size: 14px;
+  padding: 8px 15px;
+  background: #f8f8f8;
+  border-radius: 5px;
+  border: 1px solid #e5e5e5;
   overflow-x: auto;
 }
 
+/* line 80, ../scss/styles.scss */
 table {
-  width:100%;
-  border-collapse:collapse;
+  width: 100%;
+  border-collapse: collapse;
 }
 
+/* line 84, ../scss/styles.scss */
 th, td {
-  text-align:left;
-  padding:5px 10px;
-  border-bottom:1px solid #e5e5e5;
+  text-align: left;
+  padding: 5px 10px;
+  border-bottom: 1px solid #e5e5e5;
 }
 
+/* line 89, ../scss/styles.scss */
 dt {
-  color:#444;
-  font-weight:700;
+  color: #444;
+  font-weight: 700;
 }
 
+/* line 93, ../scss/styles.scss */
 th {
-  color:#444;
+  color: #444;
 }
 
+/* line 96, ../scss/styles.scss */
 img {
-  max-width:100%;
+  max-width: 100%;
 }
 
-header {
-  width:270px;
-  float:left;
-  position:fixed;
+/* line 100, ../scss/styles.scss */
+.backchatio nav {
+  background: #fff;
+  padding: 50px 30px;
+}
+/* line 104, ../scss/styles.scss */
+.backchatio nav img {
+  float: left;
+}
+/* line 108, ../scss/styles.scss */
+.backchatio hgroup {
+  margin: 0 auto;
+  padding: 50px 30px;
+  max-width: 1200px;
+  overflow: hidden;
+  /* clearfix */
+}
+/* line 114, ../scss/styles.scss */
+.backchatio hgroup h1, .backchatio hgroup h2 {
+  float: left;
+  clear: both;
+  line-height: 45px;
+  margin: 0 0 5px 0;
+  padding: 0 10px;
+  font-size: 36px;
+  font-weight: 100;
+  color: #fff;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+}
+/* line 125, ../scss/styles.scss */
+.backchatio hgroup h1 strong, .backchatio hgroup h2 strong {
+  font-weight: 300;
+}
+/* line 129, ../scss/styles.scss */
+.backchatio hgroup h1 {
+  background-color: rgba(0, 168, 209, 0.8);
+}
+/* line 132, ../scss/styles.scss */
+.backchatio hgroup h2 {
+  background-color: rgba(32, 45, 48, 0.5);
+}
+/* line 136, ../scss/styles.scss */
+.backchatio .centered {
+  margin: 0 auto;
+  padding: 0;
+  overflow: hidden;
+  /* clearfix */
+  max-width: 1200px;
+  background: transparent;
 }
 
-header ul {
-  list-style:none;
-  height:40px;
-  
-  padding:0;
-  
+/* line 145, ../scss/styles.scss */
+article.wrapper {
+  max-width: 1200px;
+  overflow: hidden;
+  margin: 0 auto;
+  padding: 50px 30px;
+  background: #fff;
+  position: relative;
+  -webkit-box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+  -moz-box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+}
+/* line 155, ../scss/styles.scss */
+article.wrapper header {
+  width: 340px;
+  float: left;
+  padding-right: 30px;
+  position: fixed;
+}
+/* line 161, ../scss/styles.scss */
+article.wrapper header ul {
+  list-style: none;
+  height: 40px;
+  padding: 0;
   background: #eee;
   background: -moz-linear-gradient(top, #f8f8f8 0%, #dddddd 100%);
-  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#f8f8f8), color-stop(100%,#dddddd));
-  background: -webkit-linear-gradient(top, #f8f8f8 0%,#dddddd 100%);
-  background: -o-linear-gradient(top, #f8f8f8 0%,#dddddd 100%);
-  background: -ms-linear-gradient(top, #f8f8f8 0%,#dddddd 100%);
-  background: linear-gradient(top, #f8f8f8 0%,#dddddd 100%);
-  
-  border-radius:5px;
-  border:1px solid #d2d2d2;
-  box-shadow:inset #fff 0 1px 0, inset rgba(0,0,0,0.03) 0 -1px 0;
-  width:270px;
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #f8f8f8), color-stop(100%, #dddddd));
+  background: -webkit-linear-gradient(top, #f8f8f8 0%, #dddddd 100%);
+  background: -o-linear-gradient(top, #f8f8f8 0%, #dddddd 100%);
+  background: -ms-linear-gradient(top, #f8f8f8 0%, #dddddd 100%);
+  background: linear-gradient(top, #f8f8f8 0%, #dddddd 100%);
+  border-radius: 5px;
+  border: 1px solid #d2d2d2;
+  -webkit-box-shadow: inset white 0 1px 0, inset rgba(0, 0, 0, 0.03) 0 -1px 0;
+  -moz-box-shadow: inset white 0 1px 0, inset rgba(0, 0, 0, 0.03) 0 -1px 0;
+  box-shadow: inset white 0 1px 0, inset rgba(0, 0, 0, 0.03) 0 -1px 0;
+  width: 280px;
 }
-
-header li {
-  width:89px;
-  float:left;
-  border-right:1px solid #d2d2d2;
-  height:40px;
+/* line 177, ../scss/styles.scss */
+article.wrapper header li {
+  width: 33%;
+  float: left;
+  border-right: 1px solid #d2d2d2;
+  padding: 0 5px;
+  height: 40px;
+  white-space: nowrap;
 }
-
-header li:first-child a {
-  border-radius:5px 0 0 5px;
+/* line 185, ../scss/styles.scss */
+article.wrapper header li:first-child a {
+  border-radius: 5px 0 0 5px;
 }
-
-header li:last-child a {
-  border-radius:0 5px 5px 0;
+/* line 187, ../scss/styles.scss */
+article.wrapper header li:last-child a {
+  border-radius: 0 5px 5px 0;
 }
-
-header ul a {
-  line-height:1;
-  font-size:11px;
-  color:#999;
-  display:block;
-  text-align:center;
-  padding-top:6px;
-  height:34px;
+/* line 189, ../scss/styles.scss */
+article.wrapper header ul a {
+  line-height: 1;
+  font-size: 14px;
+  color: #999;
+  display: block;
+  text-align: center;
+  padding-top: 6px;
+  height: 34px;
 }
-
-header ul a:hover {
-  color:#999;
-  background: -moz-linear-gradient(top, #fff 0%, #ddd 100%);
-  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#fff), color-stop(100%,#ddd));
-  background: -webkit-linear-gradient(top, #fff 0%,#ddd 100%);
-  background: -o-linear-gradient(top, #fff 0%,#ddd 100%);
-  background: -ms-linear-gradient(top, #fff 0%,#ddd 100%);
-  background: linear-gradient(top, #fff 0%,#ddd 100%);
+/* line 197, ../scss/styles.scss */
+article.wrapper header ul a:hover {
+  color: #999;
+  background: -moz-linear-gradient(top, white 0%, #dddddd 100%);
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, white), color-stop(100%, #dddddd));
+  background: -webkit-linear-gradient(top, white 0%, #dddddd 100%);
+  background: -o-linear-gradient(top, white 0%, #dddddd 100%);
+  background: -ms-linear-gradient(top, white 0%, #dddddd 100%);
+  background: linear-gradient(top, #ffffff 0%, #dddddd 100%);
 }
-
-header ul a:active {
-  -webkit-box-shadow: inset 0px 2px 2px 0px #ddd;
-  -moz-box-shadow: inset 0px 2px 2px 0px #ddd;
-  box-shadow: inset 0px 2px 2px 0px #ddd;
+/* line 205, ../scss/styles.scss */
+article.wrapper header ul a:active {
+  -webkit-box-shadow: inset 0px 2px 2px 0px #dddddd;
+  -moz-box-shadow: inset 0px 2px 2px 0px #dddddd;
+  box-shadow: inset 0px 2px 2px 0px #dddddd;
 }
-
-strong {
-  color:#222;
-  font-weight:700;
+/* line 211, ../scss/styles.scss */
+article.wrapper strong {
+  color: #222;
+  font-weight: 700;
 }
-
-header ul li + li {
-  width:88px;
-  border-left:1px solid #fff;
+/* line 216, ../scss/styles.scss */
+article.wrapper header ul li + li {
+  border-left: 1px solid #fff;
 }
-
-header ul li + li + li {
-  border-right:none;
-  width:89px;
+/* line 219, ../scss/styles.scss */
+article.wrapper header ul li + li + li {
+  border-right: none;
 }
-
-header ul a strong {
-  font-size:14px;
-  display:block;
-  color:#222;
+/* line 224, ../scss/styles.scss */
+article.wrapper header ul a strong {
+  font-size: 12px;
+  display: block;
+  color: #222;
 }
-
-section {
-  width:500px;
-  float:right;
-  padding-bottom:50px;
+/* line 229, ../scss/styles.scss */
+article.wrapper section {
+  float: right;
+  padding-bottom: 50px;
+  margin-left: 340px;
 }
-
-small {
-  font-size:11px;
+/* line 236, ../scss/styles.scss */
+article.wrapper small {
+  font-size: 11px;
 }
-
-hr {
-  border:0;
-  background:#e5e5e5;
-  height:1px;
-  margin:0 0 20px;
+/* line 239, ../scss/styles.scss */
+article.wrapper hr {
+  border: 0;
+  background: #e5e5e5;
+  height: 1px;
+  margin: 0 0 20px;
 }
-
-footer {
-  width:270px;
-  float:left;
-  position:fixed;
-  bottom:50px;
+/* line 245, ../scss/styles.scss */
+article.wrapper footer {
+  width: 340px;
+  float: left;
+  position: fixed;
+  bottom: 50px;
 }
-
 @media print, screen and (max-width: 960px) {
-  
-  div.wrapper {
-    width:auto;
-    margin:0;
+  /* line 252, ../scss/styles.scss */
+  article.wrapper div.wrapper {
+    width: auto;
+    margin: 0;
   }
-  
-  header, section, footer {
-    float:none;
-    position:static;
-    width:auto;
+  /* line 255, ../scss/styles.scss */
+  article.wrapper header, article.wrapper section, article.wrapper footer {
+    float: none;
+    position: static;
+    width: auto;
   }
-  
-  header {
-    padding-right:320px;
+  /* line 259, ../scss/styles.scss */
+  article.wrapper header {
+    padding-right: 320px;
   }
-  
-  section {
-    border:1px solid #e5e5e5;
-    border-width:1px 0;
-    padding:20px 0;
-    margin:0 0 20px;
+  /* line 261, ../scss/styles.scss */
+  article.wrapper section {
+    border: 1px solid #e5e5e5;
+    border-width: 1px 0;
+    padding: 20px 0;
+    margin: 0 0 20px;
   }
-  
-  header a small {
-    display:inline;
+  /* line 267, ../scss/styles.scss */
+  article.wrapper header a small {
+    display: inline;
   }
-  
-  header ul {
-    position:absolute;
-    right:50px;
-    top:52px;
+  /* line 269, ../scss/styles.scss */
+  article.wrapper header ul {
+    position: absolute;
+    right: 50px;
+    top: 52px;
   }
 }
 
 @media print, screen and (max-width: 720px) {
+  /* line 275, ../scss/styles.scss */
   body {
-    word-wrap:break-word;
+    word-wrap: break-word;
   }
-  
+
+  /* line 277, ../scss/styles.scss */
   header {
-    padding:0;
+    padding: 0;
   }
-  
+  /* line 279, ../scss/styles.scss */
   header ul, header p.view {
-    position:static;
+    position: static;
   }
-  
+
+  /* line 281, ../scss/styles.scss */
   pre, code {
-    word-wrap:normal;
+    word-wrap: normal;
   }
 }
-
 @media print, screen and (max-width: 480px) {
+  /* line 285, ../scss/styles.scss */
   body {
-    padding:15px;
+    padding: 15px;
   }
-  
+
+  /* line 287, ../scss/styles.scss */
   header ul {
-    display:none;
+    display: none;
   }
 }
-
 @media print {
+  /* line 291, ../scss/styles.scss */
   body {
-    padding:0.4in;
-    font-size:12pt;
-    color:#444;
+    padding: 0.4in;
+    font-size: 12pt;
+    color: #444;
   }
 }
