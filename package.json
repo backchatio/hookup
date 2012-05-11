@@ -2,7 +2,7 @@
   "author": "Ivan Porto Carrero <ivan@backchat.io> (https://backchat.io)",
   "name": "backchatio-hookup",
   "description": "Provides a reliable messaging layer on top of websockets",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "homepage": "https://backchat.io",
   "repository": {
     "type": "git",
@@ -20,6 +20,6 @@
     { "vows": "0.6.x"
     , "sinon": ""
     , "rimraf": "" }
-  , "main": "./lib/backchat-hookup.js"
+  , "main": "./lib/backchatio-hookup.js"
   , "scripts": { "test": "vows --spec --isolate" }
 }
