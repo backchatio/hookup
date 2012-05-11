@@ -3,7 +3,7 @@ Bundler::GemHelper.install_tasks
 
 task :default => [:test]
 
-spec = Gem::Specification.load('backchat-websocket.gemspec')
+spec = Gem::Specification.load('backchatio-hookup.gemspec.gemspec')
 
 Gem::PackageTask.new(spec) do |pkg|
 end

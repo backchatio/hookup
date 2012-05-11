@@ -93,7 +93,7 @@ ClientSteps = EM::RSpec.async_steps do
 
 end
 
-describe Backchat::WebSocket::Client do 
+describe Backchat::Hookup::Client do
   # include ClientHelper
   # include EM::SpecHelper
   
@@ -119,18 +119,18 @@ describe Backchat::WebSocket::Client do
       it "missing" do
         (lambda do
           Client.new
-        end).should raise_error(Backchat::WebSocket::UriRequiredError)
+        end).should raise_error(Backchat::Hookup::UriRequiredError)
       end
 
       it "an invalid uri" do 
         (lambda do
           Client.new :uri => "http:"
-        end).should raise_error(Backchat::WebSocket::InvalidURIError)
+        end).should raise_error(Backchat::Hookup::InvalidURIError)
       end
     end
 
     it "should set use the default retry schedule" do
-      @defaults_client.reconnect_schedule.should == Backchat::WebSocket::RECONNECT_SCHEDULE
+      @defaults_client.reconnect_schedule.should == Backchat::Hookup::RECONNECT_SCHEDULE
     end
 
     it "should set journaling as default to false" do

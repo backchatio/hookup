@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 require File.expand_path("../spec_helper", __FILE__)
 
-describe Backchat::WebSocket::WireFormat do 
+describe Backchat::Hookup::WireFormat do
   
   text = "this is a text message"
   text_result = { "type" => "text", "content" => "this is a text message" }

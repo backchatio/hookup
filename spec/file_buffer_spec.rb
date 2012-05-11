@@ -2,7 +2,7 @@
 require File.expand_path("../spec_helper", __FILE__)
 require 'fileutils'
 
-describe Backchat::WebSocket::FileBuffer do 
+describe Backchat::Hookup::FileBuffer do
   
   context "when opening" do
     work_path = "./rb-test-work"

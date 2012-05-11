@@ -10,7 +10,7 @@ require File.expand_path('../../vendor/em-rspec/lib/em-rspec', __FILE__)
 
 class TestServer
   def call(env)
-    socket = Faye::WebSocket.new(env, ["echo"])
+    socket = Faye::Hookup.new(env, ["echo"])
     socket.onmessage = lambda do |event|
       puts "SERVER: #{event.data}"
       socket.send(event.data)
@@ -44,5 +44,5 @@ class TestServer
   end
 end
 
-require 'backchatio-websocket'
-include Backchat::WebSocket
+require 'backchatio-hookup'
+include Backchat::Hookup
