@@ -356,18 +356,18 @@ article.wrapper footer {
   }
 }
 @media print, screen and (max-width: 480px) {
-  /* line 285, ../scss/styles.scss */
-  body {
-    padding: 15px;
+  /* line 288, ../scss/styles.scss */
+  article.wrapper header {
+    width: 100%;
+    padding-right: 0;
   }
-
-  /* line 287, ../scss/styles.scss */
-  header ul {
+  /* line 291, ../scss/styles.scss */
+  article.wrapper header ul {
     display: none;
   }
 }
 @media print {
-  /* line 291, ../scss/styles.scss */
+  /* line 297, ../scss/styles.scss */
   body {
     padding: 0.4in;
     font-size: 12pt;
