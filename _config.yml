@@ -1,5 +1,7 @@
 ---
 auto        : false
 pygments    : false
-markdown    : rdiscount
+markdown: redcarpet2
+redcarpet:
+  extensions: ["no_intra_emphasis", "fenced_code_blocks", "autolink", "strikethrough", "superscript", "with_toc_data"]
 charset     : UTF-8
