@@ -315,7 +315,7 @@ object HookupServer {
   /**
    * A convenience mixin for using an actor as an event handler
    */
-  trait WebSocketServerClientActor { self: Actor =>
+  trait HookupClientActor { self: Actor =>
     /**
      * The actual websocket connection.
      *
@@ -334,7 +334,7 @@ object HookupServer {
   /**
    * A convenience trait for bridging a websocket to an actor.
    */
-  trait ActorWebSocketServerClient { self: HookupServerClient =>
+  trait ActorHookupServerClient { self: HookupServerClient =>
 
     /**
      * The factory to use to create the actor handler
