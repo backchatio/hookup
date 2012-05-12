@@ -1,1 +1,8 @@
 .sass-cache/
+_site
+.idea*
+project
+src
+target
+work
+_cache

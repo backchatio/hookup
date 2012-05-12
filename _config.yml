@@ -1,0 +1,22 @@
+---
+auto        : false
+pygments    : false
+markdown    : redcarpet2
+redcarpet:
+  extensions: ["no_intra_emphasis", "fenced_code_blocks", "autolink", "strikethrough", "superscript", "with_toc_data"]
+charset     : UTF-8
+exclude     : ["Gemfile", "Gemfile.lock", "Rakefile", "scss"]
+title       : "BackChat.io Documentation Template"
+sub_title   : "Where documentation goes to be awesome"
+rich_title  : "<strong>BackChat.io</strong> Documentation Template"
+rich_byline : "Where documentation goes to be <strong>awesome</strong>"
+sponsor:
+  byline    : "Sponsored by"
+  logo      : "imgs/logo.png"
+  name      : "BackChat.io"
+  url       : "https://backchat.io"
+
+ga_code     : "UA-240612-7"
+github:
+  username  : "backchatio"
+  project   : "github-pages-doc-theme"

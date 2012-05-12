@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="chrome=1">
-    <title>BackChat.io project documentation</title>
+    <title>{{ site.title }}</title>
     
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <link rel="stylesheet" href="stylesheets/backchatio.css">
+    <link rel="stylesheet" href="stylesheets/pygment_github.css">
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
@@ -26,14 +26,19 @@
     <header class="backchatio">
       <nav>
         <div class="centered">
+<<<<<<< HEAD:index.html
           <a href="https://backchat.io">
             <img src="imgs/logo.png" alt="Project sponsored by BackChat.io" height="50" width="180" />
+=======
+          <a href="{{ site.sponsor.url }}">
+            <img src="{{ site.sponsor.logo }}" alt="{{ site.sponsor.by_line}} {{ site.sponsor.name }}" />
+>>>>>>> Integrates jekyll with some plugins:sample.html
           </a>
         </div>
       </nav>
       <hgroup>
-        <h1><strong>BackChat.io</strong> project documentation</h1>
-        <h2><strong>Pretty</strong> open source <strong>Github pages</strong></h2>
+        <h1>{{ site.rich_title }}</h1>
+        <h2>{{ site.rich_byline }}</h2>
       </hgroup>
     </header>
 
