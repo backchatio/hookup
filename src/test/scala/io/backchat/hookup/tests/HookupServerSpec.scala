@@ -12,8 +12,8 @@ import akka.util.Timeout
 import net.liftweb.json._
 import JsonDSL._
 import java.io.File
-import akka.testkit.TestLatch
-import java.util.concurrent.{TimeoutException, TimeUnit, CountDownLatch, Executors}
+import akka.testkit._
+import java.util.concurrent._
 
 class HookupServerSpec extends Specification with NoTimeConversions { def is = sequential ^
   "A HookupServer should" ^
@@ -40,13 +40,14 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
 
 
   case class hookupServerContext(protocols: String*) extends After {
+    import collection.JavaConverters._
     import io.backchat.hookup.Connected
     val serverAddress = {
       val s = new ServerSocket(0);
       try { s.getLocalPort } finally { s.close() }
     }
-    var messages = List.empty[String]
-    var jsonMessages = List.empty[JValue]
+    var messages = new CopyOnWriteArrayList[String]().asScala
+    var jsonMessages = new CopyOnWriteArrayList[JValue]().asScala
     var client = Promise[HookupServerClient]()
     val disconnectionLatch = new CountDownLatch(1)
     val ackRequest = new CountDownLatch(2)
@@ -55,10 +56,10 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
       def receive = {
         case Connected => client.complete(Right(this))
         case TextMessage(text) => {
-          messages ::= text
+          messages :+= text
         }
         case JsonMessage(json) => {
-          jsonMessages ::= json
+          jsonMessages :+= json
         }
         case Disconnected(_) =>
           disconnectionLatch.countDown()

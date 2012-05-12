@@ -3,13 +3,14 @@
 # run-tests and publish jars
 # sbt test publish
 sbt doc
-# checkout repo again but with gh-pages branch
+# checkout repo again but to gh-pages branch
 mkdir -p target
 rm -rf target/site
 mkdir -p target/site
 git clone git@github.com:backchatio/hookup.git target/site
 cd target/site
 git checkout gh-pages
+# clean the old files, ensures no removed pages and files are left in the tree.
 git rm -rf *
 touch .nojekyll
 cat > .gitignore <<DOC
@@ -30,9 +31,9 @@ cd ../node
 npm install
 npm test 
 node_modules/jsdoc-toolkit/app/run.js -d=../../../target/site/jsdoc -t=node_modules/jsdoc-toolkit/templates/codeview lib
-# # generate yardocs 
-# # first write the yardocs
-# # generate scaladoc 
+# generate yardocs 
+# first write the yardocs
+# generate scaladoc 
 cd ../../..
 mv target/scala-2.9.1/api target/site/scaladoc
 cp -R target/jekyll/* target/site/
@@ -42,4 +43,6 @@ git add .
 git commit -a -m 'new release'
 git push
 cd ../..
+# avoid a surprised intellij by avoiding an unconfigured git root
+rm -rf target/site
 
