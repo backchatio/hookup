@@ -8,8 +8,10 @@ mkdir -p target
 rm -rf target/site
 # mkdir -p target/site
 git clone git@github.com:backchatio/hookup.git target/site
+cd target/site
+git checkout gh-pages
 # generate site 
-cd src/main/site
+cd ../../src/main/site
 jekyll
 # generate jsdoc 
 cd ../node
@@ -22,7 +24,7 @@ node_modules/jsdoc-toolkit/app/run.js -d=../../../target/site/jsdoc -t=node_modu
 cd ../../..
 mv target/scala-2.9.1/api target/site/api
 # commit changes to gh-pages
-# cd target/site
+cd target/site
 git add .
 git commit -a -m 'new release'
 git push
