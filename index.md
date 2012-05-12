@@ -3,7 +3,7 @@ layout: backchatio
 title: BackChat.io hookup
 ---
 
-# BackChat.io Hookup
+# Reliable messaging on top of websockets.
 
 A scala based client and server for websockets based on netty and akka futures.
 It draws its inspiration from finagle, faye-websocket, zeromq, akka, ...
@@ -23,9 +23,9 @@ These features are baked into the default `JsonProtocolWireFormat` or in the Web
 #### Message Acking: 
 You can decide if you want to ack a message on a per message basis.
 
-{% highlight scala %}
+```scala
 client ! "the message".needsAck(within = 5 seconds)
-{% endhighlight %}
+```
 
 #### PingPong
 This is baked into the websocket protocol, the library ensures it really happens
@@ -33,6 +33,8 @@ This is baked into the websocket protocol, the library ensures it really happens
 ### Client only features:
 
 There are a number of extras baked into the client, of course they can be enabled and disabled based on config.
+
+{% code_ref ../hookup-scala/src/test/scala/io/backchat/hookup/tests/FileBufferSpec.scala writes_to_file %}
 
 #### Reconnection
 
@@ -46,13 +48,13 @@ During phases of disconnection it will buffer the messages to a file so that upo
 
 This library is available on maven central.
 
-{% highlight scala %}
+```scala
 libraryDependencies += "io.backchat.hookup" %% "hookup" % "0.2.2"
-{% endhighlight %}
+```
 
 #### Create a websocket server
 
-{% highlight scala %}
+```scala
 import io.backchat.hookup._
 
 (HookupServer(8125) {
@@ -64,11 +66,11 @@ import io.backchat.hookup._
     }
   }
 }).start
-{% endhighlight %}
+```
 
 #### Create a websocket client
 
-{% highlight scala %}
+```scala
 import io.backchat.hookup._
 
 new DefaultHookupClient(HookupClientConfig(new URI("ws://localhost:8080/thesocket"))) {
@@ -91,7 +93,7 @@ new DefaultHookupClient(HookupClientConfig(new URI("ws://localhost:8080/thesocke
     case _ ⇒
   }
 }
-{% endhighlight %}
+```
 
 There are [code examples](https://github.com/backchatio/hookup/tree/master/src/main/scala/io/backchat/hookup /examples) that show all the events being raised and a chat server/client.
 
