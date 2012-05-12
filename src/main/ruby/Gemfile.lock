@@ -1,0 +1,58 @@
+PATH
+  remote: .
+  specs:
+    backchat-websocket (0.1.0)
+      eventmachine
+      faye-websocket
+      json
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    addressable (2.2.8)
+    bacon (1.1.0)
+    crack (0.3.1)
+    diff-lcs (1.1.3)
+    em-spec (0.2.6)
+      bacon
+      eventmachine
+      rspec (> 2.6.0)
+      test-unit
+    eventmachine (0.12.10)
+    faye-websocket (0.4.5)
+      eventmachine (>= 0.12.0)
+    json (1.7.1)
+    kgio (2.7.4)
+    rack (1.4.1)
+    rainbows (4.3.1)
+      kgio (~> 2.5)
+      rack (~> 1.1)
+      unicorn (~> 4.1)
+    raindrops (0.8.0)
+    rspec (2.8.0)
+      rspec-core (~> 2.8.0)
+      rspec-expectations (~> 2.8.0)
+      rspec-mocks (~> 2.8.0)
+    rspec-core (2.8.0)
+    rspec-expectations (2.8.0)
+      diff-lcs (~> 1.1.2)
+    rspec-mocks (2.8.0)
+    test-unit (2.4.8)
+    unicorn (4.3.1)
+      kgio (~> 2.6)
+      rack
+      raindrops (~> 0.7)
+    webmock (1.8.6)
+      addressable (>= 2.2.7)
+      crack (>= 0.1.7)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  backchat-websocket!
+  em-spec (>= 0.2.6)
+  rack
+  rainbows (>= 1.0.0)
+  rspec (~> 2.8.0)
+  webmock
