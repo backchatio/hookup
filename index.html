@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>BackChat.io Hookup</title>
+    
+    <link rel="stylesheet" href="stylesheets/backchatio.css">
+    <link rel="stylesheet" href="stylesheets/pygment_github.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <script type="text/javascript">
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-240612-7']);
+      _gaq.push(['_trackPageview']);
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="backchatio">
+      <nav>
+        <div class="centered">
+          <a href="https://backchat.io">
+            <img src="imgs/logo.png" alt=" BackChat.io" height="50" width="180" />
+          </a>
+        </div>
+      </nav>
+      <hgroup>
+        <h1><strong>Hookup</strong> by BackChat.io</h1>
+        <h2><strong>Reliable messaging</strong> over websockets</h2>
+      </hgroup>
+    </header>
+
+    <article class="wrapper">
+      <header id="sidebar">
+        <h2>BackChat.io Hookup</h2>
+        <p>Reliable messaging over websockets with akka.</p>
+        <p class="view"><a href="https://github.com/backchatio/hookup">View the Project on GitHub <small>backchatio/hookup</small></a></p>
+       <p class="view"><a href="api/#io.backchat.hookup.HookupServer">View the Scala API Docs <small>scala api docs</small></a></p>
+       <p class="view"><a href="jsdoc">View the Node.js API Docs <small>node.js api docs</small></a></p>
+        <ul>
+          <li><a href="https://github.com/backchatio/hookup">View On <strong>GitHub</strong></a></li>
+          <li><a href="scaladoc/#io.backchat.hookup.HookupServer">API docs <strong>Scala</strong></a></li>
+          <li><a href="jsdoc">API docs <strong>Node</strong></a></li>
+        </ul>
+        <p>This project is maintained by <a href="https://backchat.io">BackChat.io</a>, the real-time data filtering API for the cloud.</p>
+      </header>
+      <section>
+        <p>The GitHub Pages feature allows you to publish content to the web by simply pushing content to one of your GitHub hosted repositories. There are two different kinds of Pages that you can create: <strong>User Pages</strong> and <strong>Project Pages</strong>.</p>
+
+<h1 id="toc_0">User &amp; Organization Pages</h1>
+
+<p>Let&#39;s say your GitHub username is &quot;alice&quot;. If you create a GitHub repository named <code>alice.github.com</code>, commit a file named <code>index.html</code> into the <code>master</code> branch, and push it to GitHub, then this file will be automatically published to <a href="http://alice.github.com/">http://alice.github.com/</a>.</p>
+
+<p>On the first push, it can take up to ten minutes before the content is available.</p>
+
+<p>The same works for organizations.  If your org account is named &quot;PlanEx&quot;, creating the repo <code>planex.github.com</code> under the org will publish pages to <a href="http://planex.github.com/">http://planex.github.com/</a>.</p>
+
+<p>Real World Example: <a href="http://github.com/defunkt/defunkt.github.com/">github.com/defunkt/defunkt.github.com</a> &rarr; <a href="http://defunkt.github.com/">http://defunkt.github.com/</a>.</p>
+
+<h1 id="toc_1">Project Pages With The Automatic Page Generator</h1>
+
+<p>If you&#39;re looking to quickly create a page, try our Automatic Page Generator. Author your content with GitHub Flavored Markdown, select a theme and publish.</p>
+
+<p>First navigate to your repository and click the &#39;Admin&#39; button on the top right</p>
+
+<p><img src="https://img.skitch.com/20120329-kgqkyu2d24qw3axkmcnrncgr6c.jpg" alt="Admin button"></p>
+
+<p>Then, click the <strong>Automatic Page Generator</strong> button.</p>
+
+<p><img src="https://github-images.s3.amazonaws.com/blog/2012/page-generator-button.png" alt="automatic page generator"></p>
+
+<p>Author your content in the Markdown editor. After you&#39;ve finished, click the <strong>Continue To Layouts</strong> button.</p>
+
+<p>Next, preview your styled content by browsing through our selection of themes.</p>
+
+<p><img src="https://github-images.s3.amazonaws.com/blog/2012/page-generator-picker.png" alt="select a theme"></p>
+
+<p>When you find a theme that you like, click publish and your page will be generated.</p>
+
+<p><img src="https://github-images.s3.amazonaws.com/blog/2012/page-generator-publish.png" alt="publish"></p>
+
+<p>After your page is generated, you can check out the new branch:</p>
+<div class="highlight"><pre><code class="text">$ cd Repos/ampere
+$ git fetch origin
+remote: Counting objects: 92, done.
+remote: Compressing objects: 100% (63/63), done.
+remote: Total 68 (delta 41), reused 0 (delta 0)
+Unpacking objects: 100% (68/68), done.
+From git@github.com:tekkub/ampere
+ * [new branch]      gh-pages     -&gt; origin/gh-pages
+$ git checkout -b gh-pages origin/gh-pages
+Branch gh-pages set up to track remote branch refs/remotes/origin/gh-pages.
+Switched to a new branch &quot;gh-pages&quot;
+</code></pre>
+</div>
+
+<h1 id="toc_2">Project Pages Manually</h1>
+
+<p>Let&#39;s say your GitHub username is &quot;bob&quot; and you have an existing repository named <code>fancypants</code>. If you create a new root branch named <code>gh-pages</code> in your repository, any content pushed there will be published to <a href="http://bob.github.com/fancypants/">http://bob.github.com/fancypants/</a>.</p>
+
+<p>In order to create a new root branch, first ensure that your working directory is clean by committing or stashing any changes. <span style="color: #a00;">The following operation will lose any uncommitted files!  You might want to run this in a fresh clone of your repo.</span></p>
+<div class="highlight"><pre><code class="text">$ cd /path/to/fancypants
+$ git symbolic-ref HEAD refs/heads/gh-pages
+$ rm .git/index
+$ git clean -fdx
+</code></pre>
+</div>
+
+<p>After running this you&#39;ll have an empty working directory (don&#39;t worry, your main repo is still on the <code>master</code> branch). Now you can create some content in this branch and push it to GitHub. For example:</p>
+<div class="highlight"><pre><code class="text">$ echo &quot;My GitHub Page&quot; &gt; index.html
+$ git add .
+$ git commit -a -m &quot;First pages commit&quot;
+$ git push origin gh-pages
+</code></pre>
+</div>
+
+<p>On the first push, it can take up to ten minutes before the content is available.</p>
+
+<p>Real World Example: <a href="http://github.com/defunkt/ambition/tree/gh-pages">github.com/defunkt/ambition@gh-pages</a> &rarr; <a href="http://defunkt.github.com/ambition">http://defunkt.github.com/ambition</a>.</p>
+
+<h1 id="toc_3">Using Jekyll For Complex Layouts</h1>
+
+<p>In addition to supporting regular HTML content, GitHub Pages support <a href="http://github.com/mojombo/jekyll/">Jekyll</a>, a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.</p>
+
+<p>Every GitHub Page is run through Jekyll when you push content to your repo. Because a normal HTML site is also a valid Jekyll site, you don&#39;t have to do anything special to keep your standard HTML files unchanged. Jekyll has a thorough <a href="http://github.com/mojombo/jekyll/blob/master/README.textile">README</a> that covers its features and usage.</p>
+
+<p>As of April 7, 2009, you can configure most Jekyll settings via your <code>_config.yml</code> file. Most notably, you can select your permalink style and choose to have your Markdown rendered with RDiscount instead of the default Maruku. The only options we override are as follows:</p>
+<div class="highlight"><pre><code class="text">safe: true
+source: &lt;your pages repo&gt;
+destination: &lt;the build dir&gt;
+lsi: false
+pygments: true
+</code></pre>
+</div>
+
+<p>If your Jekyll site is not transforming properly after you push it to GitHub, it&#39;s useful to run the converter locally so you can see any parsing errors. In order to do this, you&#39;ll want to use the same version that we use.</p>
+
+<p>We currently use <span style="font-weight: bold; color: #0a0;">Jekyll 0.11.0</span> and run it with the equivalent command:</p>
+<div class="highlight"><pre><code class="text">jekyll --pygments --safe
+</code></pre>
+</div>
+
+<p>As of December 27, 2009, you can completely opt-out of Jekyll processing by creating a file named <code>.nojekyll</code> in the root of your pages repo and pushing that to GitHub. This should only be necessary if your site uses directories that begin with an underscore, as Jekyll sees these as special dirs and does not copy them to the final destination.</p>
+
+<p>If there&#39;s a feature you wish that Jekyll had, feel free to fork it and send a pull request. We&#39;re happy to accept user contributions.</p>
+
+<p>Real World Example: <a href="https://github.com/github/help.github.com">https://github.com/github/help.github.com</a> &rarr; <a href="http://help.github.com/">http://help.github.com/</a>.</p>
+
+<h1 id="toc_4">Custom Domains</h1>
+
+<p>GitHub Pages allows you to direct a domain name of your choice at your Page.</p>
+
+<p>Let&#39;s say you own the domain name <a href="http://example.com">example.com</a>. Furthermore, your GitHub username is &quot;charlie&quot; and you have published a User Page at <a href="http://charlie.github.com/">http://charlie.github.com/</a>. Now you&#39;d like to load up <a href="http://example.com">http://example.com/</a> in your browser and have it show the content from <a href="http://charlie.github.com/">http://charlie.github.com/</a>.</p>
+
+<p>Start by creating a file named <code>CNAME</code> in the root of your repository. It should contain your domain name like so:</p>
+<div class="highlight"><pre><code class="text">example.com
+</code></pre>
+</div>
+
+<p>Push this new file up to GitHub.  The server will set your pages to be hosted at <a href="http://example.com">example.com</a>, and create redirects from <a href="http://www.example.com">www.example.com</a> and <a href="http://charlie.github.com/">charlie.github.com</a> to <a href="http://example.com">example.com</a>.</p>
+
+<p>Next, you&#39;ll need to visit your domain registrar or DNS host and add a record for your domain name. For a sub-domain like <code>www.example.com</code> you would simply create a CNAME record pointing at <code>charlie.github.com</code>.  If you are using a top-level domain like <code>example.com</code>, you must use an A record pointing to <code>204.232.175.78</code>.  <em>Do not use a CNAME record with a top-level domain,</em> it can have adverse side effects on other services like email.  Many DNS services will let you set a CNAME on a TLD, even though you shouldn&#39;t.  Remember that it may take up to a full day for DNS changes to propagate, so be patient.</p>
+
+<p>Real World Example: <a href="http://github.com/mojombo/mojombo.github.com/">github.com/mojombo/mojombo.github.com</a> &rarr; <a href="http://tom.preston-werner.com/">http://tom.preston-werner.com/</a>.</p>
+
+<p>The above also works for project &amp; organization pages, of course.</p>
+
+<h1 id="toc_5">Custom 404 Pages</h1>
+
+<p>If you provide a <code>404.html</code> file in the root of your repo, it will be served instead of the default 404 page.  Note that Jekyll-generated pages will not work, it <i>must</i> be an html file.</p>
+
+<p>Real World Example: <a href="http://github.com/tekkub/tekkub.github.com/blob/master/404.html">http://github.com/tekkub/tekkub.github.com/blob/master/404.html</a> &rarr; <a href="http://tekkub.net/404.html">http://tekkub.net/404.html</a>.</p>
+
+<h1 id="toc_6">Submodules</h1>
+
+<p>If your repo contains <a href="http://book.git-scm.com/5_submodules.html">submodules</a>, they will be automatically pulled but <i>only</i> if you use the Git Read-Only URL (e.g. <code>git://github.com/user/project</code>) to reference them.  A read-only HTTP URL (e.g. <code>https://github.com/user/project</code>) or a read-write URL will cause &quot;Page build failure&quot; with reason &quot;submodule fetch failed&quot;.</p>
+
+      </section>
+      
+    </article>
+    <script src="javascripts/scale.fix.js"></script>
+    <script src="javascripts/fixed-sidebar.js"></script>
+  </body>
+</html>

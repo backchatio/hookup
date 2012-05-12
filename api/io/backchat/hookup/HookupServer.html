@@ -158,7 +158,6 @@ requires netty 3.4.x or later</p><p>Usage:</p><pre>
       <p class="shortcomment cmt">This is the first place where you can add additional handlers to the pipeline.</p><div class="fullcomment"><div class="comment cmt"><p>This is the first place where you can add additional handlers to the pipeline.
 The flashpolicy handler and connection tracker have been added at this point.
 if a message arrives in this handler it's been untouched.
-This is a great place to register a handler that deals with metrics like bytes read/transferred etc.
 </p></div><dl class="paramcmts block"><dt class="param">pipe</dt><dd class="cmt"><p>The pipeline to configure.
 </p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>protected </dd></dl></div>
     </li><li visbl="prt" name="io.backchat.hookup.HookupServer#addLastInPipeline" data-isabs="false">

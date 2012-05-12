@@ -28,9 +28,7 @@
       </span>
       </h4>
       
-          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>The Hookup client provides a client for the hookup server, it doesn't lock you in to using a specific message format.
-The default implementation uses websockets to communicate with the server.
-You can opt-in or opt-out of every feature in the hookup client through configuration.</p><p>Usage of the simple hookup client:</p><p><pre>
+          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>Usage of the simple websocket client:</p><p><pre>
   new HookupClient {
     val uri = new URI("ws://localhost:8080/thesocket")
 
@@ -49,8 +47,7 @@ You can opt-in or opt-out of every feature in the hookup client through configur
     }
   }
 </pre>
-</p></div><dl class="attributes block"> <dt>See also</dt><dd><span class="cmt"><p><a name="io.backchat.hookup.HookupClientConfig" class="extype" href="HookupClientConfig.html">HookupClientConfig</a>
-</p></span></dd></dl><div class="toggleContainer block">
+</p></div><div class="toggleContainer block">
           <span class="toggle">Linear Supertypes</span>
           <div class="superTypes hiddenContent"><span name="java.io.Closeable" class="extype">Closeable</span>, <span name="java.lang.AutoCloseable" class="extype">AutoCloseable</span>, <a name="io.backchat.hookup.Reconnectable" class="extype" href="Reconnectable.html">Reconnectable</a>, <a name="io.backchat.hookup.Connectable" class="extype" href="Connectable.html">Connectable</a>, <a name="io.backchat.hookup.HookupClientLike" class="extype" href="HookupClientLike.html">HookupClientLike</a>, <a name="io.backchat.hookup.BroadcastChannelLike" class="extype" href="BroadcastChannelLike.html">BroadcastChannelLike</a>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
         </div><div class="toggleContainer block">
