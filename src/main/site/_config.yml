@@ -21,4 +21,4 @@ ga_code     : "UA-240612-7"
 github:
   username  : "backchatio"
   project   : "hookup"
-destination : "../../../target/site"
+destination : "../../../target/jekyll"
