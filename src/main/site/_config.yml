@@ -6,12 +6,12 @@ redcarpet:
   extensions: ["no_intra_emphasis", "fenced_code_blocks", "autolink", "strikethrough", "superscript", "with_toc_data"]
 charset     : UTF-8
 exclude     : ["Gemfile", "Gemfile.lock", "Rakefile", "scss"]
-title       : "BackChat.io Documentation Template"
-sub_title   : "Where documentation goes to be awesome"
-rich_title  : "<strong>BackChat.io</strong> Documentation Template"
-rich_byline : "Where documentation goes to be <strong>awesome</strong>"
+title       : "BackChat.io Hookup"
+sub_title   : "Reliable messaging over websockets with akka."
+rich_title  : "<strong>Hookup</strong> by BackChat.io"
+rich_byline : "<strong>Reliable messaging</strong> over websockets"
 sponsor:
-  byline    : "Sponsored by"
+  byline    : "Maintained by"
   logo      : "imgs/logo.png"
   name      : "BackChat.io"
   url       : "https://backchat.io"
@@ -20,4 +20,4 @@ sponsor:
 ga_code     : "UA-240612-7"
 github:
   username  : "backchatio"
-  project   : "github-pages-doc-theme"
+  project   : "hookup"

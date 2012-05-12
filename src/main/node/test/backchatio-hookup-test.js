@@ -1,7 +1,7 @@
 
 var vows = require("vows"),
     assert = require("assert"),
-    Hookup = require("../lib/backchatio-hookup").Hookup,
+    HookupClient = require("../lib/backchatio-hookup").HookupClient,
     WebSocketClient = require('faye-websocket'),
     WireFormat = require("../lib/wireformat");
     _ = require('underscore'),
@@ -73,7 +73,7 @@ _.extend(EchoServer.prototype, {
 });
 
 
-vows.describe("BackChat.io Hookup").addBatch({
+vows.describe("BackChat.io HookupClient").addBatch({
 
   "A BackChat WebSocket, ": {
     topic: {},
@@ -82,18 +82,18 @@ vows.describe("BackChat.io Hookup").addBatch({
         uri: "ws://localhost:2949/",
         retries:  {min:1, max: 5},
         buffered: true,
-        defaultsClient: new Hookup("ws://localhost:2949/"),
-        configuredClient: new Hookup({uri: "ws://localhost:2949/", reconnectSchedule: { min: 1, max: 5 }, buffered: true})},
+        defaultsClient: new HookupClient("ws://localhost:2949/"),
+        configuredClient: new HookupClient({uri: "ws://localhost:2949/", reconnectSchedule: { min: 1, max: 5 }, buffered: true})},
       'fails when the uri param is': {
         "missing": function (topic) {
-          assert.throws(function () { new Hookup() }, Error);
+          assert.throws(function () { new HookupClient() }, Error);
         },
         "an invalid uri": function (topic) {
-          assert.throws(function () { new Hookup({uri: "http:"}) }, Error);
+          assert.throws(function () { new HookupClient({uri: "http:"}) }, Error);
         }
       },
       "should use the default retry schedule": function (topic) {
-        assert.equal(topic.defaultsClient.reconnectSchedule, Hookup.RECONNECT_SCHEDULE);
+        assert.equal(topic.defaultsClient.reconnectSchedule, HookupClient.RECONNECT_SCHEDULE);
       },
       "should set journaling to false by default": function (topic) {
         assert.isFalse(topic.defaultsClient.isBuffered());
@@ -117,7 +117,7 @@ vows.describe("BackChat.io Hookup").addBatch({
         var closed=0, reconnecting=0;
         var messages = [];
         server.on('listen', function() {
-          var ws = new Hookup({uri: "ws://localhost:"+port+"/"});
+          var ws = new HookupClient({uri: "ws://localhost:"+port+"/"});
           ws.on('close', function() {
             closed++;
             server.close();
@@ -153,7 +153,7 @@ vows.describe("BackChat.io Hookup").addBatch({
         var ackRequests=0, acks=0, failedAcks = 0;
         var killSwitch = null;
         server.on('listen', function() {
-          var ws = new Hookup({uri: "ws://localhost:"+port+"/", raiseAckEvents: true});
+          var ws = new HookupClient({uri: "ws://localhost:"+port+"/", raiseAckEvents: true});
           ws.on('ack_failed', function() {
             failedAcks++;
             if (killSwitch) clearTimeout(killSwitch);
@@ -200,7 +200,7 @@ vows.describe("BackChat.io Hookup").addBatch({
         var server = new EchoServer();
         var closed=0, reconnecting=0;
         var listen = function() {
-          var ws = new Hookup({uri: "ws://localhost:"+port+"/"});
+          var ws = new HookupClient({uri: "ws://localhost:"+port+"/"});
           ws.on('close', function() {
             server.close();
           });
@@ -237,7 +237,7 @@ vows.describe("BackChat.io Hookup").addBatch({
         var server = new EchoServer();
         var closed=0, reconnecting=0;
         server.on('listen', function() {
-          var ws = new Hookup({uri: "ws://localhost:2950/"});
+          var ws = new HookupClient({uri: "ws://localhost:2950/"});
           ws.on('close', function() {
             closed++;
             server.close();

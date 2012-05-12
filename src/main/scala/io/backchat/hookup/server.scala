@@ -1104,6 +1104,7 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient)(impl
    * This is the first place where you can add additional handlers to the pipeline.
    * The flashpolicy handler and connection tracker have been added at this point.
    * if a message arrives in this handler it's been untouched.
+   * This is a great place to register a handler that deals with metrics like bytes read/transferred etc.
    *
    * @param pipe The pipeline to configure.
    */

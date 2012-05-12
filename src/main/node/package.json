@@ -19,7 +19,8 @@
   "devDependencies":
     { "vows": "0.6.x"
     , "sinon": ""
-    , "rimraf": "" }
+    , "rimraf": "" 
+    , "jsdoc-toolkit": ""}
   , "main": "./lib/backchatio-hookup.js"
   , "scripts": { "test": "vows --spec --isolate" }
 }
