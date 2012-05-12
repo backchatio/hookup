@@ -1,4 +1,4 @@
-# BackChat.io Hookup
+# BackChat.io Hookup [![Build Status](https://secure.travis-ci.org/backchatio/hookup.png?branch=develop)](http://travis-ci.org/backchatio/hookup)
 
 A scala based client and server for websockets based on netty and akka futures.
 It draws its inspiration from finagle, faye-websocket, zeromq, akka, ...
