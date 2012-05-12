@@ -40,16 +40,16 @@
     <article class="wrapper">
       <header id="sidebar">
         <h1>{{ site.title }}</h1>
-        <p>{{ site.by_line }}</p>
-        <p class="view"><a href="https://github.com/{{ site.github.user }}/{{ site.github.project}}">View the Project on GitHub <small>{{ site.github.user }}/{{ site.github.project}}</small></a></p>
+        <p>{{ site.sub_title }}</p>
+        <p class="view"><a href="https://github.com/{{ site.github.username }}/{{ site.github.project}}">View the Project on GitHub <small>{{ site.github.username }}/{{ site.github.project}}</small></a></p>
        <p class="view"><a href="api/#io.backchat.hookup.HookupServer">View the Scala API Docs <small>scala api docs</small></a></p>
        <p class="view"><a href="jsdoc">View the Node.js API Docs <small>node.js api docs</small></a></p>
         <ul>
-          <li><a href="https://github.com/{{ site.github.user }}/{{ site.github.project}}">View On <strong>GitHub</strong></a></li>
+          <li><a href="https://github.com/{{ site.github.username }}/{{ site.github.project}}">View On <strong>GitHub</strong></a></li>
           <li><a href="api/#io.backchat.hookup.HookupServer">API docs <strong>Scala</strong></a></li>
           <li><a href="jsdoc">API docs <strong>Node</strong></a></li>
         </ul>
-        <p>This project is maintained by <a href="https://backchat.io">BackChat.io</a>, the real-time data filtering API for the cloud.</p>
+        <p>{{ site.sponsor.footer }}</p>
       </header>
       <section>
         {{ content }}

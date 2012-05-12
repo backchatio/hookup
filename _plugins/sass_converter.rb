@@ -23,7 +23,7 @@ module Jekyll
         Compass.add_project_configuration
         Compass.configuration.project_path ||= Dir.pwd
 
-        load_paths = [".", "./css"]
+        load_paths = [".", "./scss"]
         load_paths += Compass.configuration.sass_load_paths
 
         engine = Sass::Engine.new(content, :syntax => :scss, :load_paths => load_paths, :style => :compact)

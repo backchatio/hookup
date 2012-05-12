@@ -15,6 +15,7 @@ sponsor:
   logo      : "imgs/logo.png"
   name      : "BackChat.io"
   url       : "https://backchat.io"
+  footer    : "This project is maintained by <a href=\"https://backchat.io\">BackChat.io</a>, the real-time data filtering API for the cloud."
 
 ga_code     : "UA-240612-7"
 github:

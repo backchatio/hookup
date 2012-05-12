@@ -1,108 +1,139 @@
 ---
 layout: backchatio
-title: BackChat.io hookup
+title: BackChat.io Project Documentation
 ---
 
-# Reliable messaging on top of websockets.
+The GitHub Pages feature allows you to publish content to the web by simply pushing content to one of your GitHub hosted repositories. There are two different kinds of Pages that you can create: **User Pages** and **Project Pages**.
 
-A scala based client and server for websockets based on netty and akka futures.
-It draws its inspiration from finagle, faye-websocket, zeromq, akka, ...
+User & Organization Pages
+=========================
 
-The aim of this project is to provide a websocket client in multiple languages an to be used in non-browser applications.
-This client should be reliable by making a best effort not to lose any messages and gracefully recover from disconnections.
+Let's say your GitHub username is "alice". If you create a GitHub repository named `alice.github.com`, commit a file named `index.html` into the `master` branch, and push it to GitHub, then this file will be automatically published to [http://alice.github.com/](http://alice.github.com/).
 
-The server should serve regular websocket applications but can be configured for more reliability too.
+On the first push, it can take up to ten minutes before the content is available.
 
-## Features
-To reach said goals this library implements:
+The same works for organizations.  If your org account is named "PlanEx", creating the repo `planex.github.com` under the org will publish pages to <http://planex.github.com/>.
 
-### Protocol features:
+Real World Example: [github.com/defunkt/defunkt.github.com](http://github.com/defunkt/defunkt.github.com/) &rarr; [http://defunkt.github.com/](http://defunkt.github.com/).
 
-These features are baked into the default `JsonProtocolWireFormat` or in the WebSocket spec.
+Project Pages With The Automatic Page Generator
+===============================================
 
-#### Message Acking: 
-You can decide if you want to ack a message on a per message basis.
+If you're looking to quickly create a page, try our Automatic Page Generator. Author your content with GitHub Flavored Markdown, select a theme and publish.
 
-```scala
-client ! "the message".needsAck(within = 5 seconds)
-```
+First navigate to your repository and click the 'Admin' button on the top right
 
-#### PingPong
-This is baked into the websocket protocol, the library ensures it really happens
+![Admin button](https://img.skitch.com/20120329-kgqkyu2d24qw3axkmcnrncgr6c.jpg)
 
-### Client only features:
+Then, click the **Automatic Page Generator** button.
 
-There are a number of extras baked into the client, of course they can be enabled and disabled based on config.
+![automatic page generator](https://github-images.s3.amazonaws.com/blog/2012/page-generator-button.png)
 
-{% code_ref ../hookup-scala/src/test/scala/io/backchat/hookup/tests/FileBufferSpec.scala writes_to_file %}
+Author your content in the Markdown editor. After you've finished, click the **Continue To Layouts** button.
 
-#### Reconnection
+Next, preview your styled content by browsing through our selection of themes.
 
-The client reconnects to the server on a backoff schedule indefinitely or for a maximum amount of times
+![select a theme](https://github-images.s3.amazonaws.com/blog/2012/page-generator-picker.png)
 
-#### Message buffering
+When you find a theme that you like, click publish and your page will be generated.
 
-During phases of disconnection it will buffer the messages to a file so that upon reconnection the messages will all be sent to the server.
+![publish](https://github-images.s3.amazonaws.com/blog/2012/page-generator-publish.png)
 
-## Usage
 
-This library is available on maven central.
+After your page is generated, you can check out the new branch:
 
-```scala
-libraryDependencies += "io.backchat.hookup" %% "hookup" % "0.2.2"
-```
+    $ cd Repos/ampere
+    $ git fetch origin
+    remote: Counting objects: 92, done.
+    remote: Compressing objects: 100% (63/63), done.
+    remote: Total 68 (delta 41), reused 0 (delta 0)
+    Unpacking objects: 100% (68/68), done.
+    From git@github.com:tekkub/ampere
+     * [new branch]      gh-pages     -> origin/gh-pages
+    $ git checkout -b gh-pages origin/gh-pages
+    Branch gh-pages set up to track remote branch refs/remotes/origin/gh-pages.
+    Switched to a new branch "gh-pages"
 
-#### Create a websocket server
 
-```scala
-import io.backchat.hookup._
+Project Pages Manually
+======================
 
-(HookupServer(8125) {
-  new HookupServerClient {
-    def receive = {
-      case TextMessage(text) =>
-        println(text)
-        send(text)
-    }
-  }
-}).start
-```
+Let's say your GitHub username is "bob" and you have an existing repository named `fancypants`. If you create a new root branch named `gh-pages` in your repository, any content pushed there will be published to [http://bob.github.com/fancypants/](http://bob.github.com/fancypants/).
 
-#### Create a websocket client
+In order to create a new root branch, first ensure that your working directory is clean by committing or stashing any changes. <span style="color: #a00;">The following operation will lose any uncommitted files!  You might want to run this in a fresh clone of your repo.</span>
 
-```scala
-import io.backchat.hookup._
+    $ cd /path/to/fancypants
+    $ git symbolic-ref HEAD refs/heads/gh-pages
+    $ rm .git/index
+    $ git clean -fdx
 
-new DefaultHookupClient(HookupClientConfig(new URI("ws://localhost:8080/thesocket"))) {
+After running this you'll have an empty working directory (don't worry, your main repo is still on the `master` branch). Now you can create some content in this branch and push it to GitHub. For example:
 
-  def receive = {
-    case Disconnected(_) ⇒ 
-      println("The websocket to " + uri.toASCIIString + " disconnected.")
-    case TextMessage(message) ⇒ {
-      println("RECV: " + message)
-      send("ECHO: " + message)
-    }
-  }
+    $ echo "My GitHub Page" > index.html
+    $ git add .
+    $ git commit -a -m "First pages commit"
+    $ git push origin gh-pages
 
-  connect() onSuccess {
-    case Success ⇒
-      println("The websocket is connected to:"+this.uri.toASCIIString+".")
-      system.scheduler.schedule(0 seconds, 1 second) {
-        send("message " + messageCounter.incrementAndGet().toString)
-      }
-    case _ ⇒
-  }
-}
-```
+On the first push, it can take up to ten minutes before the content is available.
 
-There are [code examples](https://github.com/backchatio/hookup/tree/master/src/main/scala/io/backchat/hookup /examples) that show all the events being raised and a chat server/client.
+Real World Example: [github.com/defunkt/ambition@gh-pages](http://github.com/defunkt/ambition/tree/gh-pages) &rarr; [http://defunkt.github.com/ambition](http://defunkt.github.com/ambition).
 
-* Echo ([server](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/PrintingEchoServer.scala) | [client](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/PrintingEchoClient.scala))
-* All Events ([server](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/PrintAllEventsServer.scala) | [client](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/PrintAllEventsClient.scala))
-* Chat ([server](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/ChatServer.scala) | [client](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/ChatClient.scala))
+Using Jekyll For Complex Layouts
+================================
 
-## Patches
-Patches are gladly accepted from their original author. Along with any patches, please state that the patch is your original work and that you license the work to the *backchat-websocket* project under the MIT License.
+In addition to supporting regular HTML content, GitHub Pages support [Jekyll](http://github.com/mojombo/jekyll/), a simple, blog aware static site generator written by our own Tom Preston-Werner. Jekyll makes it easy to create site-wide headers and footers without having to copy them across every page. It also offers intelligent blog support and other advanced templating features.
 
-## License
-MIT licensed. check the [LICENSE](https://github.com/backchatio/hookup/blob/master/LICENSE) file
+Every GitHub Page is run through Jekyll when you push content to your repo. Because a normal HTML site is also a valid Jekyll site, you don't have to do anything special to keep your standard HTML files unchanged. Jekyll has a thorough [README](http://github.com/mojombo/jekyll/blob/master/README.textile) that covers its features and usage.
+
+As of April 7, 2009, you can configure most Jekyll settings via your `_config.yml` file. Most notably, you can select your permalink style and choose to have your Markdown rendered with RDiscount instead of the default Maruku. The only options we override are as follows:
+
+    safe: true
+    source: <your pages repo>
+    destination: <the build dir>
+    lsi: false
+    pygments: true
+
+If your Jekyll site is not transforming properly after you push it to GitHub, it's useful to run the converter locally so you can see any parsing errors. In order to do this, you'll want to use the same version that we use.
+
+We currently use <span style="font-weight: bold; color: #0a0;">Jekyll 0.11.0</span> and run it with the equivalent command:
+
+    jekyll --pygments --safe
+
+As of December 27, 2009, you can completely opt-out of Jekyll processing by creating a file named `.nojekyll` in the root of your pages repo and pushing that to GitHub. This should only be necessary if your site uses directories that begin with an underscore, as Jekyll sees these as special dirs and does not copy them to the final destination.
+
+If there's a feature you wish that Jekyll had, feel free to fork it and send a pull request. We're happy to accept user contributions.
+
+Real World Example: [https://github.com/github/help.github.com](https://github.com/github/help.github.com) &rarr; [http://help.github.com/](http://help.github.com/).
+
+
+
+Custom Domains
+==============
+
+GitHub Pages allows you to direct a domain name of your choice at your Page.
+
+Let's say you own the domain name [example.com](http://example.com). Furthermore, your GitHub username is "charlie" and you have published a User Page at [http://charlie.github.com/](http://charlie.github.com/). Now you'd like to load up [http://example.com/](http://example.com) in your browser and have it show the content from [http://charlie.github.com/](http://charlie.github.com/).
+
+Start by creating a file named `CNAME` in the root of your repository. It should contain your domain name like so:
+
+    example.com
+
+Push this new file up to GitHub.  The server will set your pages to be hosted at [example.com](http://example.com), and create redirects from [www.example.com](http://www.example.com) and [charlie.github.com](http://charlie.github.com/) to [example.com](http://example.com).
+
+Next, you'll need to visit your domain registrar or DNS host and add a record for your domain name. For a sub-domain like `www.example.com` you would simply create a CNAME record pointing at `charlie.github.com`.  If you are using a top-level domain like `example.com`, you must use an A record pointing to `204.232.175.78`.  *Do not use a CNAME record with a top-level domain,* it can have adverse side effects on other services like email.  Many DNS services will let you set a CNAME on a TLD, even though you shouldn't.  Remember that it may take up to a full day for DNS changes to propagate, so be patient.
+
+Real World Example: [github.com/mojombo/mojombo.github.com](http://github.com/mojombo/mojombo.github.com/) &rarr; [http://tom.preston-werner.com/](http://tom.preston-werner.com/).
+
+The above also works for project & organization pages, of course.
+
+Custom 404 Pages
+================
+
+If you provide a `404.html` file in the root of your repo, it will be served instead of the default 404 page.  Note that Jekyll-generated pages will not work, it <i>must</i> be an html file.
+
+Real World Example: [http://github.com/tekkub/tekkub.github.com/blob/master/404.html](http://github.com/tekkub/tekkub.github.com/blob/master/404.html) &rarr; [http://tekkub.net/404.html](http://tekkub.net/404.html).
+
+Submodules
+==========
+
+If your repo contains [submodules](http://book.git-scm.com/5_submodules.html), they will be automatically pulled but <i>only</i> if you use the Git Read-Only URL (e.g. `git://github.com/user/project`) to reference them.  A read-only HTTP URL (e.g. `https://github.com/user/project`) or a read-write URL will cause "Page build failure" with reason "submodule fetch failed".
