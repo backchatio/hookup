@@ -1,7 +1,5 @@
 (function() {
   var sidebar = document.getElementById("sidebar");
-  var target = sidebar.offsetTop + sidebar.clientHeight + 60;
-  console.log(target);
 
   function getScrollTop(){
     if(typeof pageYOffset!= 'undefined'){
@@ -16,12 +14,10 @@
   }
 
   function setSidebarPosition() {
-    if(getScrollTop() > target) {
-      console.log("fixed");
-      sidebar.style.top = "30px";
+    if(getScrollTop() > 350) {
+      sidebar.style.top = "50px";
       sidebar.style.position = "fixed";
     } else {
-      console.log("relative");
       sidebar.style.top = "";
       sidebar.style.position = "absolute";
     }
