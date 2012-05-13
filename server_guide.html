@@ -1,0 +1,249 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>BackChat.io Hookup</title>
+    
+    <link rel="stylesheet" href="stylesheets/backchatio.css">
+    <link rel="stylesheet" href="stylesheets/pygment_github.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <script type="text/javascript">
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-240612-7']);
+      _gaq.push(['_trackPageview']);
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+    </script>
+  </head>
+  <body>
+    <header class="backchatio">
+      <nav>
+        <div class="centered">
+          <a href="https://backchat.io">
+            <img src="imgs/logo.png" alt=" BackChat.io" height="50" width="180" />
+          </a>
+        </div>
+      </nav>
+      <hgroup>
+        <h1><strong>Hookup</strong> by BackChat.io</h1>
+        <h2><strong>Reliable messaging</strong> over websockets</h2>
+      </hgroup>
+    </header>
+
+    <article class="wrapper">
+      <header id="sidebar">
+        <h2>BackChat.io Hookup</h2>
+        <p>Reliable messaging over websockets with akka.</p>
+        <p class="view"><a href="https://github.com/backchatio/hookup">View the Project on GitHub <small>backchatio/hookup</small></a></p>
+        <p class="view"><a href="server_guide">View the Server guide <small>server guide</small></a></p>
+        <ul>
+          <li><a href="https://github.com/backchatio/hookup">View On <strong>GitHub</strong></a></li>
+          <li><a href="scaladoc/#io.backchat.hookup.HookupServer">API docs <strong>Scala</strong></a></li>
+          <li><a href="jsdoc">API docs <strong>Node</strong></a></li>
+        </ul>
+        <p>This project is maintained by <a href="https://backchat.io">BackChat.io</a>, the real-time data filtering API for the cloud.</p>
+      </header>
+      <section>
+        <h2 id="toc_0">Hookup Servers</h2>
+
+<p>At this stage creating servers is only really supported in scala.  To work with servers there are a few concepts that need a bit more explanation.  We&#39;ll start with configuration of the server before moving on to what the server can do.</p>
+
+<h3 id="toc_1">Configuring the server.</h3>
+
+<p>At this stage the server is implemented with Netty and as such you can configure it to work with other netty modules.
+We don&#39;t have an abstraction on top of Netty&#39;s request and response model and as such you can use it with any other server that is implemented with <a href="http://netty.io/docs/stable/api/org/jboss/netty/channel/SimpleChannelHandler.html">Netty channel handlers</a>, more about that later in this guide.</p>
+
+<p>To start a server with all the defaults you can use the following code: </p>
+
+<div class="highlight"><pre><code class="scala"><span class="k">implicit</span> <span class="k">val</span> <span class="n">formats</span><span class="k">:</span> <span class="kt">Formats</span> <span class="o">=</span> <span class="nc">DefaultFormats</span>
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">wireFormat</span><span class="k">:</span> <span class="kt">WireFormat</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">JsonProtocolWireFormat</span>
+
+<span class="k">val</span> <span class="n">server</span> <span class="k">=</span> <span class="nc">HookupServer</span><span class="o">(</span><span class="mi">8125</span><span class="o">)</span> <span class="o">{</span>
+  <span class="k">new</span> <span class="nc">HookupServerClient</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">receive</span> <span class="k">=</span> <span class="o">{</span>
+      <span class="k">case</span> <span class="nc">TextMessage</span><span class="o">(</span><span class="n">text</span><span class="o">)</span> <span class="k">⇒</span>
+        <span class="n">println</span><span class="o">(</span><span class="n">text</span><span class="o">)</span>
+        <span class="n">send</span><span class="o">(</span><span class="n">text</span><span class="o">)</span>
+    <span class="o">}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+
+<span class="n">server</span> <span class="n">onStop</span> <span class="o">{</span>
+  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Server is stopped&quot;</span><span class="o">)</span>
+<span class="o">}</span>
+<span class="n">server</span> <span class="n">onStart</span> <span class="o">{</span>
+  <span class="n">println</span><span class="o">(</span><span class="s">&quot;Server is started&quot;</span><span class="o">)</span>
+<span class="o">}</span>
+<span class="n">server</span><span class="o">.</span><span class="n">start</span>
+</code></pre>
+</div>
+
+<h5 id="toc_2">JSON formats</h5>
+
+<p>There are a few things that stand out in that code sample. There is a DefaultFormats on the first line which are lift-json formats. You can find more explanation about those in the <a href="https://github.com/lift/framework/tree/master/core/json#serialization">lift-json readme</a> in the serialization section. The default json protocols use lift-json to parse and generate json structures.</p>
+
+<h5 id="toc_3">Wire format</h5>
+
+<p>The wire format on the second line is a type-class/strategy for that knows how to serialize and deserialize messages for transport. Depending on which wireformat it may know about all the messages the websocket server knows about to enable the reliabillity features of the server, like message acking.  The <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.JsonProtocolWireFormat"><code>JsonProtocolWireFormat</code></a> takes an implicit formats parameter which is provided by the JSON formats on the first line.</p>
+
+<h5 id="toc_4">Creating a server</h5>
+
+<p>Once you&#39;ve got the implicits in place to provide context you&#39;re ready to start a server. A <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer"><code>HookupServer</code></a> has 2 methods that allow you to register callbacks on either startup or shutdown. There are more things you can configure on a server than just the port. Take a look at the <a href=""><code>ServerInfo</code></a> class to find out all the properties.</p>
+
+<div class="highlight"><pre><code class="scala"><span class="k">case</span> <span class="k">class</span> <span class="nc">ServerInfo</span><span class="o">(</span>
+    <span class="n">name</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="nc">ServerInfo</span><span class="o">.</span><span class="nc">DefaultServerName</span><span class="o">,</span>
+    <span class="n">version</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="nc">BuildInfo</span><span class="o">.</span><span class="n">version</span><span class="o">,</span>
+    <span class="n">listenOn</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="s">&quot;0.0.0.0&quot;</span><span class="o">,</span>
+    <span class="n">port</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="mi">8765</span><span class="o">,</span>
+    <span class="n">capabilities</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">ServerCapability</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">.</span><span class="n">empty</span><span class="o">)</span> <span class="o">{</span>
+</code></pre>
+</div>
+
+<p>You can also configure the server from a typesafe config object, a full config looks something like this.</p>
+<div class="highlight"><pre><code class="text">myServer {
+  listenOn = &quot;0.0.0.0&quot;
+  port = 8765
+  pingTimeout = &quot;50 seconds&quot;
+  contentCompression = 6
+  subProtocols = []
+  ssl {
+    keystore = &quot;./ssl/keystore.jks&quot;
+    password = &quot;changeme&quot;
+    algorithm = &quot;SunX509&quot;
+  }
+  flashPolicy {
+    domain = &quot;*.example.com&quot;
+    ports = [80, 443, 8080, 8843]
+  }
+  maxFrameSize = &quot;32kb&quot;
+}
+</code></pre>
+</div>
+
+<p>Some of the properties in this config will become more clear in the rest of this document.</p>
+
+<p>To configure the modules that make up the default Hookup server we need to talk about <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.ServerCapability"><code>ServerCapabilities</code></a>. A server capability is available for you to extend yourself with your own modules if you want to use that form of configuration. If server capabilities don&#39;t allow the flexibillity you want then you can always subclass a <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer"><code>HookupServer</code></a> and make use of the template methods it provides. Let&#39;s start with the <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.Ping"><code>Ping</code></a> capability.</p>
+
+<h4 id="toc_5">Ping configuration</h4>
+
+<p>You can use the <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.Ping"><code>Ping</code></a> configuration to configure whether the server should send out pings to clients when the connection has been idle for a while. The websocket protocol prescribes that the client is the one sending the pings but your use case may vary, you may need to appease a proxy in between. You configure the ping configuration with a <a href="http://doc.akka.io/api/akka/2.0.1/#akka.util.Timeout">Timeout</a>.</p>
+
+<div class="highlight"><pre><code class="scala"><span class="k">implicit</span> <span class="k">val</span> <span class="n">jsonFormats</span><span class="k">:</span> <span class="kt">Formats</span> <span class="o">=</span> <span class="nc">DefaultFormats</span>
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">wireFormat</span><span class="k">:</span> <span class="kt">WireFormat</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">JsonProtocolWireFormat</span>
+
+<span class="nc">HookupServer</span><span class="o">(</span><span class="nc">Ping</span><span class="o">(</span><span class="nc">Timeout</span><span class="o">(</span><span class="mi">2</span> <span class="n">minutes</span><span class="o">)))</span> <span class="o">{</span>
+  <span class="k">new</span> <span class="nc">HookupServerClient</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">receive</span> <span class="k">=</span> <span class="o">{</span> <span class="k">case</span> <span class="k">_</span> <span class="o">=&gt;}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre>
+</div>
+
+<p>You can also configure compression for a server.</p>
+
+<h4 id="toc_6">Compression configuration</h4>
+
+<p>By default the server doesn&#39;t use any content compression, but you can configure it to do so by adding the <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.ContentCompression"><code>ContentCompression</code></a> capability. By default this capability is configured to a compression level of 6, this can of course be changed</p>
+
+<div class="highlight"><pre><code class="scala"><span class="k">implicit</span> <span class="k">val</span> <span class="n">jsonFormats</span><span class="k">:</span> <span class="kt">Formats</span> <span class="o">=</span> <span class="nc">DefaultFormats</span>
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">wireFormat</span><span class="k">:</span> <span class="kt">WireFormat</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">JsonProtocolWireFormat</span>
+
+<span class="nc">HookupServer</span><span class="o">(</span><span class="nc">ContentCompression</span><span class="o">(</span><span class="mi">2</span><span class="o">))</span> <span class="o">{</span>
+  <span class="k">new</span> <span class="nc">HookupServerClient</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">receive</span> <span class="k">=</span> <span class="o">{</span> <span class="k">case</span> <span class="k">_</span> <span class="o">=&gt;}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre>
+</div>
+
+<p>You can also configure the max frame size of a server.</p>
+
+<h4 id="toc_7">Max frame size</h4>
+
+<p>Netty requires you to set a maximum frame length for a websocket frame, by default it uses <code>Long.MaxValue</code> as max framesize, you can configure that to any number of bytes. The capability you need for this is the <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.MaxFrameSize"><code>MaxFrameSize</code></a>.</p>
+
+<div class="highlight"><pre><code class="scala"><span class="k">implicit</span> <span class="k">val</span> <span class="n">jsonFormats</span><span class="k">:</span> <span class="kt">Formats</span> <span class="o">=</span> <span class="nc">DefaultFormats</span>
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">wireFormat</span><span class="k">:</span> <span class="kt">WireFormat</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">JsonProtocolWireFormat</span>
+
+<span class="nc">HookupServer</span><span class="o">(</span><span class="nc">MaxFrameSize</span><span class="o">(</span><span class="mi">512</span><span class="o">*</span><span class="mi">1024</span><span class="o">))</span> <span class="o">{</span>
+  <span class="k">new</span> <span class="nc">HookupServerClient</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">receive</span> <span class="k">=</span> <span class="o">{</span> <span class="k">case</span> <span class="k">_</span> <span class="o">=&gt;}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre>
+</div>
+
+<p>If you need SSL support for your server, basic support is included.</p>
+
+<h4 id="toc_8">SSL configuration</h4>
+
+<p>For basic SSL support you can use the <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.SslSupport"><code>SslSupport</code></a> capability. It uses the default truststore for your system but allows you to configure the keystore. The  default values are provided through the standard java system properties: <code>-Dkeystore.file.path=...</code>, <code>-Dkeystore.file.password=...</code>, <code>-Dssl.KeyManagerFactory.algorithm=SunX509</code>.</p>
+
+<div class="highlight"><pre><code class="scala"><span class="k">implicit</span> <span class="k">val</span> <span class="n">jsonFormats</span><span class="k">:</span> <span class="kt">Formats</span> <span class="o">=</span> <span class="nc">DefaultFormats</span>
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">wireFormat</span><span class="k">:</span> <span class="kt">WireFormat</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">JsonProtocolWireFormat</span>
+
+<span class="k">val</span> <span class="n">sslSupport</span> <span class="k">=</span>
+  <span class="nc">SslSupport</span><span class="o">(</span>
+    <span class="n">keystorePath</span> <span class="k">=</span> <span class="s">&quot;./ssl/keystore.jks&quot;</span><span class="o">,</span>
+    <span class="n">keystorePassword</span> <span class="k">=</span> <span class="s">&quot;changeme&quot;</span><span class="o">,</span>
+    <span class="n">algorithm</span> <span class="k">=</span> <span class="s">&quot;SunX509&quot;</span><span class="o">)</span>
+
+<span class="nc">HookupServer</span><span class="o">(</span><span class="n">sslSupport</span><span class="o">)</span> <span class="o">{</span>
+  <span class="k">new</span> <span class="nc">HookupServerClient</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">receive</span> <span class="k">=</span> <span class="o">{</span> <span class="k">case</span> <span class="k">_</span> <span class="o">=&gt;}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre>
+</div>
+
+<p>The hookup server also has support for subprotocols.</p>
+
+<h4 id="toc_9">Subprotocol configuration</h4>
+
+<p>The WebSocket spec provides a section on <a href="http://tools.ietf.org/html/rfc6455#section-1.9">subprotocols</a>, at this stage you can use those to limit the protocols a client can connect with. In the future they will be automatically configured by the registered wireformats on the server.</p>
+
+<div class="highlight"><pre><code class="scala"><span class="k">implicit</span> <span class="k">val</span> <span class="n">jsonFormats</span><span class="k">:</span> <span class="kt">Formats</span> <span class="o">=</span> <span class="nc">DefaultFormats</span>
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">wireFormat</span><span class="k">:</span> <span class="kt">WireFormat</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">JsonProtocolWireFormat</span>
+
+<span class="nc">HookupServer</span><span class="o">(</span><span class="nc">SubProtocols</span><span class="o">(</span><span class="s">&quot;irc&quot;</span><span class="o">,</span> <span class="s">&quot;xmpp&quot;</span><span class="o">))</span> <span class="o">{</span>
+  <span class="k">new</span> <span class="nc">HookupServerClient</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">receive</span> <span class="k">=</span> <span class="o">{</span> <span class="k">case</span> <span class="k">_</span> <span class="o">=&gt;}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre>
+</div>
+
+<p>The last of the default capabilities is the flash policy server.</p>
+
+<h4 id="toc_10">Flash policy configuration</h4>
+
+<p>In certain browsers you may need to resort to using a <a href="https://github.com/gimite/web-socket-js">flash</a> implementation of the websocket. To allow socket connections to your server flash requires you to run a <a href="http://www.adobe.com/devnet/flashplayer/articles/socket_policy_files.html">flash policy server</a>. We let it fallback to the port that serves the websocket. 
+Leaving this configuration as default will allow all flash connections.</p>
+
+<div class="highlight"><pre><code class="scala"><span class="k">implicit</span> <span class="k">val</span> <span class="n">jsonFormats</span><span class="k">:</span> <span class="kt">Formats</span> <span class="o">=</span> <span class="nc">DefaultFormats</span>
+<span class="k">implicit</span> <span class="k">val</span> <span class="n">wireFormat</span><span class="k">:</span> <span class="kt">WireFormat</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">JsonProtocolWireFormat</span>
+
+<span class="nc">HookupServer</span><span class="o">(</span><span class="nc">FlashPolicy</span><span class="o">(</span><span class="s">&quot;*.example.com&quot;</span><span class="o">,</span> <span class="nc">Seq</span><span class="o">(</span><span class="mi">80</span><span class="o">,</span> <span class="mi">443</span><span class="o">,</span> <span class="mi">8080</span><span class="o">,</span> <span class="mi">8843</span><span class="o">)))</span> <span class="o">{</span>
+  <span class="k">new</span> <span class="nc">HookupServerClient</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">receive</span> <span class="k">=</span> <span class="o">{</span> <span class="k">case</span> <span class="k">_</span> <span class="o">=&gt;}</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre>
+</div>
+
+<p>This is the entire rundown of creating and configuring a server.</p>
+
+      </section>
+      
+    </article>
+    <script src="javascripts/scale.fix.js"></script>
+    <script src="javascripts/fixed-sidebar.js"></script>
+  </body>
+</html>

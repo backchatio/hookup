@@ -42,8 +42,7 @@
         <h2>BackChat.io Hookup</h2>
         <p>Reliable messaging over websockets with akka.</p>
         <p class="view"><a href="https://github.com/backchatio/hookup">View the Project on GitHub <small>backchatio/hookup</small></a></p>
-       <p class="view"><a href="scaladoc/#io.backchat.hookup.HookupServer">View the Scala API Docs <small>scala api docs</small></a></p>
-       <p class="view"><a href="jsdoc">View the Node.js API Docs <small>node.js api docs</small></a></p>
+        <p class="view"><a href="server_guide">View the Server guide <small>server guide</small></a></p>
         <ul>
           <li><a href="https://github.com/backchatio/hookup">View On <strong>GitHub</strong></a></li>
           <li><a href="scaladoc/#io.backchat.hookup.HookupServer">API docs <strong>Scala</strong></a></li>
@@ -52,7 +51,7 @@
         <p>This project is maintained by <a href="https://backchat.io">BackChat.io</a>, the real-time data filtering API for the cloud.</p>
       </header>
       <section>
-        <h1 id="toc_0">Reliable messaging on top of websockets.</h1>
+        <h1 id="toc_11">Reliable messaging on top of websockets.</h1>
 
 <p>A scala based client and server for websockets based on netty and akka futures.
 It draws its inspiration from finagle, faye-websocket, zeromq, akka, ...</p>
@@ -62,47 +61,47 @@ This client should be reliable by making a best effort not to lose any messages 
 
 <p>The server should serve regular websocket applications but can be configured for more reliability too.</p>
 
-<h2 id="toc_1">Features</h2>
+<h2 id="toc_12">Features</h2>
 
 <p>To reach said goals this library implements:</p>
 
-<h3 id="toc_2">Protocol features:</h3>
+<h3 id="toc_13">Protocol features:</h3>
 
 <p>These features are baked into the default <code>JsonProtocolWireFormat</code> or in the WebSocket spec.</p>
 
-<h4 id="toc_3">Message Acking:</h4>
+<h4 id="toc_14">Message Acking:</h4>
 
 <p>You can decide if you want to ack a message on a per message basis.</p>
 <div class="highlight"><pre><code class="scala"><span class="n">client</span> <span class="o">!</span> <span class="s">&quot;the message&quot;</span><span class="o">.</span><span class="n">needsAck</span><span class="o">(</span><span class="n">within</span> <span class="k">=</span> <span class="mi">5</span> <span class="n">seconds</span><span class="o">)</span>
 </code></pre>
 </div>
 
-<h4 id="toc_4">PingPong</h4>
+<h4 id="toc_15">PingPong</h4>
 
 <p>This is baked into the websocket protocol, the library ensures it really happens</p>
 
-<h3 id="toc_5">Client only features:</h3>
+<h3 id="toc_16">Client only features:</h3>
 
 <p>There are a number of extras baked into the client, of course they can be enabled and disabled based on config.</p>
 
 <p>Code ref file &#39;../hookup-scala/src/test/scala/io/backchat/hookup/tests/FileBufferSpec.scala&#39; does not exist.</p>
 
-<h4 id="toc_6">Reconnection</h4>
+<h4 id="toc_17">Reconnection</h4>
 
 <p>The client reconnects to the server on a backoff schedule indefinitely or for a maximum amount of times</p>
 
-<h4 id="toc_7">Message buffering</h4>
+<h4 id="toc_18">Message buffering</h4>
 
 <p>During phases of disconnection it will buffer the messages to a file so that upon reconnection the messages will all be sent to the server.</p>
 
-<h2 id="toc_8">Usage</h2>
+<h2 id="toc_19">Usage</h2>
 
 <p>This library is available on maven central.</p>
 <div class="highlight"><pre><code class="scala"><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">&quot;io.backchat.hookup&quot;</span> <span class="o">%%</span> <span class="s">&quot;hookup&quot;</span> <span class="o">%</span> <span class="s">&quot;0.2.2&quot;</span>
 </code></pre>
 </div>
 
-<h4 id="toc_9">Create a websocket server</h4>
+<h4 id="toc_20">Create a websocket server</h4>
 <div class="highlight"><pre><code class="scala"><span class="k">import</span> <span class="nn">io.backchat.hookup._</span>
 
 <span class="o">(</span><span class="nc">HookupServer</span><span class="o">(</span><span class="mi">8125</span><span class="o">)</span> <span class="o">{</span>
@@ -117,7 +116,7 @@ This client should be reliable by making a best effort not to lose any messages 
 </code></pre>
 </div>
 
-<h4 id="toc_10">Create a websocket client</h4>
+<h4 id="toc_21">Create a websocket client</h4>
 <div class="highlight"><pre><code class="scala"><span class="k">import</span> <span class="nn">io.backchat.hookup._</span>
 
 <span class="k">new</span> <span class="nc">DefaultHookupClient</span><span class="o">(</span><span class="nc">HookupClientConfig</span><span class="o">(</span><span class="k">new</span> <span class="nc">URI</span><span class="o">(</span><span class="s">&quot;ws://localhost:8080/thesocket&quot;</span><span class="o">)))</span> <span class="o">{</span>
@@ -151,11 +150,11 @@ This client should be reliable by making a best effort not to lose any messages 
 <li>Chat (<a href="https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/ChatServer.scala">server</a> | <a href="https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/ChatClient.scala">client</a>)</li>
 </ul>
 
-<h2 id="toc_11">Patches</h2>
+<h2 id="toc_22">Patches</h2>
 
 <p>Patches are gladly accepted from their original author. Along with any patches, please state that the patch is your original work and that you license the work to the <em>backchat-websocket</em> project under the MIT License.</p>
 
-<h2 id="toc_12">License</h2>
+<h2 id="toc_23">License</h2>
 
 <p>MIT licensed. check the <a href="https://github.com/backchatio/hookup/blob/master/LICENSE">LICENSE</a> file</p>
 
