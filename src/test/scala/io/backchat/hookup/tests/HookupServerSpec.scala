@@ -118,22 +118,30 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
     def canSendMessagesToTheClient = this {
       val toSend = TextMessage("this is some text you know")
       var rcvd: String = null
+      val l = new CountDownLatch(1)
       withClient({
+        case Connected => l.countDown()
         case TextMessage(text) => rcvd = text
       }) { _ =>
-        client.onSuccess({ case c => c ! toSend })
-        rcvd must be_==(toSend.content).eventually
+        l.await(3, TimeUnit.SECONDS) must beTrue and {
+          client.onSuccess({ case c => c ! toSend })
+          rcvd must be_==(toSend.content).eventually
+        }
       }
     }
 
     def receivesClientMessages = this {
       val toSend = TextMessage("this is some text you know")
       var rcvd: String = null
+      val l = new CountDownLatch(1)
       withClient({
+        case Connected => l.countDown()
         case TextMessage(text) => rcvd = text
       }) { c =>
-        c send toSend
-        messages.contains(toSend.content) must beTrue.eventually
+        l.await(3, TimeUnit.SECONDS) must beTrue and {
+          c send toSend
+          messages.contains(toSend.content) must beTrue.eventually
+        }
       }
     }
 
@@ -157,22 +165,30 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
       val txt = "this is some text you know"
       val toSend: JValue = ("data" -> txt)
       var rcvd: JValue = null
+      val l = new CountDownLatch(1)
       withClient({
+        case Connected => l.countDown
         case JsonMessage(text) => rcvd = text
       }) { c =>
-        client.onSuccess({ case c => c ! toSend })
-        rcvd must be_==(toSend).eventually
+        l.await(3, TimeUnit.SECONDS) must beTrue and {
+          client.onSuccess({ case c => c ! toSend })
+          rcvd must be_==(toSend).eventually
+        }
       }
     }
 
     def notifiesClientOfClose = this {
       val toSend = TextMessage("this is some text you know")
       var rcvd: String = null
+      val latch = new CountDownLatch(1)
       withClient({
+        case Connected => latch.countDown
         case Disconnected(_) =>
       }) { c =>
-        client.onSuccess({case c => c.disconnect() })
-        disconnectionLatch.await(2, TimeUnit.SECONDS) must beTrue and (c.isConnected must beFalse.eventually)
+        latch.await(3, TimeUnit.SECONDS) must beTrue and {
+          client.onSuccess({case c => c.disconnect() })
+          disconnectionLatch.await(2, TimeUnit.SECONDS) must beTrue and (c.isConnected must beFalse.eventually)
+        }
       }
     }
 

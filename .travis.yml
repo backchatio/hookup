@@ -6,4 +6,4 @@ branches:
     - master
 notifications:
   email: 
-    - ivan@backchat.io
+    - main+urgent@mojolly.flowdock.com
