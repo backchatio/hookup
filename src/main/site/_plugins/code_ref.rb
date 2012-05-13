@@ -20,25 +20,13 @@ module Jekyll
       code = code.sub(/<\/pre>/,"</code></pre>")
     end
 
-    def cache(path)
-      if File.exist?(path)
-        File.read(path)
-      else
-        content = yield
-        File.open(path, 'w') {|f| f.print(content) }
-        content
-      end
-    end
-
     def strip_margin(text, spaces)
       lines = text.strip.split("\n")
       lines[0] << "\n" << lines[1..-1].map { |l| l[spaces..-1] }.join("\n")
     end
 
     def render(context)
-      puts "scanning: #{File.expand_path(@file)}"
       return "Code ref file '#{@file}' does not exist." unless File.exist?(@file)
-
 
       indented = (File.read(@file).match(/(?:\/\/\/|###)\s*code_ref\s*\:\s*#{@item}(.*?)(?:\/{3}|###)\s*end_code_ref/mi)||[])[1]
       spaces = indented[1..-1].match(/(\s*)\w/)[1].size
@@ -47,8 +35,6 @@ module Jekyll
       return "No code matched the key #{@item} in #{@file}" unless code
 
       lexer = Pygments::Lexer.find_by_extname(File.extname(@file)).aliases[0]
-      # colorized = Albino.colorize(code, lexer)
-      # add_code_tags(colorized, lang)
       highlighted = Pygments.highlight(code, :lexer => lexer, :options => { :style => "default", :encoding => 'utf-8'})
       add_code_tags(highlighted, lexer)
     end

@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# run-tests and publish jars
-# sbt test publish
-sbt doc
-# checkout repo again but to gh-pages branch
 mkdir -p target
 rm -rf target/site
 mkdir -p target/site
@@ -15,28 +11,28 @@ git rm -rf *
 touch .nojekyll
 cat > .gitignore <<DOC
 _site
-.idea*
-project
-src
-target
-work
 _cache
 DOC
-echo "1.9.3-p125"
+
+echo "1.9.3-p125" >> .rbenv-version
 # generate site 
 cd ../../src/main/site
-jekyll
-# generate jsdoc 
-cd ../node
-npm install
-npm test 
-node_modules/jsdoc-toolkit/app/run.js -d=../../../target/site/jsdoc -t=node_modules/jsdoc-toolkit/templates/codeview lib
+bundle install && \
+jekyll && \
+cd ../node && \
+npm install && \
+npm test && \
+node_modules/jsdoc-toolkit/app/run.js -d=../../../target/site/jsdoc -t=node_modules/jsdoc-toolkit/templates/codeview lib && \
+cd ../../.. && 
+sbt doc &&
+mv target/scala-2.9.1/api target/site/scaladoc &&
+cp -R target/jekyll/* target/site/
+
 # generate yardocs 
 # first write the yardocs
 # generate scaladoc 
-cd ../../..
-mv target/scala-2.9.1/api target/site/scaladoc
-cp -R target/jekyll/* target/site/
+
+
 # commit changes to gh-pages
 cd target/site
 git add .

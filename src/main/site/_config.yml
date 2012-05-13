@@ -5,7 +5,7 @@ markdown    : redcarpet2
 redcarpet:
   extensions: ["no_intra_emphasis", "fenced_code_blocks", "autolink", "strikethrough", "superscript", "with_toc_data"]
 charset     : UTF-8
-exclude     : ["Gemfile", "Gemfile.lock", "Rakefile", "scss"]
+exclude     : ["Gemfile", "Gemfile.lock", "Rakefile"]
 title       : "BackChat.io Hookup"
 sub_title   : "Reliable messaging over websockets with akka."
 rich_title  : "<strong>Hookup</strong> by BackChat.io"

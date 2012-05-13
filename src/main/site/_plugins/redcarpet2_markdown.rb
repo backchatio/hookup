@@ -2,34 +2,17 @@ require 'fileutils'
 require 'digest/md5'
 require 'redcarpet'
 require 'pygments'
-# require 'albino'
-
-# PYGMENTS_CACHE_DIR = File.expand_path('../../_cache', __FILE__)
-# FileUtils.mkdir_p(PYGMENTS_CACHE_DIR)
 
 class Redcarpet2Markdown < Redcarpet::Render::HTML
   def block_code(code, lang)
     lang = lang || "text"
-    # path = File.join(PYGMENTS_CACHE_DIR, "#{lang}-#{Digest::MD5.hexdigest code}.html")
-    # cache(path) do
-      colorized = Pygments.highlight(code, :lexer => lang, :options => { :style => "default", :encoding => 'utf-8'})
-      add_code_tags(colorized, lang)
-    # end
+    colorized = Pygments.highlight(code, :lexer => lang, :options => { :style => "default", :encoding => 'utf-8'})
+    add_code_tags(colorized, lang)
   end
 
   def add_code_tags(code, lang)
     code.sub(/<pre>/, "<pre><code class=\"#{lang}\">").
          sub(/<\/pre>/, "</code></pre>")
-  end
-
-  def cache(path)
-    if File.exist?(path)
-      File.read(path)
-    else
-      content = yield
-      File.open(path, 'w') {|f| f.print(content) }
-      content
-    end
   end
 end
 

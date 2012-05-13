@@ -8,7 +8,9 @@ object PrintAllEventsServer {
   implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
 
   def main(args: Array[String]) {
+
     val server = HookupServer(8126) {
+      /// code_ref: all_events
       new HookupServerClient {
         def receive = {
           case Connected ⇒
@@ -26,6 +28,7 @@ object PrintAllEventsServer {
             send(m)
         }
       }
+      /// end_code_ref
     }
 
     server onStart {

@@ -8,7 +8,7 @@ At this stage creating servers is only really supported in scala.  To work with 
 
 ### Configuring the server.
 At this stage the server is implemented with Netty and as such you can configure it to work with other netty modules.
-We don't have an abstraction on top of Netty's request and response model and as such you can use it with any other server that is implemented with [Netty channel handlers](http://netty.io/docs/stable/api/org/jboss/netty/channel/SimpleChannelHandler.html), more about that later in this guide.
+We don't have an abstraction on top of Netty's request and response model and as such you can use it with any other server that is implemented with [Netty channel handlers](http://netty.io/docs/stable/api/org/jboss/netty/channel/SimpleChannelHandler.html).
 
 To start a server with all the defaults you can use the following code: 
 
@@ -98,8 +98,23 @@ Leaving this configuration as default will allow all flash connections.
 
 {% code_ref ../../test/scala/io/backchat/hookup/examples/ServerConfigurationsExample.scala server_with_flash_policy %}
 
-This is the entire rundown of creating and configuring a server.
+This is the entire rundown of creating and configuring a server, when a server is started it's probably going to accept connections.
 
+### Accepting connections
 
+When a client connects, the server creates a [`HookupServerClient`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient). You provide the factory when you create the server by creating a new instance of an implementation of a [`HookupServerClient`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient). 
 
+The [`HookupServerClient`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient) allows you to keep state per connection, but you have to be aware that the client will potentially be accessed by multiple threads so you have to take care of synchronization (or use an actor for example).
 
+##### Sending messages
+
+Once connected a [`HookupServerClient`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient) can send messages to the current connection or broadcast a message to all connected clients.
+When you send a message you get an akka [`Future`](http://doc.akka.io/docs/akka/2.0.1/scala/futures.html) back, you can cancel this listen for an operation result. The operation result exists to work with many operations at the same time like in a broadcast you will receive failure and success status for every client connection you broadcasted to. There are 3 [operation results](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.OperationResult): [`Success`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.Success$), [`Cancelled`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.Cancelled$) and [`ResultList`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.ResultList), the error case is handled in the `onFailure` method of the future.
+
+A [`HookupServerClient`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient) provides an alias for `send` as `!` and for `broadcast` as `><`.
+
+##### Receiving messages
+
+A [`HookupServerClient`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient) requires you to implement one method or val a [`Hookup.Receive`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupClient$) partial function that handles [`InboundMessage`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.InboundMessage) implementations and returns `Unit`. Below there's an example of a server client that prints all events it receives and echoes message events back.
+
+{% code_ref ../scala/io/backchat/hookup/examples/PrintAllEventsServer.scala all_events %}
