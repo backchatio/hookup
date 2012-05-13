@@ -58,7 +58,7 @@
 <h3 id="toc_1">Configuring the server.</h3>
 
 <p>At this stage the server is implemented with Netty and as such you can configure it to work with other netty modules.
-We don&#39;t have an abstraction on top of Netty&#39;s request and response model and as such you can use it with any other server that is implemented with <a href="http://netty.io/docs/stable/api/org/jboss/netty/channel/SimpleChannelHandler.html">Netty channel handlers</a>, more about that later in this guide.</p>
+We don&#39;t have an abstraction on top of Netty&#39;s request and response model and as such you can use it with any other server that is implemented with <a href="http://netty.io/docs/stable/api/org/jboss/netty/channel/SimpleChannelHandler.html">Netty channel handlers</a>.</p>
 
 <p>To start a server with all the defaults you can use the following code: </p>
 
@@ -238,7 +238,44 @@ Leaving this configuration as default will allow all flash connections.</p>
 </code></pre>
 </div>
 
-<p>This is the entire rundown of creating and configuring a server.</p>
+<p>This is the entire rundown of creating and configuring a server, when a server is started it&#39;s probably going to accept connections.</p>
+
+<h3 id="toc_11">Accepting connections</h3>
+
+<p>When a client connects, the server creates a <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a>. You provide the factory when you create the server by creating a new instance of an implementation of a <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a>. </p>
+
+<p>The <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a> allows you to keep state per connection, but you have to be aware that the client will potentially be accessed by multiple threads so you have to take care of synchronization (or use an actor for example).</p>
+
+<h5 id="toc_12">Sending messages</h5>
+
+<p>Once connected a <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a> can send messages to the current connection or broadcast a message to all connected clients.
+When you send a message you get an akka <a href="http://doc.akka.io/docs/akka/2.0.1/scala/futures.html"><code>Future</code></a> back, you can cancel this listen for an operation result. The operation result exists to work with many operations at the same time like in a broadcast you will receive failure and success status for every client connection you broadcasted to. There are 3 <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.OperationResult">operation results</a>: <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.Success$"><code>Success</code></a>, <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.Cancelled$"><code>Cancelled</code></a> and <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.ResultList"><code>ResultList</code></a>, the error case is handled in the <code>onFailure</code> method of the future.</p>
+
+<p>A <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a> provides an alias for <code>send</code> as <code>!</code> and for <code>broadcast</code> as <code>&gt;&lt;</code>.</p>
+
+<h5 id="toc_13">Receiving messages</h5>
+
+<p>A <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a> requires you to implement one method or val a <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupClient$"><code>Hookup.Receive</code></a> partial function that handles <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.InboundMessage"><code>InboundMessage</code></a> implementations and returns <code>Unit</code>. Below there&#39;s an example of a server client that prints all events it receives and echoes message events back.</p>
+
+<div class="highlight"><pre><code class="scala"><span class="k">new</span> <span class="nc">HookupServerClient</span> <span class="o">{</span>
+  <span class="k">def</span> <span class="n">receive</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="k">case</span> <span class="nc">Connected</span> <span class="k">⇒</span>
+      <span class="n">println</span><span class="o">(</span><span class="s">&quot;client connected&quot;</span><span class="o">)</span>
+    <span class="k">case</span> <span class="nc">Disconnected</span><span class="o">(</span><span class="k">_</span><span class="o">)</span> <span class="k">⇒</span>
+      <span class="n">println</span><span class="o">(</span><span class="s">&quot;client disconnected&quot;</span><span class="o">)</span>
+    <span class="k">case</span> <span class="n">m</span> <span class="k">@</span> <span class="nc">Error</span><span class="o">(</span><span class="n">exOpt</span><span class="o">)</span> <span class="k">⇒</span>
+      <span class="nc">System</span><span class="o">.</span><span class="n">err</span><span class="o">.</span><span class="n">println</span><span class="o">(</span><span class="s">&quot;Received an error: &quot;</span> <span class="o">+</span> <span class="n">m</span><span class="o">)</span>
+      <span class="n">exOpt</span> <span class="n">foreach</span> <span class="o">{</span> <span class="k">_</span><span class="o">.</span><span class="n">printStackTrace</span><span class="o">(</span><span class="nc">System</span><span class="o">.</span><span class="n">err</span><span class="o">)</span> <span class="o">}</span>
+    <span class="k">case</span> <span class="n">m</span><span class="k">:</span> <span class="kt">TextMessage</span> <span class="k">⇒</span>
+      <span class="kt">println</span><span class="o">(</span><span class="kt">m</span><span class="o">)</span>
+      <span class="kt">send</span><span class="o">(</span><span class="kt">m</span><span class="o">)</span>
+    <span class="kt">case</span> <span class="kt">m:</span> <span class="kt">JsonMessage</span> <span class="k">⇒</span>
+      <span class="kt">println</span><span class="o">(</span><span class="err">&quot;</span><span class="kt">JsonMessage</span><span class="o">(</span><span class="err">&quot;</span> <span class="kt">+</span> <span class="kt">pretty</span><span class="o">(</span><span class="kt">render</span><span class="o">(</span><span class="kt">m.content</span><span class="o">))</span> <span class="kt">+</span> <span class="err">&quot;</span><span class="o">)</span><span class="err">&quot;</span><span class="o">)</span>
+      <span class="kt">send</span><span class="o">(</span><span class="kt">m</span><span class="o">)</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre>
+</div>
 
       </section>
       
