@@ -36,10 +36,11 @@ module Jekyll
     end
 
     def render(context)
-      
+      puts "scanning: #{File.expand_path(@file)}"
       return "Code ref file '#{@file}' does not exist." unless File.exist?(@file)
 
-      indented = (File.read(@file).match(/(?:\/{3}|\#{3})\s*code_ref\s*\:\s*#{@item}(.*?)(?:\/{3}|\#{3})\s*end_code_ref/mi)||[])[1]
+
+      indented = (File.read(@file).match(/(?:\/\/\/|###)\s*code_ref\s*\:\s*#{@item}(.*?)(?:\/{3}|###)\s*end_code_ref/mi)||[])[1]
       spaces = indented[1..-1].match(/(\s*)\w/)[1].size
       code = spaces == 0 ? indented : strip_margin(indented, spaces)
 

@@ -174,13 +174,14 @@ object ServerInfo {
  * @param port The port the server should listen on
  * @param capabilities A sequence of [[io.backchat.hookup.ServerCapability]] configurations for this server
  */
+/// code_ref: server_info
 case class ServerInfo(
     name: String = ServerInfo.DefaultServerName,
     version: String = BuildInfo.version,
     listenOn: String = "0.0.0.0",
     port: Int = 8765,
     capabilities: Seq[ServerCapability] = Seq.empty) {
-
+/// end_code_ref
   /**
    * If the server should support SSL this will be filled with the ssl context to use
    */
@@ -238,6 +239,7 @@ case class ServerInfo(
      </cross-domain-policy>).toString()
   }
 }
+
 
 /**
  * @see [[io.backchat.hookup.HookupServer]]
