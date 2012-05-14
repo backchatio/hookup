@@ -202,6 +202,7 @@ object HookupClient {
 
           val fut = af flatMap { _ ⇒
             isReconnecting = false
+
             _isConnected
           }
 
@@ -224,7 +225,7 @@ object HookupClient {
       disconnect() andThen {
         case _ ⇒
           delay {
-            connect(wireFormat.get().name)
+            connect(wireFormat.get.name)
           }
       }
     }
@@ -325,7 +326,7 @@ object HookupClient {
         channel.write(message).toAkkaFuture
       } else {
         logger info "buffering message until fully connected"
-        buffer foreach (_.write(message))
+        buffer foreach (_.write(message)(wireFormat.get))
         Promise.successful(Success)
       }
     }
@@ -335,10 +336,8 @@ object HookupClient {
     def internalReceive: Receive = {
       case Connected ⇒ {
         buffer foreach { b ⇒
-          b.drain(channel.send(_)) onComplete {
-            case _ ⇒
-              _isConnected.success(Success)
-          }
+          _isConnected.success(Success)
+          b.drain(channel.send(_))(executionContext, wireFormat.get())
           client.receive lift Connected
         }
         if (buffer.isEmpty) {

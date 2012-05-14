@@ -5,8 +5,6 @@ import net.liftweb.json._
 
 object PrintAllEventsServer {
 
-  implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
-
   def main(args: Array[String]) {
 
     val server = HookupServer(8126) {

@@ -38,9 +38,18 @@ trait BackupBuffer extends Closeable {
    * Write a line to the buffer
    * @param line A [[io.backchat.hookup.OutboundMessage]]
    */
-  def write(line: OutboundMessage)
-  def drain(readLine: (OutboundMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult]
+  def write(line: OutboundMessage)(implicit wireFormat: WireFormat)
+  def drain(readLine: (OutboundMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext, wireFormat: WireFormat): Future[OperationResult]
 }
+//
+//abstract class BufferFactory(val id: String) {
+//  def create(wireFormat: WireFormat): BackupBuffer
+//}
+//
+//class FileBufferFactory private[hookup] (file: File, writeToFile: Boolean, memoryBuffer: Queue[String]) extends BufferFactory("file_buffer") {
+//  def this(file: File) = this(file, true, new ConcurrentLinkedQueue[String]())
+//  def create(wireFormat: WireFormat) = new FileBuffer(file, writeToFile, memoryBuffer)(wireFormat)
+//}
 
 /**
  * The default file buffer.
@@ -52,9 +61,9 @@ trait BackupBuffer extends Closeable {
  *
  * @param file
  */
-class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer: Queue[String])(implicit wireFormat: WireFormat) extends BackupBuffer {
+class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer: Queue[String]) extends BackupBuffer {
 
-  def this(file: File)(implicit wireFormat: WireFormat) = this(file, true, new ConcurrentLinkedQueue[String]())
+  def this(file: File) = this(file, true, new ConcurrentLinkedQueue[String]())
 
   import FileBuffer._
 
@@ -82,7 +91,7 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
    * When an exception is thrown it will first buffer the message to memory and then rethrow the exception
    * @param message A [[io.backchat.hookup.OutboundMessage]]
    */
-  def write(message: OutboundMessage): Unit = synchronized {
+  def write(message: OutboundMessage)(implicit wireFormat: WireFormat): Unit = synchronized {
     val msg = wireFormat.render(message)
     try {
       state match {
@@ -101,7 +110,7 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
 
   }
 
-  private[this] def serializeAndSave(message: OutboundMessage)(save: String ⇒ Unit) = {
+  private[this] def serializeAndSave(message: OutboundMessage)(save: String ⇒ Unit)(implicit wireFormat: WireFormat) = {
     save(wireFormat.render(message))
   }
 
@@ -113,7 +122,7 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
    * @param executionContext An [[akka.dispatch.ExecutionContext]]
    * @return A [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
    */
-  def drain(readLine: (OutboundMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext): Future[OperationResult] = synchronized {
+  def drain(readLine: (OutboundMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext, wireFormat: WireFormat): Future[OperationResult] = synchronized {
     var futures = mutable.ListBuffer[Future[OperationResult]]()
     state = State.Draining
     close()
@@ -134,7 +143,8 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
           if (line.nonBlank)
             futures += readLine(wireFormat.parseOutMessage(line))
         }
-        val res = Future.sequence(futures.toList).map(ResultList(_))
+
+        val res = if (futures.isEmpty) Future { Success } else Future.sequence(futures.toList).map(ResultList(_))
         append = false
         res
       } else Promise.successful(Success)

@@ -10,7 +10,6 @@ import java.io.File
 
 object PrintingEchoClient {
 
-  implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
   val messageCounter = new AtomicInteger(0)
 
   def main(args: Array[String]) {

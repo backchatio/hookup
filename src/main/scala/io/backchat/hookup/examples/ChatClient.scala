@@ -10,7 +10,6 @@ import java.io.File
 
 object ChatClient {
 
-  implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
   val messageCounter = new AtomicInteger(0)
 
   def main(args: Array[String]) {

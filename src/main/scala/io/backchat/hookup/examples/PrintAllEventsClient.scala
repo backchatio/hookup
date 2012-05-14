@@ -11,7 +11,6 @@ import java.io.File
 
 object PrintAllEventsClient {
 
-  implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
   val messageCounter = new AtomicInteger(0)
   val bufferedCounter = new AtomicInteger(0)
 
