@@ -1139,12 +1139,7 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient) exte
   }
 
   private[this] def configureFlashPolicySupport(pipe: ChannelPipeline) {
-//    val hasFlashPolicy = config.capabilities exists {
-//      case _: FlashPolicy => true
-//      case _ => false
-//    }
-//    if (hasFlashPolicy)
-    logger.info("Configuring flash policy")
+    // TODO: make this opt-in instead of allow all?
     pipe.addLast("flash-policy", new FlashPolicyHandler(ChannelBuffers.copiedBuffer(config.flashPolicy, CharsetUtil.UTF_8)))
   }
 
