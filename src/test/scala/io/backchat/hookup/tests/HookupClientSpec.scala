@@ -16,8 +16,8 @@ import akka.util.duration._
 
 object HookupClientSpecification {
 
-  def newServer(port: Int)(implicit wireFormat: WireFormat): HookupServer =
-    HookupServer(ServerInfo("Test Echo Server", listenOn = "127.0.0.1", port = port)) {
+  def newServer(port: Int): HookupServer =
+    HookupServer(ServerInfo("Test Echo Server", defaultProtocol = "jsonProtocol", listenOn = "127.0.0.1", port = port)) {
       new HookupServerClient {
         def receive = {
           case TextMessage(text) ⇒ send(text)
@@ -29,7 +29,7 @@ object HookupClientSpecification {
 
 trait HookupClientSpecification extends Specification with NoTimeConversions {
 
-  implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
+
   val serverAddress = {
     val s = new ServerSocket(0);
     try { s.getLocalPort } finally { s.close() }
@@ -45,8 +45,7 @@ trait HookupClientSpecification extends Specification with NoTimeConversions {
   def withWebSocket[T <% Result](handler: Handler)(t: HookupClient => T) = {
     val client = new HookupClient {
       val uri = new URI("ws://127.0.0.1:"+serverAddress.toString+"/")
-      override implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(jsonFormats)
-      val settings = HookupClientConfig(uri)
+      val settings = HookupClientConfig(uri, defaultProtocol = new JsonProtocolWireFormat()(DefaultFormats))
       def receive = {
         case m  => handler.lift((this, m))
       }

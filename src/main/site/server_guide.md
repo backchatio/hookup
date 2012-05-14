@@ -33,7 +33,7 @@ myServer {
   port = 8765
   pingTimeout = "50 seconds"
   contentCompression = 6
-  subProtocols = []
+  subProtocols = ["jsonProtocol", "simpleJson"]
   ssl {
     keystore = "./ssl/keystore.jks"
     password = "changeme"

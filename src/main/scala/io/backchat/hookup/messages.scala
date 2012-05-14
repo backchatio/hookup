@@ -102,6 +102,7 @@ private[hookup] case class AckRequest(message: Ackable, id: Long) extends Inboun
 case class AckFailed(message: OutboundMessage) extends InboundMessage
 
 private[hookup] case class Ack(id: Long) extends InboundMessage with OutboundMessage
+private[hookup] case class SelectedWireFormat(wireFormat: WireFormat) extends InboundMessage
 
 /**
  * A callback event signaling that an error has occurred. if the error was an exception thrown

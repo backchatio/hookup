@@ -10,6 +10,18 @@ import akka.util.duration._
 trait WireFormat {
 
   /**
+   * The name of this wire format
+   * @return The name
+   */
+  def name: String
+
+  /**
+   * A flag to indicate whether this wireformat supports acking or not
+   * @return True if this wire format supports acking, otherwise false
+   */
+  def supportsAck: Boolean
+
+  /**
    * Parse an inbound message from a string. This is used when a message is received over a connection.
    *
    * @param message The serialized message to parse
@@ -43,6 +55,10 @@ trait WireFormat {
  * @param formats the [[net.liftweb.json.Formats]] for lift-json
  */
 class SimpleJsonWireFormat(implicit formats: Formats) extends WireFormat {
+
+  val name = "simpleJson"
+  val supportsAck = false
+
   private[this] def parseMessage(message: String) = {
     if (message.trim.startsWith("{") || message.trim.startsWith("["))
       parseOpt(message) map (JsonMessage(_)) getOrElse TextMessage(message)
@@ -175,6 +191,8 @@ object JsonProtocolWireFormat {
  * @param formats  the [[net.liftweb.json.Formats]] for lift-json
  */
 class JsonProtocolWireFormat(implicit formats: Formats) extends WireFormat {
+  val name = "jsonProtocol"
+  val supportsAck = true
   import JsonProtocolWireFormat._
   def parseInMessage(message: String): InboundMessage = ParseToWebSocketInMessage(message)
   def parseOutMessage(message: String): OutboundMessage = ParseToWebSocketOutMessage(message)

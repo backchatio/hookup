@@ -14,13 +14,14 @@ import JsonDSL._
 import java.io.File
 import akka.testkit._
 import java.util.concurrent._
+import examples.NoopWireformat
 
 class HookupServerSpec extends Specification with NoTimeConversions { def is = sequential ^
   "A HookupServer should" ^
-    "fails connecting when none of the protocols match" ! hookupServerContext("irc", "minutes").failsWithWrongSubProtocols ^ bt^
+    "fails connecting when none of the protocols match" ! hookupServerContext(protos.toSeq:_*).failsWithWrongSubProtocols ^ bt^
     "accept connections" ^ t ^
       "without subprotocols" ! hookupServerContext().acceptsWithoutSubProtocols ^
-      "with subprotocols" ! hookupServerContext("irc", "minutes").acceptsWithSubProtocols ^ bt(2) ^
+      "with subprotocols" ! hookupServerContext(protos.toSeq:_*).acceptsWithSubProtocols ^ bt(2) ^
     "perform messaging and" ^ t^
       "receive a message from a client" ! hookupServerContext().receivesClientMessages ^
       "detect when a json message is received" ! hookupServerContext().receivesJsonClientMessages ^
@@ -34,12 +35,14 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
       "expecting an ack on the client" ! hookupServerContext().clientExpectsAnAck ^ bt(3) ^
   end
 
-  implicit val wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)
+  def protos = Map("irc" -> new NoopWireformat("irc"), "minutes" -> new NoopWireformat("minutes"))
+
   implicit val executionContext = ExecutionContext.fromExecutorService(Executors.newCachedThreadPool())
+
   override def map(fs: => Fragments) = super.map(fs) ^ Step(executionContext.shutdown())
 
 
-  case class hookupServerContext(protocols: String*) extends After {
+  case class hookupServerContext(protocols: (String, WireFormat)*) extends After {
     import collection.JavaConverters._
     import io.backchat.hookup.Connected
     val serverAddress = {
@@ -71,9 +74,10 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
       }
     }
     val server = {
-      if (protocols.isEmpty) HookupServer("127.0.0.1", serverAddress, Ping(Timeout(2 seconds)), RaiseAckEvents)(new WsClient)
-      else HookupServer("127.0.0.1", serverAddress, SubProtocols(protocols.head, protocols.tail:_*))(new WsClient)
-
+      val info = ServerInfo(
+        listenOn = "127.0.0.1", defaultProtocol = "jsonProtocol", port = serverAddress,
+        capabilities = if (protocols.isEmpty) Seq(Ping(Timeout(2 seconds)), RaiseAckEvents) else Seq(SubProtocols(protocols.head, protocols.tail:_*)))
+      HookupServer(info)(new WsClient)
     }
 
     server.start
@@ -81,20 +85,22 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
       server.stop
     }
 
-    def withClient[T <% Result](handler: HookupClient.Receive, protocols: String*)(thunk: HookupClient => T): T = {
+    def withClient[T <% Result](handler: HookupClient.Receive, protocols: (String, WireFormat)*)(thunk: HookupClient => T): T = {
       val protos = protocols
+      implicit val wireFormat = new JsonProtocolWireFormat()(DefaultFormats)
       val cl = new HookupClient {
         val uri = new URI("ws://127.0.0.1:"+serverAddress.toString+"/")
         val settings: HookupClientConfig = HookupClientConfig(
           uri = uri,
           throttle = IndefiniteThrottle(1 second, 1 second),
           buffer = Some(new FileBuffer(new File("./work/buffer-test.log"))),
-          protocols = protos)
+          defaultProtocol = wireFormat,
+          protocols = Map(protocols:_*))
         override private[hookup] def raiseEvents = true
         def receive = handler
       }
       try {
-        Await.ready(cl.connect, 3 seconds)
+        Await.ready(cl.connect("jsonProtcol"), 3 seconds)
         thunk(cl)
       } finally {
         cl.disconnect
@@ -112,7 +118,9 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
     }
 
     def failsWithWrongSubProtocols = this {
-      withClient({ case _ => }, "xmpp") { _ => client.isCompleted must beTrue.eventually  }
+      withClient({ case _ => }, "xmpp" -> new NoopWireformat("xmpp")) { c =>
+        client.isCompleted must beTrue.eventually //and (c.isConnected must beFalse.eventually)
+      }
     }
 
     def canSendMessagesToTheClient = this {

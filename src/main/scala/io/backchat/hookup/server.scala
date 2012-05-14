@@ -18,7 +18,6 @@ import collection.mutable.ListBuffer
 import akka.dispatch.{ Promise, Future }
 import akka.util.duration._
 import org.jboss.netty.handler.timeout.{ IdleStateEvent, IdleState, IdleStateHandler, IdleStateAwareChannelHandler }
-import java.util.concurrent.atomic.AtomicLong
 import net.liftweb.json._
 import JsonDSL._
 import java.util.concurrent.{ ConcurrentHashMap, ConcurrentLinkedQueue, TimeUnit, Executors }
@@ -38,6 +37,7 @@ import org.jboss.netty.handler.codec.http.HttpHeaders._
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone}
 import java.util.logging.{Level, Logger}
+import java.util.concurrent.atomic.{AtomicReference, AtomicLong}
 
 /**
  * A marker trait to indicate something is a a configuration for the server.
@@ -69,7 +69,7 @@ case class ContentCompression(level: Int = 6) extends ServerCapability
  * @param protocol A supported protocol name
  * @param protocols remaining supported protocols
  */
-case class SubProtocols(protocol: String, protocols: String*) extends ServerCapability
+case class SubProtocols(protocol: (String, WireFormat), protocols: (String, WireFormat)*) extends ServerCapability
 
 /**
  * The configuration for sending pings to a client. (Some websocket clients don't support ping frames)
@@ -113,7 +113,17 @@ object ServerInfo {
    * @param config A [[com.typesafe.config.Config]] object
    * @return the created [[io.backchat.hookup.ServerInfo]]
    */
-  def apply(config: Config): ServerInfo = apply(config, DefaultServerName)
+  def apply(config: Config): ServerInfo = apply(config, DefaultServerName, DefaultProtocols)
+
+  /**
+   * Creates a [[io.backchat.hookup.ServerInfo]] with the [[io.backchat.hookup.ServerInfo.DefaultServerName]]
+   *
+   * @param config A [[com.typesafe.config.Config]] object
+   * @param protocols A [[scala.collection.Map]] of string keys and wireformats with the supported formats
+   * @return the created [[io.backchat.hookup.ServerInfo]]
+   */
+  def apply(config: Config, protocols: Map[String, WireFormat]): ServerInfo =
+    apply(config, DefaultServerName, protocols)
 
   /**
    * Creates a [[io.backchat.hookup.ServerInfo]]
@@ -122,16 +132,28 @@ object ServerInfo {
    * @param name the name of the server
    * @return the created [[io.backchat.hookup.ServerInfo]]
    */
-  def apply(config: Config, name: String): ServerInfo = {
+  def apply(config: Config, name: String): ServerInfo =
+    apply(config, name, DefaultProtocols)
+
+  /**
+   * Creates a [[io.backchat.hookup.ServerInfo]]
+   *
+   * @param config A [[com.typesafe.config.Config]] object
+   * @param name the name of the server
+   * @param protocols A [[scala.collection.Map]] of string keys and wireformats with the supported formats
+   * @return the created [[io.backchat.hookup.ServerInfo]]
+   */
+  def apply(config: Config, name: String, protocols: Map[String, WireFormat]): ServerInfo = {
     import collection.JavaConverters._
 
+    val allProtos = DefaultProtocols ++ protocols
     val caps = ListBuffer[ServerCapability]()
     if (config.hasPath("contentCompression"))
       caps += ContentCompression(config.getInt("contentCompression"))
 
     if (config.hasPath("subProtocols")) {
       val lst = config.getStringList("subProtocols").asScala.toList
-      caps += SubProtocols(lst.head, lst.tail:_*)
+      caps += SubProtocols(lst.head -> allProtos(lst.head), lst.tail.map(k => k -> allProtos(k)):_*)
     }
 
     if (config.hasPath("pingTimeout"))
@@ -162,6 +184,7 @@ object ServerInfo {
       if (config.hasPath("version")) config.getString("version") else BuildInfo.version,
       if (config.hasPath("listenOn")) config.getString("listenOn") else "0.0.0.0",
       if (config.hasPath("port")) config.getInt("port") else 8765,
+      if (config.hasPath("defaultProtocol")) config.getString("defaultProtocol") else DefaultProtocol,
       caps)
   }
 }
@@ -173,6 +196,7 @@ object ServerInfo {
  * @param version The version of the server
  * @param listenOn Which address the server should listen on
  * @param port The port the server should listen on
+ * @param defaultProtocol The default protocol for this server to use when no subprotocols have been specified
  * @param capabilities A sequence of [[io.backchat.hookup.ServerCapability]] configurations for this server
  */
 /// code_ref: server_info
@@ -181,6 +205,7 @@ case class ServerInfo(
     version: String = BuildInfo.version,
     listenOn: String = "0.0.0.0",
     port: Int = 8765,
+    defaultProtocol: String = DefaultProtocol,
     capabilities: Seq[ServerCapability] = Seq.empty) {
 /// end_code_ref
   /**
@@ -208,9 +233,11 @@ case class ServerInfo(
   /**
    * If the server should support sub-protocols this will have the configuration for it.
    */
-  val subProtocols = (capabilities collect {
-    case sp: SubProtocols if sp.protocols.nonEmpty ⇒ sp.protocol :+ sp.protocols
-  }).headOption
+  val protocols = DefaultProtocols ++ ((capabilities collect {
+    case sp: SubProtocols => Map(sp.protocol) ++ sp.protocols
+  }).headOption getOrElse Map.empty)
+
+  val defaultWireFormat = protocols(defaultProtocol)
 
   /**
    * If the server should support pinging this will have the configuration for it.
@@ -529,10 +556,9 @@ object HookupServer {
    *
    * @param capabilities The a varargs sequence of [[io.backchat.hookup.ServerCapability]] objects to configure this server with
    * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
-   * @param wireFormat The wireformat to use for this server.
    * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(capabilities: ServerCapability*)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
+  def apply(capabilities: ServerCapability*)(factory: ⇒ HookupServerClient): HookupServer = {
     apply(ServerInfo(DefaultServerName, capabilities = capabilities))(factory)
   }
 
@@ -542,10 +568,9 @@ object HookupServer {
    * @param port The port this server will listen on.
    * @param capabilities The a varargs sequence of [[io.backchat.hookup.ServerCapability]] objects to configure this server with
    * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
-   * @param wireFormat The wireformat to use for this server.
    * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(port: Int, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
+  def apply(port: Int, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient): HookupServer = {
     apply(ServerInfo(DefaultServerName, port = port, capabilities = capabilities))(factory)
   }
 
@@ -555,10 +580,9 @@ object HookupServer {
    * @param listenOn The host/network address this server will listen on
    * @param capabilities The a varargs sequence of [[io.backchat.hookup.ServerCapability]] objects to configure this server with
    * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
-   * @param wireFormat The wireformat to use for this server.
    * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(listenOn: String, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
+  def apply(listenOn: String, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient): HookupServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, capabilities = capabilities))(factory)
   }
 
@@ -569,10 +593,9 @@ object HookupServer {
    * @param port The port this server will listen on.
    * @param capabilities The a varargs sequence of [[io.backchat.hookup.ServerCapability]] objects to configure this server with
    * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
-   * @param wireFormat The wireformat to use for this server.
    * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(listenOn: String, port: Int, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
+  def apply(listenOn: String, port: Int, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient): HookupServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, port = port, capabilities = capabilities))(factory)
   }
 
@@ -584,10 +607,9 @@ object HookupServer {
    * @param port The port this server will listen on.
    * @param capabilities The a varargs sequence of [[io.backchat.hookup.ServerCapability]] objects to configure this server with
    * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
-   * @param wireFormat The wireformat to use for this server.
    * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(name: String, listenOn: String, port: Int, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
+  def apply(name: String, listenOn: String, port: Int, capabilities: ServerCapability*)(factory: ⇒ HookupServerClient): HookupServer = {
     apply(ServerInfo(DefaultServerName, listenOn = listenOn, port = port, capabilities = capabilities))(factory)
   }
 
@@ -596,10 +618,9 @@ object HookupServer {
    *
    * @param info The [[io.backchat.hookup.ServerInfo]] to use to configure this server
    * @param factory The factor for creating the [[io.backchat.hookup.HookupServerClient]] instances
-   * @param wireFormat The wireformat to use for this server.
    * @return A [[io.backchat.hookup.HookupServer]]
    */
-  def apply(info: ServerInfo)(factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat): HookupServer = {
+  def apply(info: ServerInfo)(factory: ⇒ HookupServerClient): HookupServer = {
     new HookupServer(info, factory)
   }
 
@@ -677,9 +698,10 @@ object HookupServer {
   private final class WebSocketClientFactoryHandler(logger: InternalLogger,
       allChannels: ChannelGroup,
       factory: ⇒ HookupServerClient,
-      subProtocols: Traversable[String] = Nil,
+      defaultWireFormat: WireFormat,
+      subProtocols: Map[String, WireFormat] = Map.empty,
       maxFrameSize: Long = Long.MaxValue,
-      raiseEvents: Boolean = false)(implicit wireFormat: WireFormat) extends SimpleChannelUpstreamHandler {
+      raiseEvents: Boolean = false) extends SimpleChannelHandler {
 
     private[this] var collectedFrames: Seq[ContinuationWebSocketFrame] = Vector.empty[ContinuationWebSocketFrame]
 
@@ -688,6 +710,8 @@ object HookupServer {
     private[this] var client: HookupServerClientHandler = null
 
     private[this] var receivedCloseFrame: Boolean = false
+
+    private[this] val wireFormat = new AtomicReference[WireFormat](defaultWireFormat)
 
     private[this] def clientFrom(ctx: ChannelHandlerContext): HookupServerClientHandler = {
       (Option(ctx.getAttachment) collect {
@@ -702,6 +726,21 @@ object HookupServer {
       }
     }
 
+    private def isSubProto(req: HttpRequest) =
+      req.getHeader(Names.SEC_WEBSOCKET_PROTOCOL) != null && subProtocols.contains(spFromReq(req))
+    private def spFromReq(req: HttpRequest) = req.getHeader(Names.SEC_WEBSOCKET_PROTOCOL).toString
+
+    override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
+      e.getMessage match {
+        case req: HttpRequest if isSubProto(req) =>
+          val wf = subProtocols(spFromReq(req))
+          wireFormat.set(wf)
+          Channels.fireMessageReceived(e.getChannel, SelectedWireFormat(wf))
+        case _ =>
+      }
+      super.writeRequested(ctx, e)
+    }
+
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
         case request: HttpRequest if HttpHeaders.is100ContinueExpected(request) ⇒
@@ -712,7 +751,7 @@ object HookupServer {
         case httpRequest: HttpRequest if isWebSocketUpgrade(httpRequest) ⇒ handleUpgrade(ctx, httpRequest)
 
         case m: TextWebSocketFrame ⇒ {
-          wireFormat.parseInMessage(m.getText) match {
+          wireFormat.get.parseInMessage(m.getText) match {
             case a: Ack        ⇒ Channels.fireMessageReceived(ctx, a)
             case a: AckRequest ⇒ Channels.fireMessageReceived(ctx, a)
             case r             ⇒ client.receive lift r
@@ -764,7 +803,7 @@ object HookupServer {
     }
 
     private def handleUpgrade(ctx: ChannelHandlerContext, httpRequest: HttpRequest) {
-      val protos = if (subProtocols.isEmpty) null else subProtocols.mkString(",")
+      val protos = if (subProtocols.isEmpty) null else subProtocols.map(_._1).mkString(",")
       val handshakerFactory = new WebSocketServerHandshakerFactory(websocketLocation(httpRequest), protos, false, maxFrameSize)
       handshaker = handshakerFactory.newHandshaker(httpRequest)
       if (handshaker == null) handshakerFactory.sendUnsupportedWebSocketVersionResponse(ctx.getChannel)
@@ -796,12 +835,15 @@ object HookupServer {
    * It serializes the message and then writes it as a text websocket frame to the connection
    *
    * @param logger The [[org.jboss.netty.logging.InternalLogger]] to use in this adapter
-   * @param wireFormat The [[io.backchat.hookup.WireFormat]] to serialize messages with.
+   * @param defaultWireFormat The default [[io.backchat.hookup.WireFormat]] to serialize messages with.
    */
-  class WebSocketMessageAdapter(logger: InternalLogger)(implicit wireFormat: WireFormat) extends SimpleChannelDownstreamHandler {
+  class WebSocketMessageAdapter(logger: InternalLogger, defaultWireFormat: WireFormat) extends SimpleChannelDownstreamHandler {
 
+    private[this] val wireFormat = new AtomicReference[WireFormat](defaultWireFormat)
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
+        case SelectedWireFormat(wf) => wireFormat.set(wf)
+        case _ if wireFormat.get == null => throw new IllegalStateException("Can't handle messages without a wireformat")
         case m: JsonMessage ⇒ writeOutMessage(ctx, m)
         case m: TextMessage ⇒ writeOutMessage(ctx, m)
         case Disconnect     ⇒ ctx.getChannel.write(new CloseWebSocketFrame()).addListener(ChannelFutureListener.CLOSE)
@@ -815,7 +857,7 @@ object HookupServer {
     }
 
     private def writeOutMessage(ctx: ChannelHandlerContext, msg: OutboundMessage) {
-      ctx.getChannel.write(new TextWebSocketFrame(wireFormat.render(msg)))
+      ctx.getChannel.write(new TextWebSocketFrame(wireFormat.get.render(msg)))
     }
   }
 
@@ -836,22 +878,33 @@ object HookupServer {
    * Responds to ack requests as they are received, and forwards on the inbound message.
    *
    * @param logger The [[org.jboss.netty.logging.InternalLogger]] to use in this adapter
+   * @param defaultWireFormat The default [[io.backchat.hookup.WireFormat]] to serialize messages with.
    * @param raiseEvents A boolean flag to raise events or not, only valuable during testing.
-   * @param wireFormat The [[io.backchat.hookup.WireFormat]] to serialize messages with.
    */
-  class MessageAckingHandler(logger: InternalLogger, raiseEvents: Boolean = false)(implicit wireFormat: WireFormat) extends SimpleChannelHandler {
+  class MessageAckingHandler(logger: InternalLogger, defaultWireFormat: WireFormat, raiseEvents: Boolean = false) extends SimpleChannelHandler {
 
     private[this] val messageCounter = new AtomicLong
     private[this] val expectedAcks = new ConcurrentHashMap[Long, Cancellable]()
     private[this] val ackScavenger = new HashedWheelTimer()
+    private[this] val wireFormat = new AtomicReference[WireFormat](defaultWireFormat)
 
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
-        case Ack(id) ⇒
+        case SelectedWireFormat(wf) => wireFormat.set(wf)
+        case _ if wireFormat.get == null => throw new IllegalStateException("Can't handle messages without a wireformat")
+        case Ack(id) if wireFormat.get() != null && wireFormat.get().supportsAck ⇒
           val ack = expectedAcks.remove(id)
           if (ack != null) ack.cancel()
           if (raiseEvents) ctx.sendUpstream(e)
-        case AckRequest(msg, id) ⇒ {
+        case Ack(id) if wireFormat.get() != null && !wireFormat.get().supportsAck ⇒
+          logger.warn("Trying to ack over a wire format that doesn't support acking.")
+          if (raiseEvents) ctx.sendUpstream(e)
+        case AckRequest(msg, id) if wireFormat.get() != null && wireFormat.get().supportsAck ⇒ {
+          ctx.getChannel.write(Ack(id))
+          if (raiseEvents) Channels.fireMessageReceived(ctx, AckRequest(msg, id))
+          Channels.fireMessageReceived(ctx, msg)
+        }
+        case AckRequest(msg, id) if wireFormat.get() != null && !wireFormat.get().supportsAck ⇒ {
           ctx.getChannel.write(Ack(id))
           if (raiseEvents) Channels.fireMessageReceived(ctx, AckRequest(msg, id))
           Channels.fireMessageReceived(ctx, msg)
@@ -862,11 +915,17 @@ object HookupServer {
 
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
-        case m: Ack ⇒
-          ctx.getChannel.write(new TextWebSocketFrame(wireFormat.render(m)))
-        case NeedsAck(m, timeout) ⇒
+        case _ if wireFormat.get == null => throw new IllegalStateException("Can't render messages without a wireformat")
+        case m: Ack if wireFormat.get != null && wireFormat.get.supportsAck ⇒
+          ctx.getChannel.write(new TextWebSocketFrame(wireFormat.get.render(m)))
+        case m: Ack if wireFormat.get != null && !wireFormat.get.supportsAck ⇒
+          logger.warn("Trying to ack over a wire format that doesn't support acking, ack message dropped.")
+        case NeedsAck(m, timeout) if wireFormat.get != null && wireFormat.get.supportsAck ⇒
           val id = createAck(ctx, m, timeout)
           if (raiseEvents) Channels.fireMessageReceived(ctx, AckRequest(m, id))
+        case NeedsAck(m, timeout) if wireFormat.get != null && !wireFormat.get.supportsAck ⇒
+          logger.warn("Trying to ack over a wire format that doesn't support acking, ack message dropped.")
+          if (raiseEvents) Channels.fireMessageReceived(ctx, AckRequest(m, -1))
         case _ ⇒ ctx.sendDownstream(e)
       }
     }
@@ -967,8 +1026,11 @@ object HookupServer {
  *   // time passes......
  *   server.stop
  * }}}
+ *
+ * @param config A [[io.backchat.hookup.ServerInfo]] to use as configuration for this server
+ * @param factory A by-name param that functions as factory for [[io.backchat.hookup.HookupServerClient]]
  */
-class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient)(implicit wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)) extends Server {
+class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient) extends Server {
 
   /**
    * The capabilities this server is configured with
@@ -1016,6 +1078,7 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient)(impl
 
   private[this] val timer = new HashedWheelTimer()
   private[this] var server: ServerBootstrap = null
+  private[this] var serverConnection: Channel = null
 
   private[this] val allChannels = new DefaultChannelGroup
 
@@ -1041,9 +1104,9 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient)(impl
 
   private[this] def configureWebSocketSupport(pipe: ChannelPipeline) {
     val raiseEvents = capabilities.contains(RaiseAckEvents)
-    pipe.addLast("websockethandler", new WebSocketClientFactoryHandler(logger, allChannels, factory, maxFrameSize = config.maxFrameSize, raiseEvents = raiseEvents))
-    pipe.addLast("websocketoutput", new WebSocketMessageAdapter(logger))
-    pipe.addLast("acking", new MessageAckingHandler(logger, raiseEvents))
+    pipe.addLast("websockethandler", new WebSocketClientFactoryHandler(logger, allChannels, factory, config.defaultWireFormat, maxFrameSize = config.maxFrameSize, raiseEvents = raiseEvents))
+    pipe.addLast("websocketoutput", new WebSocketMessageAdapter(logger, config.defaultWireFormat))
+    pipe.addLast("acking", new MessageAckingHandler(logger, config.defaultWireFormat, raiseEvents))
     if (raiseEvents) {
       pipe.addLast("eventsHook", new SimpleChannelHandler {
         var theclient: HookupServerClientHandler = null
@@ -1190,8 +1253,8 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient)(impl
     configureBootstrap()
     server.setPipelineFactory(pipelineFactory)
     val addr = config.listenOn.blankOption.map(l ⇒ new InetSocketAddress(l, port)) | new InetSocketAddress(config.port)
-    val sc = server.bind(addr)
-    allChannels add sc
+    serverConnection = server.bind(addr)
+
     sys.addShutdownHook(stop)
     startCallbacks foreach (_.apply())
     logger info "Started %s %s on [%s:%d]".format(name, version, listenOn, port)
@@ -1203,6 +1266,7 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient)(impl
   final def stop = synchronized {
     stopCallbacks foreach (_.apply())
     allChannels.close().awaitUninterruptibly()
+    if (serverConnection != null && serverConnection.isBound) serverConnection.unbind().awaitUninterruptibly()
     val thread = new Thread {
       override def run = {
         if (server != null) {
@@ -1212,8 +1276,8 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient)(impl
     }
     thread.setDaemon(false)
     thread.start()
-    thread.join()
-    logger info "Stopped %s".format(config.name)
+    thread.join
+    logger info "Stopped  %s %s on [%s:%d]".format(name, version, listenOn, port)
   }
 }
 

@@ -13,7 +13,6 @@ import akka.jsr166y.ForkJoinPool
 import java.lang.Thread.UncaughtExceptionHandler
 import org.jboss.netty.handler.timeout.{ IdleStateAwareChannelHandler, IdleStateEvent, IdleState, IdleStateHandler }
 import org.jboss.netty.logging.{ InternalLogger, InternalLoggerFactory }
-import java.util.concurrent.atomic.AtomicLong
 import io.backchat.hookup.HookupServer.MessageAckingHandler
 import org.jboss.netty.util.{ Timeout ⇒ NettyTimeout, TimerTask, HashedWheelTimer, CharsetUtil }
 import akka.util.{ Duration, Timeout }
@@ -24,6 +23,7 @@ import net.liftweb.json.{JsonParser, DefaultFormats, Formats, parse, render, com
 import java.io.{Closeable, File}
 import java.util.concurrent.{ConcurrentSkipListSet, TimeUnit, Executors}
 import reflect.BeanProperty
+import java.util.concurrent.atomic.{AtomicReference, AtomicLong}
 
 /**
  * @see [[io.backchat.hookup.HookupClient]]
@@ -44,10 +44,10 @@ object HookupClient {
    * This handler takes care of translating websocket frames into [[io.backchat.hookup.InboundMessage]] instances
    * @param handshaker The handshaker to use for this websocket connection
    * @param host The host to connect to.
-   * @param wireFormat The wireformat to use for this connection.
    */
-  class WebSocketClientHostHandler(handshaker: WebSocketClientHandshaker, host: HookupClientHost)(implicit wireFormat: WireFormat) extends SimpleChannelHandler {
-    private val msgCount = new AtomicLong(0)
+  class WebSocketClientHostHandler(handshaker: WebSocketClientHandshaker, host: HookupClientHost) extends SimpleChannelHandler {
+    private[this] val msgCount = new AtomicLong(0)
+    private[this] def wireFormat = host.wireFormat.get
 
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
@@ -56,6 +56,12 @@ object HookupClient {
             + resp.getContent.toString(CharsetUtil.UTF_8) + ")")
         case resp: HttpResponse ⇒
           handshaker.finishHandshake(ctx.getChannel, resp)
+          // Netty doesn't implement the sub protocols for all handshakers, otherwise handshaker.getActualSubProtocol would have been great
+          resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL).blankOption foreach { p =>
+            val wf = host.settings.protocols(p)
+            host.wireFormat.set(wf)
+            Channels.fireMessageReceived(ctx, SelectedWireFormat(wf))
+          }
           host.receive lift Connected
 
         case f: TextWebSocketFrame ⇒
@@ -113,15 +119,13 @@ object HookupClient {
    *
    * @param client The client to decorate
    * @param executionContext The execution context for futures
-   * @param wireFormat The wireformat to use
    */
-  private final class HookupClientHost(val client: HookupClient)(implicit executionContext: ExecutionContext, wireFormat: WireFormat) extends HookupClientLike with BroadcastChannel with Connectable with Reconnectable {
+  private final class HookupClientHost(val client: HookupClient)(implicit executionContext: ExecutionContext) extends HookupClientLike with BroadcastChannel with Connectable with Reconnectable {
 
     private[this] val normalized = client.settings.uri.normalize()
     private[this] val tgt = if (normalized.getPath == null || normalized.getPath.trim().isEmpty) {
       new URI(normalized.getScheme, normalized.getAuthority, "/", normalized.getQuery, normalized.getFragment)
     } else normalized
-    private[this] val protos = if (client.settings.protocols.isEmpty) null else client.settings.protocols.mkString(",")
 
     private[this] val bootstrap = new ClientBootstrap(new NioClientSocketChannelFactory(Executors.newCachedThreadPool, Executors.newCachedThreadPool))
     private[this] var handshaker: WebSocketClientHandshaker = null
@@ -129,6 +133,8 @@ object HookupClient {
     private[this] var channel: Channel = null
     private[this] var _isConnected: Promise[OperationResult] = Promise[OperationResult]()
     private[this] val buffer = client.settings.buffer
+    val settings = client.settings
+    val wireFormat = new AtomicReference[WireFormat](settings.defaultProtocol)
 
     def isConnected = channel != null && channel.isConnected && _isConnected.isCompleted
 
@@ -147,7 +153,7 @@ object HookupClient {
 
           pipeline.addLast("encoder", new HttpRequestEncoder)
           pipeline.addLast("ws-handler", new WebSocketClientHostHandler(handshaker, self))
-          pipeline.addLast("acking", new MessageAckingHandler(logger, client.raiseEvents))
+          pipeline.addLast("acking", new MessageAckingHandler(logger, settings.defaultProtocol, client.raiseEvents))
           if (client.raiseEvents) {
             pipeline.addLast("eventsHook", new SimpleChannelHandler {
               override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
@@ -168,8 +174,10 @@ object HookupClient {
     var isClosing = false
     configureBootstrap()
 
-    def connect(): Future[OperationResult] = synchronized {
-      handshaker = new WebSocketClientHandshakerFactory().newHandshaker(tgt, client.settings.version, protos, false, client.settings.initialHeaders.asJava)
+    def connect(protocols: String*): Future[OperationResult] = synchronized {
+      val protos = if (protocols.nonEmpty) protocols
+      else settings.protocols.keys.toSeq
+      handshaker = new WebSocketClientHandshakerFactory().newHandshaker(tgt, client.settings.version, protos.mkString(","), false, client.settings.initialHeaders.asJava)
       isClosing = false
       val self = this
       if (isConnected) Promise.successful(Success)
@@ -216,7 +224,7 @@ object HookupClient {
       disconnect() andThen {
         case _ ⇒
           delay {
-            connect()
+            connect(wireFormat.get().name)
           }
       }
     }
@@ -401,51 +409,14 @@ object HookupClient {
    *
    * @param context The configuration for the websocket client
    * @param recv The message handler
-   * @param jsFormat the lift-json formats
-   * @param wireFormat the [[io.backchat.hookup.WireFormat]] to use
    * @return a [[io.backchat.hookup.DefaultHookupClient]]
    */
-  def apply(context: HookupClientConfig)
-           (recv: Receive)
-           (implicit jsFormat: Formats = DefaultFormats, wireFormat: WireFormat = new JsonProtocolWireFormat()(DefaultFormats)): HookupClient = {
-    new DefaultHookupClient(context, wireFormat, jsFormat) {
+  def apply(context: HookupClientConfig)(recv: Receive): HookupClient = {
+    new DefaultHookupClient(context) {
       val receive = recv
     }
   }
 
-  /**
-   * A factory method for the java api. It creates a JavaHookupClient which is a websocket with added helpers for
-   * the java language, so they too can enjoy this library.
-   *
-   * @param context The configuration for the websocket client
-   * @param jsFormat the lift-json formats
-   * @param wireFormat the [[io.backchat.hookup.WireFormat]] to use
-   * @return a [[io.backchat.hookup.JavaHookupClient]]
-   */
-  def create(context: HookupClientConfig, jsFormat: Formats, wireFormat: WireFormat): JavaHookupClient =
-    new JavaHookupClient(context, wireFormat, jsFormat)
-
-  /**
-   * A factory method for the java api. It creates a JavaHookupClient which is a websocket with added helpers for
-   * the java language, so they too can enjoy this library.
-   *
-   * @param context The configuration for the websocket client
-   * @param wireFormat the [[io.backchat.hookup.WireFormat]] to use
-   * @return a [[io.backchat.hookup.JavaHookupClient]]
-   */
-  def create(context: HookupClientConfig, wireFormat: WireFormat): JavaHookupClient =
-    new JavaHookupClient(context, wireFormat)
-
-  /**
-   * A factory method for the java api. It creates a JavaHookupClient which is a websocket with added helpers for
-   * the java language, so they too can enjoy this library.
-   *
-   * @param context The configuration for the websocket client
-   * @param jsFormat the lift-json formats
-   * @return a [[io.backchat.hookup.JavaHookupClient]]
-   */
-  def create(context: HookupClientConfig, jsFormat: Formats): JavaHookupClient =
-    new JavaHookupClient(context, jsFormat)
 
   /**
    * A factory method for the java api. It creates a JavaHookupClient which is a websocket with added helpers for
@@ -475,7 +446,7 @@ trait Connectable { self: BroadcastChannelLike ⇒
    * Connect to the server
    * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
-  def connect(): Future[OperationResult]
+  def connect(protocols: String*): Future[OperationResult]
 }
 
 /**
@@ -509,6 +480,7 @@ trait HookupClientLike extends BroadcastChannelLike {
  * @param version The version of the websocket handshake to use, defaults to the most recent version.
  * @param initialHeaders The headers to send along with the handshake request.
  * @param protocols The protocols this websocket client can understand
+ * @param defaultProtocol the default protocol this client should use
  * @param pinging The timeout for pinging.
  * @param buffer The buffer to use when the connection to the server is lost.
  * @param throttle The throttle to use as reconnection schedule.
@@ -522,7 +494,9 @@ case class HookupClientConfig(
   @BeanProperty
   initialHeaders: Map[String, String] = Map.empty,
   @BeanProperty
-  protocols: Seq[String] = Nil,
+  protocols: Map[String, WireFormat] = DefaultProtocols,
+  @BeanProperty
+  defaultProtocol: WireFormat = new SimpleJsonWireFormat()(DefaultFormats),
   @BeanProperty
   pinging: Timeout = Timeout(60 seconds),
   @BeanProperty
@@ -583,19 +557,19 @@ trait HookupClient extends HookupClientLike with Connectable with Reconnectable 
    * The execution context for futures within this client.
    * @return The [[akka.dispatch.ExecutionContext]]
    */
-  implicit protected def executionContext: ExecutionContext = settings.executionContext
+  implicit protected lazy val executionContext: ExecutionContext = settings.executionContext
 
-  /**
-   * The lift-json formats to use when serializing json values.
-   * @return The [[net.liftweb.json.Formats]]
-   */
-  implicit protected def jsonFormats: Formats = DefaultFormats
-
-  /**
-   * The wireformat to use when sending messages over the connection.
-   * @return the [[io.backchat.hookup.WireFormat]]
-   */
-  implicit def wireFormat: WireFormat = new JsonProtocolWireFormat
+//  /**
+//   * The lift-json formats to use when serializing json values.
+//   * @return The [[net.liftweb.json.Formats]]
+//   */
+//  implicit protected def jsonFormats: Formats = DefaultFormats
+//
+//  /**
+//   * The wireformat to use when sending messages over the connection.
+//   * @return the [[io.backchat.hookup.WireFormat]]
+//   */
+//  implicit def wireFormat: WireFormat = new JsonProtocolWireFormat
 
   private[hookup] lazy val channel: BroadcastChannel with Connectable with Reconnectable = new HookupClientHost(this)
 
@@ -614,7 +588,7 @@ trait HookupClient extends HookupClientLike with Connectable with Reconnectable 
    *
    * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
-  final def connect(): Future[OperationResult] = channel.connect()
+  final def connect(protocols: String*): Future[OperationResult] = channel.connect(protocols:_*)
 
   /**
    * Reconnect to the server.
@@ -667,19 +641,7 @@ trait HookupClient extends HookupClientLike with Connectable with Reconnectable 
  *   }
  * </pre>
  */
-abstract class DefaultHookupClient(val settings: HookupClientConfig, wf: WireFormat, jsFormat: Formats) extends HookupClient {
-
-  def this(settings: HookupClientConfig, wf: WireFormat) = this(settings, wf, DefaultFormats)
-  def this(settings: HookupClientConfig) = this(settings, new JsonProtocolWireFormat()(DefaultFormats), DefaultFormats)
-  def this(settings: HookupClientConfig, jsFormats: Formats) =
-    this(settings, new JsonProtocolWireFormat()(jsFormats), jsFormats)
-
-
-  override implicit protected val jsonFormats = jsFormat
-
-  override implicit val wireFormat = wf
-
-}
+abstract class DefaultHookupClient(val settings: HookupClientConfig) extends HookupClient
 
 /**
  * A base class for the java api to listen for websocket events.
@@ -867,43 +829,8 @@ trait JavaHelpers extends WebSocketListener { self: HookupClient =>
  * @see [[io.backchat.hookup.JavaHelpers]]
  *
  * @param settings The settings to use when creating this websocket.
- * @param wf The wireformat for this websocket
- * @param jsFormat the lift-json formats
  */
-class JavaHookupClient(settings: HookupClientConfig, wf: WireFormat, jsFormat: Formats)
-  extends DefaultHookupClient(settings, wf, jsFormat) with JavaHelpers {
-
-  /**
-   * A java friendly websocket
-   * @see [[io.backchat.hookup.HookupClient]]
-   * @see [[io.backchat.hookup.JavaHelpers]]
-   *
-   * @param settings The settings to use when creating this websocket.
-   * @param wf The wireformat for this websocket
-   */
-  def this(settings: HookupClientConfig, wf: WireFormat) = this(settings, wf, DefaultFormats)
-
-  /**
-   * A java friendly websocket
-   * @see [[io.backchat.hookup.HookupClient]]
-   * @see [[io.backchat.hookup.JavaHelpers]]
-   *
-   * @param settings The settings to use when creating this websocket.
-   */
-  def this(settings: HookupClientConfig) = this(settings, new JsonProtocolWireFormat()(DefaultFormats), DefaultFormats)
-
-  /**
-   * A java friendly websocket
-   * @see [[io.backchat.hookup.HookupClient]]
-   * @see [[io.backchat.hookup.JavaHelpers]]
-   *
-   * @param settings The settings to use when creating this websocket.
-   * @param jsFormats the lift-json formats
-   */
-  def this(settings: HookupClientConfig, jsFormats: Formats) =
-    this(settings, new JsonProtocolWireFormat()(jsFormats), jsFormats)
-
-}
+class JavaHookupClient(settings: HookupClientConfig) extends DefaultHookupClient(settings) with JavaHelpers
 
 //trait BufferedWebSocket { self: HookupClient ⇒
 //

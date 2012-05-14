@@ -6,6 +6,8 @@ import net.liftweb.json.JsonAST.JValue
 import akka.util.Duration
 import java.util.concurrent.TimeUnit
 import org.jboss.netty.logging.{Slf4JLoggerFactory, InternalLoggerFactory}
+import net.liftweb.json.DefaultFormats
+import reflect.BeanProperty
 
 /**
  * The package object for the library.
@@ -13,6 +15,26 @@ import org.jboss.netty.logging.{Slf4JLoggerFactory, InternalLoggerFactory}
  * at the top of a file to get the api working.
  */
 package object hookup {
+
+
+  /**
+   * The default protocols hookup understands
+   */
+  @BeanProperty
+  val DefaultProtocols = {
+    val jsonProtocol = new JsonProtocolWireFormat()(DefaultFormats)
+    val simpleJsonProtocol = new SimpleJsonWireFormat()(DefaultFormats)
+    Map(
+      jsonProtocol.name -> jsonProtocol,
+      simpleJsonProtocol.name -> simpleJsonProtocol)
+  }
+
+  /**
+   * The default protocol for the hookup server to use. By default this a simple json protocol that doesn't support
+   * any advanced features but just sends json messages back and forth
+   */
+  @BeanProperty
+  var DefaultProtocol = "simpleJson"
 
   private[hookup] implicit def string2richerString(s: String) = new {
     def blankOption = if (isBlank) None else Some(s)

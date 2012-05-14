@@ -12,6 +12,15 @@ import java.io.{BufferedReader, PrintWriter, InputStreamReader}
 import java.util.concurrent.{TimeUnit, CountDownLatch, TimeoutException}
 import akka.dispatch.{Future, Await}
 
+
+class NoopWireformat(val name: String, val supportsAck: Boolean = false) extends WireFormat {
+
+  def parseInMessage(message: String) = null
+
+  def parseOutMessage(message: String) = null
+
+  def render(message: OutboundMessage) = null
+}
 class ServerConfigurationsExample extends Specification with NoTimeConversions { def is =
   "A Server with a ping configuration" ! serverWithPing ^
   "A Server with a content compression configuration" ! serverWithContentCompression ^
@@ -36,9 +45,6 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
 
   def serverWithContentCompression = {
     /// code_ref: server_with_compression
-    implicit val jsonFormats: Formats = DefaultFormats
-    implicit val wireFormat: WireFormat = new JsonProtocolWireFormat
-
     HookupServer(ContentCompression(2)) {
       new HookupServerClient {
         def receive = { case _ =>}
@@ -50,9 +56,6 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
 
   def serverWithMaxFrame = {
     /// code_ref: server_with_max_frame
-    implicit val jsonFormats: Formats = DefaultFormats
-    implicit val wireFormat: WireFormat = new JsonProtocolWireFormat
-
     HookupServer(MaxFrameSize(512*1024)) {
       new HookupServerClient {
         def receive = { case _ =>}
@@ -65,9 +68,6 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
   def serverWithSslSupport = {
     try {
       /// code_ref: server_with_ssl
-      implicit val jsonFormats: Formats = DefaultFormats
-      implicit val wireFormat: WireFormat = new JsonProtocolWireFormat
-
       val sslSupport =
         SslSupport(
           keystorePath = "./ssl/keystore.jks",
@@ -86,12 +86,12 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
     success
   }
 
+
+
   def serverWithSubprotocols = {
     /// code_ref: server_with_subprotocols
-    implicit val jsonFormats: Formats = DefaultFormats
-    implicit val wireFormat: WireFormat = new JsonProtocolWireFormat
-
-    HookupServer(SubProtocols("irc", "xmpp")) {
+    // these wire formats aren't actually implemented it's just to show the idea
+    HookupServer(SubProtocols("irc" -> new NoopWireformat("irc"), "xmpp" -> new NoopWireformat("xmpp"))) {
       new HookupServerClient {
         def receive = { case _ =>}
       }
@@ -108,9 +108,6 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
     }
     import HookupClient.executionContext
     /// code_ref: server_with_flash_policy
-    implicit val jsonFormats: Formats = DefaultFormats
-    implicit val wireFormat: WireFormat = new JsonProtocolWireFormat
-
     val server = HookupServer(port, FlashPolicy("*.example.com", Seq(80, 443, 8080, 8843, port))) {
       new HookupServerClient {
         def receive = { case _ =>}
@@ -140,6 +137,7 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
       in.close()
       out.close()
       socket.close()
+      server.stop
       res must contain("*.example.com") and (res must contain(port.toString))
     }
   }
