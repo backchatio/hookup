@@ -91,7 +91,7 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
   def serverWithSubprotocols = {
     /// code_ref: server_with_subprotocols
     // these wire formats aren't actually implemented it's just to show the idea
-    HookupServer(SubProtocols("irc" -> new NoopWireformat("irc"), "xmpp" -> new NoopWireformat("xmpp"))) {
+    HookupServer(SubProtocols(new NoopWireformat("irc"), new NoopWireformat("xmpp"))) {
       new HookupServerClient {
         def receive = { case _ =>}
       }

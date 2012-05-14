@@ -14,14 +14,8 @@ To start a server with all the defaults you can use the following code:
 
 {% code_ref ../scala/io/backchat/hookup/examples/PrintingEchoServer.scala default_server %}
 
-##### JSON formats
-There are a few things that stand out in that code sample. There is a DefaultFormats on the first line which are lift-json formats. You can find more explanation about those in the [lift-json readme](https://github.com/lift/framework/tree/master/core/json#serialization) in the serialization section. The default json protocols use lift-json to parse and generate json structures.
-
-##### Wire format
-The wire format on the second line is a type-class/strategy for that knows how to serialize and deserialize messages for transport. Depending on which wireformat it may know about all the messages the websocket server knows about to enable the reliabillity features of the server, like message acking.  The [`JsonProtocolWireFormat`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.JsonProtocolWireFormat) takes an implicit formats parameter which is provided by the JSON formats on the first line.
-
 ##### Creating a server
-Once you've got the implicits in place to provide context you're ready to start a server. A [`HookupServer`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer) has 2 methods that allow you to register callbacks on either startup or shutdown. There are more things you can configure on a server than just the port. Take a look at the [`ServerInfo`]() class to find out all the properties.
+A [`HookupServer`](http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer) has 2 methods that allow you to register callbacks on either startup or shutdown. There are more things you can configure on a server than just the port. Take a look at the [`ServerInfo`]() class to find out all the properties.
 
 {% code_ref ../scala/io/backchat/hookup/server.scala server_info %}
 
@@ -85,9 +79,15 @@ The hookup server also has support for subprotocols.
 
 #### Subprotocol configuration
 
-The WebSocket spec provides a section on [subprotocols](http://tools.ietf.org/html/rfc6455#section-1.9), at this stage you can use those to limit the protocols a client can connect with. In the future they will be automatically configured by the registered wireformats on the server.
+The WebSocket spec provides a section on [subprotocols](http://tools.ietf.org/html/rfc6455#section-1.9), you can provide a number of [[`WireFormat`]] registrations with a name and those will be used to negotiate the wire format that will be used for this connection. This allows for 1 server to server many protocols and the protocol to talk to the server can be chosen by the client.
 
 {% code_ref ../../test/scala/io/backchat/hookup/examples/ServerConfigurationsExample.scala server_with_subprotocols %}
+
+By default the server is configured with:
+
+{% code_ref ../scala/io/backchat/hookup/package.scala default_protocols %}
+
+If no `defaultProtocol` name has been specified it will use the `simpleJson` protocol which just parses json messages or text messages, but doesn't add any reliability features. To enable the reliability features by default you have to set the `defaultProtocol` property. The default protocols are always available but you can add your own.
 
 The last of the default capabilities is the flash policy server.
 

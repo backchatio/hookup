@@ -10,6 +10,7 @@ var _ = require('underscore'),
  */
 var WireFormat = function(options) {
   this.format = 'json';
+  this.name = "jsonProtocol";
 }
 
 _.extend(WireFormat.prototype, /** @lends WireFormat.prototype */ {

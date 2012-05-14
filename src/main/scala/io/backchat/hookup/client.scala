@@ -56,11 +56,13 @@ object HookupClient {
             + resp.getContent.toString(CharsetUtil.UTF_8) + ")")
         case resp: HttpResponse ⇒
           handshaker.finishHandshake(ctx.getChannel, resp)
-          // Netty doesn't implement the sub protocols for all handshakers, otherwise handshaker.getActualSubProtocol would have been great
+          // Netty doesn't implement the sub protocols for all handshakers,
+          // otherwise handshaker.getActualSubProtocol would have been great
           resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL).blankOption foreach { p =>
-            val wf = host.settings.protocols(p)
-            host.wireFormat.set(wf)
-            Channels.fireMessageReceived(ctx, SelectedWireFormat(wf))
+            host.settings.protocols.find(_.name == p) foreach { wf =>
+              host.wireFormat.set(wf)
+              Channels.fireMessageReceived(ctx, SelectedWireFormat(wf))
+            }
           }
           host.receive lift Connected
 
@@ -176,7 +178,7 @@ object HookupClient {
 
     def connect(protocols: String*): Future[OperationResult] = synchronized {
       val protos = if (protocols.nonEmpty) protocols
-      else settings.protocols.keys.toSeq
+      else settings.protocols.map(_.name)
       handshaker = new WebSocketClientHandshakerFactory().newHandshaker(tgt, client.settings.version, protos.mkString(","), false, client.settings.initialHeaders.asJava)
       isClosing = false
       val self = this
@@ -493,7 +495,7 @@ case class HookupClientConfig(
   @BeanProperty
   initialHeaders: Map[String, String] = Map.empty,
   @BeanProperty
-  protocols: Map[String, WireFormat] = DefaultProtocols,
+  protocols: Seq[WireFormat] = DefaultProtocols,
   @BeanProperty
   defaultProtocol: WireFormat = new SimpleJsonWireFormat()(DefaultFormats),
   @BeanProperty

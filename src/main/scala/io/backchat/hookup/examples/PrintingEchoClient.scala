@@ -16,13 +16,11 @@ object PrintingEchoClient {
 
     val system = ActorSystem("PrintingEchoClient")
 
+    /// code_ref: default_client
     new HookupClient {
       val uri = URI.create("ws://localhost:8125/")
 
-      val settings: HookupClientConfig = HookupClientConfig(
-        uri = uri,
-        throttle = IndefiniteThrottle(5 seconds, 30 minutes),
-        buffer = Some(new FileBuffer(new File("./work/buffer.log"))))
+      val settings: HookupClientConfig = HookupClientConfig(uri = uri)
 
       def receive = {
         case TextMessage(text) ⇒
@@ -37,5 +35,6 @@ object PrintingEchoClient {
           }
       }
     }
+    /// end_code_ref
   }
 }

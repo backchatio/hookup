@@ -8,9 +8,6 @@ object PrintingEchoServer {
 
   def main(args: Array[String]) {
     /// code_ref: default_server
-    implicit val formats: Formats = DefaultFormats
-    implicit val wireFormat: WireFormat = new SimpleJsonWireFormat
-
     val server = HookupServer(8125) {
       new HookupServerClient {
         def receive = {

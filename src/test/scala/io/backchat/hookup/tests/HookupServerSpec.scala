@@ -78,7 +78,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
         listenOn = "127.0.0.1", defaultProtocol = "jsonProtocol", port = serverAddress,
         capabilities = if (protocols.isEmpty)
           Seq(Ping(Timeout(2 seconds)), RaiseAckEvents) else
-          Seq(SubProtocols(protocols.head.name -> protocols.head, protocols.tail.map(p => p.name -> p):_*)))
+          Seq(SubProtocols(protocols.head, protocols.tail:_*)))
       HookupServer(info)(new WsClient)
     }
 
@@ -97,7 +97,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
           throttle = IndefiniteThrottle(1 second, 1 second),
           buffer = Some(new FileBuffer(new File("./work/buffer-test.log"))),
           defaultProtocol = wireFormat,
-          protocols = Map(protocols.map(w => w.name -> w):_*))
+          protocols = protocols)
         override private[hookup] def raiseEvents = true
         def receive = handler
       }

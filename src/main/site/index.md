@@ -34,8 +34,6 @@ This is baked into the websocket protocol, the library ensures it really happens
 
 There are a number of extras baked into the client, of course they can be enabled and disabled based on config.
 
-{% code_ref ../hookup-scala/src/test/scala/io/backchat/hookup/tests/FileBufferSpec.scala writes_to_file %}
-
 #### Reconnection
 
 The client reconnects to the server on a backoff schedule indefinitely or for a maximum amount of times

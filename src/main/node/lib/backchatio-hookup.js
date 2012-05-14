@@ -173,7 +173,7 @@ _.extend(HookupClient.prototype, /** @lends HookupClient.prototype */ {
       this._scheduledReconnect = null;
     }
     if (!this.isConnected()) {
-      this._client = client = new WebSocket.Client(this.uri);
+      this._client = client = new WebSocket.Client(this.uri, [this._wireFormat.name]);
       var self = this;
 
       client.onopen = function(evt) {

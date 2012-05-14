@@ -20,14 +20,13 @@ package object hookup {
   /**
    * The default protocols hookup understands
    */
+  /// code_ref: default_protocols
   @BeanProperty
-  val DefaultProtocols = {
-    val jsonProtocol = new JsonProtocolWireFormat()(DefaultFormats)
-    val simpleJsonProtocol = new SimpleJsonWireFormat()(DefaultFormats)
-    Map(
-      jsonProtocol.name -> jsonProtocol,
-      simpleJsonProtocol.name -> simpleJsonProtocol)
-  }
+  val DefaultProtocols = 
+    Seq(
+      new JsonProtocolWireFormat()(DefaultFormats),
+      new SimpleJsonWireFormat()(DefaultFormats))
+  /// end_code_ref
 
   /**
    * The default protocol for the hookup server to use. By default this a simple json protocol that doesn't support

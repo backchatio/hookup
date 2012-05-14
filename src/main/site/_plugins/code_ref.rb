@@ -29,7 +29,7 @@ module Jekyll
       return "Code ref file '#{@file}' does not exist." unless File.exist?(@file)
 
       indented = (File.read(@file).match(/(?:\/\/\/|###)\s*code_ref\s*\:\s*#{@item}(.*?)(?:\/{3}|###)\s*end_code_ref/mi)||[])[1]
-      spaces = indented[1..-1].match(/(\s*)\w/)[1].size
+      spaces = indented[1..-1].match(/(\s*)[^ ]/)[1].size
       code = spaces == 0 ? indented : strip_margin(indented, spaces)
 
       return "No code matched the key #{@item} in #{@file}" unless code

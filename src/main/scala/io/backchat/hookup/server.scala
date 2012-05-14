@@ -69,7 +69,7 @@ case class ContentCompression(level: Int = 6) extends ServerCapability
  * @param protocol A supported protocol name
  * @param protocols remaining supported protocols
  */
-case class SubProtocols(protocol: (String, WireFormat), protocols: (String, WireFormat)*) extends ServerCapability
+case class SubProtocols(protocol: WireFormat, protocols: WireFormat*) extends ServerCapability
 
 /**
  * The configuration for sending pings to a client. (Some websocket clients don't support ping frames)
@@ -122,7 +122,7 @@ object ServerInfo {
    * @param protocols A [[scala.collection.Map]] of string keys and wireformats with the supported formats
    * @return the created [[io.backchat.hookup.ServerInfo]]
    */
-  def apply(config: Config, protocols: Map[String, WireFormat]): ServerInfo =
+  def apply(config: Config, protocols: Seq[WireFormat]): ServerInfo =
     apply(config, DefaultServerName, protocols)
 
   /**
@@ -143,17 +143,18 @@ object ServerInfo {
    * @param protocols A [[scala.collection.Map]] of string keys and wireformats with the supported formats
    * @return the created [[io.backchat.hookup.ServerInfo]]
    */
-  def apply(config: Config, name: String, protocols: Map[String, WireFormat]): ServerInfo = {
+  def apply(config: Config, name: String, protocols: Seq[WireFormat]): ServerInfo = {
     import collection.JavaConverters._
 
-    val allProtos = DefaultProtocols ++ protocols
+    val allProtos = DefaultProtocols.filterNot(p => protocols.exists(_.name == p.name)) ++ protocols
     val caps = ListBuffer[ServerCapability]()
     if (config.hasPath("contentCompression"))
       caps += ContentCompression(config.getInt("contentCompression"))
 
     if (config.hasPath("subProtocols")) {
       val lst = config.getStringList("subProtocols").asScala.toList
-      caps += SubProtocols(lst.head -> allProtos(lst.head), lst.tail.map(k => k -> allProtos(k)):_*)
+      if (lst.nonEmpty)
+        caps += SubProtocols(allProtos.head, allProtos.tail:_*)
     }
 
     if (config.hasPath("pingTimeout"))
@@ -234,10 +235,11 @@ case class ServerInfo(
    * If the server should support sub-protocols this will have the configuration for it.
    */
   val protocols = DefaultProtocols ++ ((capabilities collect {
-    case sp: SubProtocols => Map(sp.protocol) ++ sp.protocols
-  }).headOption getOrElse Map.empty)
+    case sp: SubProtocols => Seq(sp.protocol) ++ sp.protocols
+  }).headOption getOrElse Seq.empty)
 
-  val defaultWireFormat = protocols(defaultProtocol)
+  val defaultWireFormat =
+    protocols.find(_.name == defaultProtocol) getOrElse (throw new RuntimeException("Invalid default protocol."))
 
   /**
    * If the server should support pinging this will have the configuration for it.
