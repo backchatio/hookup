@@ -28,8 +28,11 @@ object HookupBuild extends Build {
       "-encoding", "utf8"),
     parallelExecution in Test := false,
     testOptions := Seq(Tests.Argument("console", "junitxml")),
-    testOptions <+= crossTarget map { ct =>
-      Tests.Setup { () => System.setProperty("specs2.junit.outDir", new File(ct, "specs-reports").getAbsolutePath) }
+    testOptions <+= (crossTarget, resourceDirectory in Test) map { (ct, rt) =>
+      Tests.Setup { () =>
+        System.setProperty("specs2.junit.outDir", new File(ct, "specs-reports").getAbsolutePath)
+        System.setProperty("java.util.logging.config.file", new File(rt, "logging.properties").getAbsolutePath)
+      }
     },
     javacOptions ++= Seq("-Xlint:unchecked", "-source", "1.6", "-target", "1.6"),
     externalResolvers <<= resolvers map { rs =>

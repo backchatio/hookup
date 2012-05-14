@@ -37,6 +37,7 @@ import org.jboss.netty.handler.codec.http.HttpHeaders.Names._
 import org.jboss.netty.handler.codec.http.HttpHeaders._
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone}
+import java.util.logging.{Level, Logger}
 
 /**
  * A marker trait to indicate something is a a configuration for the server.
@@ -311,7 +312,7 @@ object HookupServer {
      * @param channel The [[io.backchat.hookup.BroadcastChannel]]
      * @return A [[scala.Boolean]] indicating success or failure
      */
-    def apply(v1: BroadcastChannel) = !clients.exists(_.id == v1.id)
+    def apply(channel: BroadcastChannel) = !clients.exists(_.id == channel.id)
   }
 
   /**
@@ -491,7 +492,7 @@ object HookupServer {
      * Broadcast this message to all connections matching the filter
      *
      * @param msg The [[io.backchat.hookup.OutboundMessage]] to broadcast
-     * @param onlyTo The filter to determine the connections to send to. Defaults to all but self.
+     * @param matchingOnly The filter to determine the connections to send to. Defaults to all but self.
      * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
      */
     final def broadcast(msg: OutboundMessage, matchingOnly: BroadcastFilter) = broadcaster(msg, matchingOnly)
@@ -1012,6 +1013,7 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient)(impl
    * The logger has the same name as the server.
    */
   protected val logger = InternalLoggerFactory.getInstance(name)
+
   private[this] val timer = new HashedWheelTimer()
   private[this] var server: ServerBootstrap = null
 
@@ -1077,6 +1079,7 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient)(impl
 //      case _ => false
 //    }
 //    if (hasFlashPolicy)
+    logger.info("Configuring flash policy")
     pipe.addLast("flash-policy", new FlashPolicyHandler(ChannelBuffers.copiedBuffer(config.flashPolicy, CharsetUtil.UTF_8)))
   }
 

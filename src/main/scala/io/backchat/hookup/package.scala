@@ -5,6 +5,7 @@ import org.jboss.netty.channel.{ Channel, ChannelFutureListener, ChannelFuture }
 import net.liftweb.json.JsonAST.JValue
 import akka.util.Duration
 import java.util.concurrent.TimeUnit
+import org.jboss.netty.logging.{Slf4JLoggerFactory, InternalLoggerFactory}
 
 /**
  * The package object for the library.

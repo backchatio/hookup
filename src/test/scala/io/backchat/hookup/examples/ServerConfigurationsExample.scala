@@ -7,6 +7,10 @@ import akka.util.duration._
 import akka.testkit._
 import net.liftweb.json.{Formats, DefaultFormats}
 import akka.util.Timeout
+import java.net.{InetSocketAddress, SocketAddress, ServerSocket, Socket}
+import java.io.{BufferedReader, PrintWriter, InputStreamReader}
+import java.util.concurrent.{TimeUnit, CountDownLatch, TimeoutException}
+import akka.dispatch.{Future, Await}
 
 class ServerConfigurationsExample extends Specification with NoTimeConversions { def is =
   "A Server with a ping configuration" ! serverWithPing ^
@@ -15,7 +19,6 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
   "A Server with a ssl configuration" ! serverWithSslSupport ^
   "A Server with a subprotocols configuration" ! serverWithSubprotocols ^
   "A Server with a flash policy configuration" ! serverWithFlashPolicy ^ end
-
 
   def serverWithPing = {
     /// code_ref: server_with_ping
@@ -98,16 +101,46 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
   }
 
   def serverWithFlashPolicy = {
+    val latch = new CountDownLatch(1)
+    val port =  {
+      val s = new ServerSocket(0);
+      try { s.getLocalPort } finally { s.close() }
+    }
+    import HookupClient.executionContext
     /// code_ref: server_with_flash_policy
     implicit val jsonFormats: Formats = DefaultFormats
     implicit val wireFormat: WireFormat = new JsonProtocolWireFormat
 
-    HookupServer(FlashPolicy("*.example.com", Seq(80, 443, 8080, 8843))) {
+    val server = HookupServer(port, FlashPolicy("*.example.com", Seq(80, 443, 8080, 8843, port))) {
       new HookupServerClient {
         def receive = { case _ =>}
       }
     }
     /// end_code_ref
-    success
+    server onStart {
+      latch.countDown
+    }
+    server.start
+    latch.await(2, TimeUnit.SECONDS) must beTrue and {
+      val socket = new Socket
+      socket.connect(new InetSocketAddress("localhost", port), 2000)
+      val out = new PrintWriter(socket.getOutputStream)
+
+      val in = new BufferedReader(new InputStreamReader(socket.getInputStream))
+      out.println("<policy-file-request/>%c" format 0)
+      out.flush()
+      val recv = Future {
+        val sb = new Array[Char](159)
+        var line = in.read(sb)
+        val resp = new String(sb)
+        resp
+      }
+
+      val res = Await.result(recv, 3 seconds)
+      in.close()
+      out.close()
+      socket.close()
+      res must contain("*.example.com") and (res must contain(port.toString))
+    }
   }
 }
