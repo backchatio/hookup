@@ -135,6 +135,7 @@ object HookupClient {
     private[this] var channel: Channel = null
     private[this] var _isConnected: Promise[OperationResult] = Promise[OperationResult]()
     private[this] val buffer = client.settings.buffer
+    private[this] val memoryBuffer = new MemoryBuffer()
     val settings = client.settings
     val wireFormat = new AtomicReference[WireFormat](settings.defaultProtocol)
 
@@ -178,7 +179,7 @@ object HookupClient {
 
     def connect(protocols: String*): Future[OperationResult] = synchronized {
       val protos = if (protocols.nonEmpty) protocols
-      else settings.protocols.map(_.name)
+      else Seq(settings.defaultProtocol.name)
       handshaker = new WebSocketClientHandshakerFactory().newHandshaker(tgt, client.settings.version, protos.mkString(","), false, client.settings.initialHeaders.asJava)
       isClosing = false
       val self = this
@@ -328,8 +329,12 @@ object HookupClient {
       if (isConnected) {
         channel.write(message).toAkkaFuture
       } else {
-        logger info "buffering message until fully connected"
-        buffer foreach (_.write(message)(wireFormat.get))
+        if (buffer.isDefined) {
+          logger info "buffering message until fully connected"
+          buffer foreach (_.write(message)(wireFormat.get))
+        }
+        if (buffer.isEmpty && !isReconnecting) // This is only for the first connect as it may take a bit longer than advertised
+          memoryBuffer.write(message)(wireFormat.get)
         Promise.successful(Success)
       }
     }
@@ -338,9 +343,10 @@ object HookupClient {
 
     def internalReceive: Receive = {
       case Connected ⇒ {
+        memoryBuffer.drain(channel.send(_))(executionContext, wireFormat.get())
         buffer foreach { b ⇒
-          _isConnected.success(Success)
           b.drain(channel.send(_))(executionContext, wireFormat.get())
+          _isConnected.success(Success)
           client.receive lift Connected
         }
         if (buffer.isEmpty) {

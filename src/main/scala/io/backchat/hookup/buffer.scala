@@ -41,6 +41,33 @@ trait BackupBuffer extends Closeable {
   def write(line: OutboundMessage)(implicit wireFormat: WireFormat)
   def drain(readLine: (OutboundMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext, wireFormat: WireFormat): Future[OperationResult]
 }
+
+class MemoryBuffer(memoryBuffer: Queue[String] = new ConcurrentLinkedQueue[String]()) extends BackupBuffer {
+
+  /**
+   * open the buffer
+   */
+  def open() {}
+
+  /**
+   * close the buffer, closing all external resources used by this buffer
+   */
+  def close() {}
+
+  def write(line: OutboundMessage)(implicit wireFormat: WireFormat) {
+    memoryBuffer.offer(wireFormat.render(line))
+  }
+
+  def drain(readLine: (OutboundMessage) => Future[OperationResult])(implicit executionContext: ExecutionContext, wireFormat: WireFormat) = {
+    var futures = mutable.ListBuffer[Future[OperationResult]]()
+    while (!memoryBuffer.isEmpty) { // and then the memory buffer
+      val msg = memoryBuffer.poll()
+      if (msg.nonBlank)
+        futures += readLine(wireFormat.parseOutMessage(msg))
+    }
+    if (futures.isEmpty) Promise.successful(Success) else Future.sequence(futures.toList).map(ResultList(_))
+  }
+}
 //
 //abstract class BufferFactory(val id: String) {
 //  def create(wireFormat: WireFormat): BackupBuffer
@@ -138,16 +165,15 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
           }
           line = input.readLine()
         }
-        while (!memoryBuffer.isEmpty) { // and then the memory buffer
-          val line = memoryBuffer.poll()
-          if (line.nonBlank)
-            futures += readLine(wireFormat.parseOutMessage(line))
-        }
-
-        val res = if (futures.isEmpty) Future { Success } else Future.sequence(futures.toList).map(ResultList(_))
-        append = false
-        res
-      } else Promise.successful(Success)
+      }
+      while (!memoryBuffer.isEmpty) { // and then the memory buffer
+        val msg = memoryBuffer.poll()
+        if (msg.nonBlank)
+          futures += readLine(wireFormat.parseOutMessage(msg))
+      }
+      val res = if (futures.isEmpty) Promise.successful(Success) else Future.sequence(futures.toList).map(ResultList(_))
+      append = false
+      res
     } catch {
       case e ⇒
         e.printStackTrace()
