@@ -268,12 +268,12 @@ object HookupClient {
         dur.toMinutes.toString + " minutes"
     }
 
-    def disconnect(): Future[OperationResult] = synchronized {
+    def disconnect(): Future[OperationResult] = {
       isClosing = true;
       val closing = Promise[OperationResult]()
       val disconnected = Promise[OperationResult]()
 
-      if (isConnected) {
+      if (channel != null && channel.isConnected) {
         channel.write(new CloseWebSocketFrame()).addListener(new ChannelFutureListener {
           def operationComplete(future: ChannelFuture) {
             future.getChannel.close().addListener(new ChannelFutureListener {
@@ -303,6 +303,7 @@ object HookupClient {
             if (!isReconnecting && bootstrap != null) {
               val thread = new Thread {
                 override def run = {
+                  timer.stop.asScala foreach (_.cancel())
                   bootstrap.releaseExternalResources()
                 }
               }
@@ -371,7 +372,7 @@ object HookupClient {
    * The default execution context for the websocket library.
    * it uses a ForkJoinPool as underlying threadpool.
    */
-  implicit val executionContext =
+  implicit lazy val executionContext =
     ExecutionContext.fromExecutorService(new ForkJoinPool(
       Runtime.getRuntime.availableProcessors(),
       ForkJoinPool.defaultForkJoinWorkerThreadFactory,

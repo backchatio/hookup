@@ -15,7 +15,6 @@ import org.jboss.netty.handler.codec.http._
 import java.net.{ SocketAddress, InetSocketAddress }
 import scala.collection.JavaConverters._
 import collection.mutable.ListBuffer
-import akka.dispatch.{ Promise, Future }
 import akka.util.duration._
 import org.jboss.netty.handler.timeout.{ IdleStateEvent, IdleState, IdleStateHandler, IdleStateAwareChannelHandler }
 import net.liftweb.json._
@@ -37,7 +36,8 @@ import org.jboss.netty.handler.codec.http.HttpHeaders._
 import java.text.SimpleDateFormat
 import java.util.{Date, TimeZone}
 import java.util.logging.{Level, Logger}
-import java.util.concurrent.atomic.{AtomicReference, AtomicLong}
+import akka.dispatch.{ExecutionContext, Promise, Future}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference, AtomicLong}
 
 /**
  * A marker trait to indicate something is a a configuration for the server.
@@ -207,7 +207,8 @@ case class ServerInfo(
     listenOn: String = "0.0.0.0",
     port: Int = 8765,
     defaultProtocol: String = DefaultProtocol,
-    capabilities: Seq[ServerCapability] = Seq.empty) {
+    capabilities: Seq[ServerCapability] = Seq.empty,
+    executionContext: ExecutionContext = HookupClient.executionContext) {
 /// end_code_ref
   /**
    * If the server should support SSL this will be filled with the ssl context to use
@@ -279,7 +280,7 @@ object HookupServer {
   import ServerInfo.DefaultServerName
   //  type WebSocketHandler = PartialFunction[WebSocketMessage, Unit]
 
-  import HookupClient.{ executionContext, Receive }
+  import HookupClient.{ Receive }
 
   /**
    * A filter for broadcast channels, a predicate that can't be null
@@ -395,7 +396,7 @@ object HookupServer {
     def apply(message: OutboundMessage, allowsOnly: BroadcastFilter): Future[OperationResult]
   }
 
-  private implicit def nettyChannelGroup2Broadcaster(allChannels: ChannelGroup): Broadcast = new Broadcast {
+  private implicit def nettyChannelGroup2Broadcaster(allChannels: ChannelGroup)(implicit exCtxt: ExecutionContext): Broadcast = new Broadcast {
     def apply(message: OutboundMessage, matchingOnly: BroadcastFilter) = {
       val lst = allChannels.asScala map (x => x: BroadcastChannel) filter matchingOnly map (_ send message)
       Future.sequence(lst) map (l ⇒ ResultList(l.toList))
@@ -419,10 +420,12 @@ object HookupServer {
 
     final def id = if (_handler != null) _handler.id else 0
     final def remoteAddress = if (_handler != null) _handler.remoteAddress else null
+    protected implicit final def executionContext: ExecutionContext = if (_handler != null) _handler.executor else null
 
     private[HookupServer] var _handler: HookupServerClientHandler = null
     private val _buffer = new ConcurrentLinkedQueue[OutboundMessage]()
     private val _broadcastBuffer = new ConcurrentLinkedQueue[(OutboundMessage, BroadcastFilter)]()
+
 
     /**
      * Send a text message to this client
@@ -491,7 +494,7 @@ object HookupServer {
   /**
    * Represents a client connection handle to this server
    */
-  private abstract class HookupServerClientHandler(channel: BroadcastChannel, client: HookupServerClient, logger: InternalLogger, broadcaster: Broadcast) {
+  private abstract class HookupServerClientHandler(channel: BroadcastChannel, client: HookupServerClient, logger: InternalLogger, broadcaster: Broadcast)(implicit val executor: ExecutionContext) {
 
     client._handler = this
 
@@ -703,7 +706,7 @@ object HookupServer {
       defaultWireFormat: WireFormat,
       subProtocols: Map[String, WireFormat] = Map.empty,
       maxFrameSize: Long = Long.MaxValue,
-      raiseEvents: Boolean = false) extends SimpleChannelHandler {
+      raiseEvents: Boolean = false)(implicit executionContext: ExecutionContext) extends SimpleChannelHandler {
 
     private[this] var collectedFrames: Seq[ContinuationWebSocketFrame] = Vector.empty[ContinuationWebSocketFrame]
 
@@ -955,11 +958,29 @@ object HookupServer {
       id
     }
 
+
+    override def channelDisconnected(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
+      ackScavenger.stop.asScala foreach (_.cancel())
+      super.channelDisconnected(ctx, e)
+    }
+
+    override def channelClosed(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
+      ackScavenger.stop.asScala foreach (_.cancel())
+      super.channelClosed(ctx, e)
+    }
+
+    override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
+      ackScavenger.stop.asScala foreach (_.cancel())
+      super.exceptionCaught(ctx, e)
+    }
+
     private[this] def contentFrom(message: Ackable): (String, JValue) = message match {
       case TextMessage(text) ⇒ ("text", JString(text))
       case JsonMessage(json) ⇒ ("json", json)
     }
   }
+
+
 
   /**
    * A http request handler that responses to `ping` requests with the word `pong` for the specified path
@@ -1034,6 +1055,8 @@ object HookupServer {
  */
 class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient) extends Server {
 
+  protected implicit val executionContext = config.executionContext
+
   /**
    * The capabilities this server is configured with
    *
@@ -1106,7 +1129,14 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient) exte
 
   private[this] def configureWebSocketSupport(pipe: ChannelPipeline) {
     val raiseEvents = capabilities.contains(RaiseAckEvents)
-    pipe.addLast("websockethandler", new WebSocketClientFactoryHandler(logger, allChannels, factory, config.defaultWireFormat, maxFrameSize = config.maxFrameSize, raiseEvents = raiseEvents))
+    val wsClientFactory = new WebSocketClientFactoryHandler(
+      logger,
+      allChannels,
+      factory,
+      config.defaultWireFormat,
+      maxFrameSize = config.maxFrameSize,
+      raiseEvents = raiseEvents)
+    pipe.addLast("websockethandler", wsClientFactory)
     pipe.addLast("websocketoutput", new WebSocketMessageAdapter(logger, config.defaultWireFormat))
     pipe.addLast("acking", new MessageAckingHandler(logger, config.defaultWireFormat, raiseEvents))
     if (raiseEvents) {
@@ -1242,10 +1272,11 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient) exte
     Future.sequence(lst) map (l ⇒ ResultList(l.toList))
   }
 
+  private[this] val isStarted = new AtomicBoolean(false)
   /**
    * Start this server
    */
-  final def start = synchronized {
+  final def start = {
     server = new ServerBootstrap(new NioServerSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool()))
     configureBootstrap()
     server.setPipelineFactory(pipelineFactory)
@@ -1254,27 +1285,33 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient) exte
 
     sys.addShutdownHook(stop)
     startCallbacks foreach (_.apply())
+    isStarted.set(true)
     logger info "Started %s %s on [%s:%d]".format(name, version, listenOn, port)
   }
 
   /**
    * Stop this server.
    */
-  final def stop = synchronized {
-    stopCallbacks foreach (_.apply())
-    allChannels.close().awaitUninterruptibly()
-    if (serverConnection != null && serverConnection.isBound) serverConnection.unbind().awaitUninterruptibly()
-    val thread = new Thread {
-      override def run = {
-        if (server != null) {
-          server.releaseExternalResources()
+  final def stop = {
+    if (isStarted.get) {
+      allChannels.close().awaitUninterruptibly(5000)
+  //    if (serverConnection != null && serverConnection.isBound) serverConnection.unbind().awaitUninterruptibly(2000)
+      val thread = new Thread("server-shutdown-thread") {
+        override def run = {
+          timer.stop.asScala foreach (_.cancel())
+          if (server != null) {
+            server.releaseExternalResources()
+          }
+          isStarted.compareAndSet(true, false)
+          stopCallbacks foreach (_.apply())
         }
       }
+      thread.setDaemon(false)
+      thread.start()
+  //    thread.join
+
+      logger info "Stopped  %s %s on [%s:%d]".format(name, version, listenOn, port)
     }
-    thread.setDaemon(false)
-    thread.start()
-    thread.join
-    logger info "Stopped  %s %s on [%s:%d]".format(name, version, listenOn, port)
   }
 }
 
