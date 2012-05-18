@@ -9,8 +9,9 @@ var _ = require('underscore'),
  * it uses a json object to transfer, meaning everything has a property name.
  */
 var WireFormat = function(options) {
-  this.format = 'json';
-  this.name = "jsonProtocol";
+  var opts = options||{};
+  this.format = opts.protocol || 'json';
+  this.name = opts.name || "jsonProtocol";
 }
 
 _.extend(WireFormat.prototype, /** @lends WireFormat.prototype */ {
@@ -27,16 +28,26 @@ _.extend(WireFormat.prototype, /** @lends WireFormat.prototype */ {
    */
   parseMessage: function(message) {
     if (typeof message === 'object') return message;
-    if (!this._canBeJson(message)) 
-      return { type: "text", content: message };
-    try {
-      var prsd = JSON.parse(message);
-      if (prsd.type === "ack" || prsd.type == "needs_ack") return prsd;
-      if (prsd.type === "ack_request") 
-        return _.extend(prsd, { type: prsd.type, content: this.parseMessage(prsd.content)});
-      return _.extend({type: "json"}, { content: prsd }); 
-    } catch (e) {
-      return { type: "text", content: message };
+    if (this.name === "jsonProtocol") {
+      if (!this._canBeJson(message)) 
+        return { type: "text", content: message };
+      try {
+        var prsd = JSON.parse(message);
+        if (prsd.type === "ack" || prsd.type == "needs_ack") return prsd;
+        if (prsd.type === "ack_request") 
+          return _.extend(prsd, { type: prsd.type, content: this.parseMessage(prsd.content)});
+        return _.extend({type: "json"}, { content: prsd }); 
+      } catch (e) {
+        return { type: "text", content: message };
+      }
+    } else {
+      if (!this._canBeJson(message)) 
+        return message;
+      try {
+        return JSON.parse(message);
+      } catch (e) {
+        return message;
+      }
     }
   },
   /**
@@ -55,15 +66,23 @@ _.extend(WireFormat.prototype, /** @lends WireFormat.prototype */ {
    * @returns {Object} The message wrapped and ready to send.
    */
   buildMessage: function(message) {
-    if (typeof message === 'object') {
-      var prsd = this.parseMessage(message)
-      if (prsd.type === "ack_request") 
-        prsd.content = this.parseMessage(prsd.content);
-      var built = _.extend({type: "json"}, prsd);
-      if (built.type === "json" && !built.content) return { type: "json", content: prsd};
-      return built;
+    if (this.name === "jsonProtocol") {
+      if (typeof message === 'object') {
+        var prsd = this.parseMessage(message)
+        if (prsd.type === "ack_request") 
+          prsd.content = this.parseMessage(prsd.content);
+        var built = _.extend({type: "json"}, prsd);
+        if (built.type === "json" && !built.content) return { type: "json", content: prsd};
+        return built;
+      } else {
+        return { type: "text", content: message.toString() };
+      }
     } else {
-      return { type: "text", content: message.toString() };
+      if (typeof message === 'object') {
+        return this.parseMessage(message)
+      } else {
+        return message.toString();
+      }
     }
   },
   /**
@@ -74,18 +93,23 @@ _.extend(WireFormat.prototype, /** @lends WireFormat.prototype */ {
    */
   unwrapContent: function(message) {
     var parsed = this.parseMessage(message);
-    if (parsed.type === "ack_request") 
-      return parsed.content.content;
-    if (parsed.type === "json") {
-      delete parsed['type'];
-      return Object.keys(parsed).length === 1 && parsed.content ? parsed.content : parsed;
+    if (this.name === "jsonProtocol") {
+      if (parsed.type === "ack_request") 
+        return parsed.content.content;
+      if (parsed.type === "json") {
+        delete parsed['type'];
+        return Object.keys(parsed).length === 1 && parsed.content ? parsed.content : parsed;
+      }
+      if (parsed.type === "ack" || parsed.type === "needs_ack") return parsed;
+      return parsed.content;
+    } else {
+      return parsed;
     }
-    if (parsed.type === "ack" || parsed.type === "needs_ack") return parsed;
-    return parsed.content;
   },
   _canBeJson: function(message) {
     return !!message.match(/^(?:\{|\[)/);
   }
 });
 
-module.exports = WireFormat;
+module.exports.WireFormat = WireFormat;
+

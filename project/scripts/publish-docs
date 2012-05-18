@@ -2,7 +2,6 @@
 
 mkdir -p target
 rm -rf target/site
-mkdir -p target/site
 git clone git@github.com:backchatio/hookup.git target/site
 cd target/site
 git checkout gh-pages
@@ -23,9 +22,8 @@ cd ../node && \
 npm install && \
 npm test && \
 node_modules/jsdoc-toolkit/app/run.js -d=../../../target/site/jsdoc -t=node_modules/jsdoc-toolkit/templates/codeview lib && \
-cd ../../.. && 
-sbt doc &&
-mv target/scala-2.9.1/api target/site/scaladoc &&
+cd ../../.. && \
+mv target/scala-2.9.1/api target/site/scaladoc && \
 cp -R target/jekyll/* target/site/
 
 # generate yardocs 

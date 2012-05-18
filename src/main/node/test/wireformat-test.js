@@ -1,6 +1,6 @@
 var vows = require("vows"),
     assert = require("assert"),
-    WireFormat = require("../lib/wireformat");
+    WireFormat = require("../lib/wireformat").WireFormat;
 
 vows.describe("WireFormat").addBatch({
   "A WireFormat": {

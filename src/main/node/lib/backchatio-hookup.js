@@ -3,7 +3,7 @@ var WebSocket = require('faye-websocket'),
     util = require('util'),
     events = require('events'),
     FileBuffer = require("./filebuffer").FileBuffer,
-    WireFormat = require("./wireformat");
+    WireFormat = require("./wireformat").WireFormat;
     fs = require('fs'),
     Uri = require('url');
 
@@ -173,7 +173,7 @@ _.extend(HookupClient.prototype, /** @lends HookupClient.prototype */ {
       this._scheduledReconnect = null;
     }
     if (!this.isConnected()) {
-      this._client = client = new WebSocket.Client(this.uri, [this._wireFormat.name]);
+      this._client = client = new WebSocket.Client(this.uri);
       var self = this;
 
       client.onopen = function(evt) {
@@ -272,4 +272,6 @@ _.extend(HookupClient.prototype, /** @lends HookupClient.prototype */ {
   }
 });
 
-exports = exports.HookupClient = HookupClient
+module.exports.HookupClient = HookupClient;
+// exports.WireFormat = WireFormat;
+// exports.FileBuffer = FileBuffer;

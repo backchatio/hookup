@@ -12,7 +12,7 @@ rich_title  : "<strong>Hookup</strong> by BackChat.io"
 rich_byline : "<strong>Reliable messaging</strong> over websockets"
 sponsor:
   byline    : "Maintained by"
-  logo      : "imgs/logo.png"
+  logo      : "//assets.backchat.io/images/logo.png"
   name      : "BackChat.io"
   url       : "https://backchat.io"
   footer    : "This project is maintained by <a href=\"https://backchat.io\">BackChat.io</a>, the real-time data filtering API for the cloud."
