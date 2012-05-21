@@ -52,11 +52,11 @@
         <p>This project is maintained by <a href="https://backchat.io">BackChat.io</a>, the real-time data filtering API for the cloud.</p>
       </header>
       <section>
-        <h2 id="toc_13">Hookup Servers</h2>
+        <h2 id="toc_0">Hookup Servers</h2>
 
 <p>At this stage creating servers is only really supported in scala.  To work with servers there are a few concepts that need a bit more explanation.  We&#39;ll start with configuration of the server before moving on to what the server can do.</p>
 
-<h3 id="toc_14">Configuring the server.</h3>
+<h3 id="toc_1">Configuring the server.</h3>
 
 <p>At this stage the server is implemented with Netty and as such you can configure it to work with other netty modules.
 We don&#39;t have an abstraction on top of Netty&#39;s request and response model and as such you can use it with any other server that is implemented with <a href="http://netty.io/docs/stable/api/org/jboss/netty/channel/SimpleChannelHandler.html">Netty channel handlers</a>.</p>
@@ -83,7 +83,7 @@ We don&#39;t have an abstraction on top of Netty&#39;s request and response mode
 </code></pre>
 </div>
 
-<h5 id="toc_15">Creating a server</h5>
+<h5 id="toc_2">Creating a server</h5>
 
 <p>A <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer"><code>HookupServer</code></a> has 2 methods that allow you to register callbacks on either startup or shutdown. There are more things you can configure on a server than just the port. Take a look at the <a href=""><code>ServerInfo</code></a> class to find out all the properties.</p>
 
@@ -123,7 +123,7 @@ We don&#39;t have an abstraction on top of Netty&#39;s request and response mode
 
 <p>To configure the modules that make up the default Hookup server we need to talk about <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.ServerCapability"><code>ServerCapabilities</code></a>. A server capability is available for you to extend yourself with your own modules if you want to use that form of configuration. If server capabilities don&#39;t allow the flexibillity you want then you can always subclass a <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer"><code>HookupServer</code></a> and make use of the template methods it provides. Let&#39;s start with the <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.Ping"><code>Ping</code></a> capability.</p>
 
-<h4 id="toc_16">Ping configuration</h4>
+<h4 id="toc_3">Ping configuration</h4>
 
 <p>You can use the <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.Ping"><code>Ping</code></a> configuration to configure whether the server should send out pings to clients when the connection has been idle for a while. The websocket protocol prescribes that the client is the one sending the pings but your use case may vary, you may need to appease a proxy in between. You configure the ping configuration with a <a href="http://doc.akka.io/api/akka/2.0.1/#akka.util.Timeout">Timeout</a>.</p>
 
@@ -140,7 +140,7 @@ We don&#39;t have an abstraction on top of Netty&#39;s request and response mode
 
 <p>You can also configure compression for a server.</p>
 
-<h4 id="toc_17">Compression configuration</h4>
+<h4 id="toc_4">Compression configuration</h4>
 
 <p>By default the server doesn&#39;t use any content compression, but you can configure it to do so by adding the <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.ContentCompression"><code>ContentCompression</code></a> capability. By default this capability is configured to a compression level of 6, this can of course be changed</p>
 
@@ -154,7 +154,7 @@ We don&#39;t have an abstraction on top of Netty&#39;s request and response mode
 
 <p>You can also configure the max frame size of a server.</p>
 
-<h4 id="toc_18">Max frame size</h4>
+<h4 id="toc_5">Max frame size</h4>
 
 <p>Netty requires you to set a maximum frame length for a websocket frame, by default it uses <code>Long.MaxValue</code> as max framesize, you can configure that to any number of bytes. The capability you need for this is the <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.MaxFrameSize"><code>MaxFrameSize</code></a>.</p>
 
@@ -168,7 +168,7 @@ We don&#39;t have an abstraction on top of Netty&#39;s request and response mode
 
 <p>If you need SSL support for your server, basic support is included.</p>
 
-<h4 id="toc_19">SSL configuration</h4>
+<h4 id="toc_6">SSL configuration</h4>
 
 <p>For basic SSL support you can use the <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.SslSupport"><code>SslSupport</code></a> capability. It uses the default truststore for your system but allows you to configure the keystore. The  default values are provided through the standard java system properties: <code>-Dkeystore.file.path=...</code>, <code>-Dkeystore.file.password=...</code>, <code>-Dssl.KeyManagerFactory.algorithm=SunX509</code>.</p>
 
@@ -188,7 +188,7 @@ We don&#39;t have an abstraction on top of Netty&#39;s request and response mode
 
 <p>The hookup server also has support for subprotocols.</p>
 
-<h4 id="toc_20">Subprotocol configuration</h4>
+<h4 id="toc_7">Subprotocol configuration</h4>
 
 <p>The WebSocket spec provides a section on <a href="http://tools.ietf.org/html/rfc6455#section-1.9">subprotocols</a>, you can provide a number of [[<code>WireFormat</code>]] registrations with a name and those will be used to negotiate the wire format that will be used for this connection. This allows for 1 server to server many protocols and the protocol to talk to the server can be chosen by the client.</p>
 
@@ -215,7 +215,7 @@ We don&#39;t have an abstraction on top of Netty&#39;s request and response mode
 
 <p>The last of the default capabilities is the flash policy server.</p>
 
-<h4 id="toc_21">Flash policy configuration</h4>
+<h4 id="toc_8">Flash policy configuration</h4>
 
 <p>In certain browsers you may need to resort to using a <a href="https://github.com/gimite/web-socket-js">flash</a> implementation of the websocket. To allow socket connections to your server flash requires you to run a <a href="http://www.adobe.com/devnet/flashplayer/articles/socket_policy_files.html">flash policy server</a>. We let it fallback to the port that serves the websocket. 
 Leaving this configuration as default will allow all flash connections.</p>
@@ -230,13 +230,13 @@ Leaving this configuration as default will allow all flash connections.</p>
 
 <p>This is the entire rundown of creating and configuring a server, when a server is started it&#39;s probably going to accept connections.</p>
 
-<h3 id="toc_22">Accepting connections</h3>
+<h3 id="toc_9">Accepting connections</h3>
 
 <p>When a client connects, the server creates a <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a>. You provide the factory when you create the server by creating a new instance of an implementation of a <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a>. </p>
 
 <p>The <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a> allows you to keep state per connection, but you have to be aware that the client will potentially be accessed by multiple threads so you have to take care of synchronization (or use an actor for example).</p>
 
-<h5 id="toc_23">Sending messages</h5>
+<h5 id="toc_10">Sending messages</h5>
 
 <p>Once connected a <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a> can send messages to the current connection or broadcast a message to all connected clients.
 When you send a message you get an akka <a href="http://doc.akka.io/docs/akka/2.0.1/scala/futures.html"><code>Future</code></a> back, you can cancel this listen for an operation result. The operation result exists to work with many operations at the same time like in a broadcast you will receive failure and success status for every client connection you broadcasted to.<br>
@@ -244,7 +244,7 @@ There are 3 <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.h
 
 <p>A <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a> provides an alias for <code>send</code> as <code>!</code> and for <code>broadcast</code> as <code>&gt;&lt;</code>.</p>
 
-<h5 id="toc_24">Receiving messages</h5>
+<h5 id="toc_11">Receiving messages</h5>
 
 <p>A <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer$$HookupServerClient"><code>HookupServerClient</code></a> requires you to implement one method or val a <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupClient$"><code>Hookup.Receive</code></a> partial function that handles <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.InboundMessage"><code>InboundMessage</code></a> implementations and returns <code>Unit</code>. Below there&#39;s an example of a server client that prints all events it receives and echoes message events back.</p>
 
