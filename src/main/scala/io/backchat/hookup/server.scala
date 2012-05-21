@@ -809,6 +809,7 @@ object HookupServer {
 
     private def handleUpgrade(ctx: ChannelHandlerContext, httpRequest: HttpRequest) {
       val protos = if (subProtocols.isEmpty) null else subProtocols.map(_._1).mkString(",")
+      println("protos: %s" format protos)
       val handshakerFactory = new WebSocketServerHandshakerFactory(websocketLocation(httpRequest), protos, false, maxFrameSize)
       handshaker = handshakerFactory.newHandshaker(httpRequest)
       if (handshaker == null) handshakerFactory.sendUnsupportedWebSocketVersionResponse(ctx.getChannel)
@@ -1134,6 +1135,7 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient) exte
       allChannels,
       factory,
       config.defaultWireFormat,
+      subProtocols = Map(config.protocols.map(wf => wf.name -> wf):_*),
       maxFrameSize = config.maxFrameSize,
       raiseEvents = raiseEvents)
     pipe.addLast("websockethandler", wsClientFactory)

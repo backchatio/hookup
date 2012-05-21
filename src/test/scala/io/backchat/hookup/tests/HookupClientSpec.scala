@@ -137,7 +137,7 @@ class HookupClientSpec extends Specification with NoTimeConversions { def is =
       val latch = TestLatch()
       withWebSocket({
         case (client, Connected) =>
-          sleep -> 1.second
+          Thread.sleep(1000L)
           client send JObject(JField("hello", JString("world")) :: Nil)
         case (client, JsonMessage(JObject(JField("hello", JString("world")) :: Nil))) => latch.open
       }) { _ => Await.result(latch, 5 seconds) must not(throwA[TimeoutException]) }
