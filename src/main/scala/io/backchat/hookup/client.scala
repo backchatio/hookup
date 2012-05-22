@@ -1,5 +1,6 @@
 package io.backchat.hookup
 
+import http.Status
 import org.jboss.netty.bootstrap.ClientBootstrap
 import org.jboss.netty.channel._
 import socket.nio.NioClientSocketChannelFactory
@@ -23,7 +24,7 @@ import net.liftweb.json.{JsonParser, DefaultFormats, Formats, parse, render, com
 import java.io.{Closeable, File}
 import java.util.concurrent.{ConcurrentSkipListSet, TimeUnit, Executors}
 import reflect.BeanProperty
-import java.util.concurrent.atomic.{AtomicReference, AtomicLong}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference, AtomicLong}
 
 /**
  * @see [[io.backchat.hookup.HookupClient]]
@@ -48,6 +49,7 @@ object HookupClient {
   class WebSocketClientHostHandler(handshaker: WebSocketClientHandshaker, host: HookupClientHost) extends SimpleChannelHandler {
     private[this] val msgCount = new AtomicLong(0)
     private[this] def wireFormat = host.wireFormat.get
+    private[this] val expectChunk = new AtomicBoolean(false)
 
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
@@ -55,17 +57,23 @@ object HookupClient {
           throw new WebSocketException("Unexpected HttpResponse (status=" + resp.getStatus + ", content="
             + resp.getContent.toString(CharsetUtil.UTF_8) + ")")
         case resp: HttpResponse ⇒
-          handshaker.finishHandshake(ctx.getChannel, resp)
-          // Netty doesn't implement the sub protocols for all handshakers,
-          // otherwise handshaker.getActualSubProtocol would have been great
-          resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL).blankOption foreach { p =>
-            host.settings.protocols.find(_.name == p) foreach { wf =>
-              host.wireFormat.set(wf)
-              Channels.fireMessageReceived(ctx, SelectedWireFormat(wf))
+          if (resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL) != null && resp.getStatus.getCode == 426) {
+            // TODO: add better handling of this so the people know what is going wrong
+            expectChunk.compareAndSet(false, true)
+            host.disconnect()
+          } else {
+            handshaker.finishHandshake(ctx.getChannel, resp)
+            // Netty doesn't implement the sub protocols for all handshakers,
+            // otherwise handshaker.getActualSubProtocol would have been great
+            resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL).blankOption foreach { p =>
+              host.settings.protocols.find(_.name == p) foreach { wf =>
+                host.wireFormat.set(wf)
+                Channels.fireMessageReceived(ctx, SelectedWireFormat(wf))
+              }
             }
+            host.receive lift Connected
           }
-          host.receive lift Connected
-
+        case resp: HttpChunk if expectChunk.get() => // ignore the trailer for the handshake error
         case f: TextWebSocketFrame ⇒
           val inferred = wireFormat.parseInMessage(f.getText)
           inferred match {
@@ -139,7 +147,8 @@ object HookupClient {
     val settings = client.settings
     val wireFormat = new AtomicReference[WireFormat](settings.defaultProtocol)
 
-    def isConnected = channel != null && channel.isConnected && _isConnected.isCompleted
+    def isConnected =
+      channel != null && channel.isConnected && _isConnected.isCompleted && _isConnected.value.get == Right(Success)
 
     private def configureBootstrap() {
       val self = this
@@ -270,25 +279,36 @@ object HookupClient {
     }
 
     def disconnect(): Future[OperationResult] = {
-      isClosing = true;
+      isClosing = true
       val closing = Promise[OperationResult]()
       val disconnected = Promise[OperationResult]()
 
-      if (channel != null && channel.isConnected) {
-        channel.write(new CloseWebSocketFrame()).addListener(new ChannelFutureListener {
-          def operationComplete(future: ChannelFuture) {
-            future.getChannel.close().addListener(new ChannelFutureListener {
-              def operationComplete(future: ChannelFuture) {
-                if (!isReconnecting) {
-                  buffer foreach (_.close())
-                  client.receive lift Disconnected(None)
+      if (channel != null) {
+        if (isConnected) {
+          channel.write(new CloseWebSocketFrame()).addListener(new ChannelFutureListener {
+            def operationComplete(future: ChannelFuture) {
+              future.getChannel.close().addListener(new ChannelFutureListener {
+                def operationComplete(future: ChannelFuture) {
+                  if (!isReconnecting) {
+                    buffer foreach (_.close())
+                    client.receive lift Disconnected(None)
+                  }
+                  _isConnected = Promise[OperationResult]()
+                  disconnected.success(Success)
                 }
-                _isConnected = Promise[OperationResult]()
-                disconnected.success(Success)
-              }
-            })
-          }
-        })
+              })
+            }
+          })
+        } else {
+          channel.close().addListener(new ChannelFutureListener {
+            def operationComplete(future: ChannelFuture) {
+              buffer foreach (_.close())
+              client.receive lift Disconnected(None)
+              _isConnected = Promise[OperationResult]()
+              disconnected.success(Success)
+            }
+          })
+        }
       } else {
         if (!isReconnecting) {
           buffer foreach (_.close())
