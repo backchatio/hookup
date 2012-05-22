@@ -12,10 +12,10 @@ var vows = require("vows"),
 
 var EchoServer = function() {
   var self = this;
-  var wf = new WireFormat();
+  var wf = new WireFormat({ name: "jsonProtocol"});
   this.connections = [];
   var appHandler = function(request, socket,  head) {
-    var ws = new WebSocketClient(request, socket, head);
+    var ws = new WebSocketClient(request, socket, head, ['jsonProtocol']);
     self.connections.push(ws);
     ws.onmessage = function(event) {
       var parsed = wf.parseMessage(event.data);
@@ -82,8 +82,8 @@ vows.describe("BackChat.io HookupClient").addBatch({
         uri: "ws://localhost:2949/",
         retries:  {min:1, max: 5},
         buffered: true,
-        defaultsClient: new HookupClient("ws://localhost:2949/"),
-        configuredClient: new HookupClient({uri: "ws://localhost:2949/", reconnectSchedule: { min: 1, max: 5 }, buffered: true})},
+        defaultsClient: new HookupClient({ uri: "ws://localhost:2949/", wireFormat: new WireFormat({name: "jsonProtocol"})}),
+        configuredClient: new HookupClient({uri: "ws://localhost:2949/", wireFormat: new WireFormat({name: "jsonProtocol"}), reconnectSchedule: { min: 1, max: 5 }, buffered: true})},
       'fails when the uri param is': {
         "missing": function (topic) {
           assert.throws(function () { new HookupClient() }, Error);
@@ -117,7 +117,7 @@ vows.describe("BackChat.io HookupClient").addBatch({
         var closed=0, reconnecting=0;
         var messages = [];
         server.on('listen', function() {
-          var ws = new HookupClient({uri: "ws://localhost:"+port+"/"});
+          var ws = new HookupClient({uri: "ws://localhost:"+port+"/", wireFormat: new WireFormat({name: "jsonProtocol"})});
           ws.on('close', function() {
             closed++;
             server.close();
@@ -130,6 +130,7 @@ vows.describe("BackChat.io HookupClient").addBatch({
             reconnecting++;
           });
           ws.on('open', function() {
+            console.log("connected");
             ws.send({data: "the message"});
           });
           ws.connect();
@@ -153,7 +154,7 @@ vows.describe("BackChat.io HookupClient").addBatch({
         var ackRequests=0, acks=0, failedAcks = 0;
         var killSwitch = null;
         server.on('listen', function() {
-          var ws = new HookupClient({uri: "ws://localhost:"+port+"/", raiseAckEvents: true});
+          var ws = new HookupClient({uri: "ws://localhost:"+port+"/", raiseAckEvents: true, wireFormat: new WireFormat({name: "jsonProtocol"})});
           ws.on('ack_failed', function() {
             failedAcks++;
             if (killSwitch) clearTimeout(killSwitch);
@@ -200,7 +201,7 @@ vows.describe("BackChat.io HookupClient").addBatch({
         var server = new EchoServer();
         var closed=0, reconnecting=0;
         var listen = function() {
-          var ws = new HookupClient({uri: "ws://localhost:"+port+"/"});
+          var ws = new HookupClient({uri: "ws://localhost:"+port+"/", wireFormat: new WireFormat({name: "jsonProtocol"})});
           ws.on('close', function() {
             server.close();
           });
@@ -237,7 +238,7 @@ vows.describe("BackChat.io HookupClient").addBatch({
         var server = new EchoServer();
         var closed=0, reconnecting=0;
         server.on('listen', function() {
-          var ws = new HookupClient({uri: "ws://localhost:2950/"});
+          var ws = new HookupClient({uri: "ws://localhost:2950/", wireFormat: new WireFormat({name: "jsonProtocol"})});
           ws.on('close', function() {
             closed++;
             server.close();

@@ -11,7 +11,7 @@ var _ = require('underscore'),
 var WireFormat = function(options) {
   var opts = options||{};
   this.format = opts.protocol || 'json';
-  this.name = opts.name || "jsonProtocol";
+  this.name = opts.name || "simpleJson";
 }
 
 _.extend(WireFormat.prototype, /** @lends WireFormat.prototype */ {
@@ -57,7 +57,7 @@ _.extend(WireFormat.prototype, /** @lends WireFormat.prototype */ {
    * @returns {String} The string representation of the message to be sent.
    */
   renderMessage: function(message) {
-    return JSON.stringify(this.buildMessage(message));
+    return typeof message === "string" ? message : JSON.stringify(this.buildMessage(message));
   },
   /**
    * Builds a message from a string or an object and wraps it in an envelope with meta data for the protocol.

@@ -39,7 +39,7 @@ CONNECTED=4
  * 
  * Usage of the simple hookup client:
  *
- * <pre>
+ * {{
  *   var myHookup = new Hookup({uri: "ws://localhost:8080/thesocket"});
  *   myHookup.on("open", function() {
  *     console.log("The websocket to"+myHookup.uri+" is connected.")''
@@ -53,7 +53,7 @@ CONNECTED=4
  *       myHookup.send("ECHO: "+data.content);
  *     }
  *   });
- * </pre>
+ * }}
  *
  * @augments EventEmitter
  *
@@ -173,7 +173,8 @@ _.extend(HookupClient.prototype, /** @lends HookupClient.prototype */ {
       this._scheduledReconnect = null;
     }
     if (!this.isConnected()) {
-      this._client = client = new WebSocket.Client(this.uri);
+      console.log(this._wireFormat);
+      this._client = client = new WebSocket.Client(this.uri, [this._wireFormat.name]);
       var self = this;
 
       client.onopen = function(evt) {
