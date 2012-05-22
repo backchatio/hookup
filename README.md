@@ -1,4 +1,4 @@
-# BackChat.io Hookup 
+# BackChat.io Hookup [![Build Status](https://secure.travis-ci.org/backchatio/hookup.png?branch=master)](http://travis-ci.org/backchatio/hookup)
 
 Reliable messaging on top of websockets. Uses akka, netty, coda hale metrics,... Provides client for node, ruby, scala.
 

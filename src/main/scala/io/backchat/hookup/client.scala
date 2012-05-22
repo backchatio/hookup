@@ -57,8 +57,9 @@ object HookupClient {
           throw new WebSocketException("Unexpected HttpResponse (status=" + resp.getStatus + ", content="
             + resp.getContent.toString(CharsetUtil.UTF_8) + ")")
         case resp: HttpResponse ⇒
-          if (resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL) != null && resp.getStatus.getCode == 426) {
+          if (resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL) != null && resp.getStatus == Status.UpgradeRequired) {
             // TODO: add better handling of this so the people know what is going wrong
+            logger.warn("The server only supports [%s] as protocols." format resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL))
             expectChunk.compareAndSet(false, true)
             host.disconnect()
           } else {
@@ -73,7 +74,7 @@ object HookupClient {
             }
             host.receive lift Connected
           }
-        case resp: HttpChunk if expectChunk.get() => // ignore the trailer for the handshake error
+        case resp: HttpChunk if expectChunk.compareAndSet(true, false) =>  // ignore the trailer for the handshake error
         case f: TextWebSocketFrame ⇒
           val inferred = wireFormat.parseInMessage(f.getText)
           inferred match {
