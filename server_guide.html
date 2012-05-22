@@ -203,11 +203,13 @@ We don&#39;t have an abstraction on top of Netty&#39;s request and response mode
 
 <p>By default the server is configured with:</p>
 
-<div class="highlight"><pre><code class="scala"><span class="nd">@BeanProperty</span>
-<span class="k">val</span> <span class="nc">DefaultProtocols</span> <span class="k">=</span> 
-  <span class="nc">Seq</span><span class="o">(</span>
-    <span class="k">new</span> <span class="nc">JsonProtocolWireFormat</span><span class="o">()(</span><span class="nc">DefaultFormats</span><span class="o">),</span>
-    <span class="k">new</span> <span class="nc">SimpleJsonWireFormat</span><span class="o">()(</span><span class="nc">DefaultFormats</span><span class="o">))</span>
+<div class="highlight"><pre><code class="scala"><span class="k">val</span> <span class="nc">SimpleJson</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">SimpleJsonWireFormat</span><span class="o">()(</span><span class="nc">DefaultFormats</span><span class="o">)</span>
+<span class="k">val</span> <span class="nc">JsonProtocol</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">JsonProtocolWireFormat</span><span class="o">()(</span><span class="nc">DefaultFormats</span><span class="o">)</span>
+<span class="cm">/**</span>
+<span class="cm"> * The default protocols hookup understands</span>
+<span class="cm"> */</span>
+<span class="nd">@BeanProperty</span>
+<span class="k">val</span> <span class="nc">DefaultProtocols</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">(</span><span class="nc">SimpleJson</span><span class="o">,</span> <span class="nc">JsonProtocol</span><span class="o">)</span>
 </code></pre>
 </div>
 

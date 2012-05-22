@@ -179,6 +179,17 @@ then the cause object will be filled in.</p>
       </span>
       </h4>
       <p class="comment cmt">A callback event signaling that an error has occurred.</p>
+    </li><li visbl="pub" name="io.backchat.hookup.Favico" data-isabs="false">
+      <a id="Favico:Favico"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="Favico.html"><span class="name">Favico</span></a>
+        
+        <span class="params">(<span name="path">path: File</span>)</span><span class="result"> extends ServerCapability with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">The file to use as favico.</p>
     </li><li visbl="pub" name="io.backchat.hookup.FileBuffer" data-isabs="false">
       <a id="FileBuffer:FileBuffer"></a>
       <h4 class="signature">
@@ -339,7 +350,7 @@ From then on it will continue to use the max wait as delay.</p>
         <span class="params">(<span name="size">size: Long</span>)</span><span class="result"> extends ServerCapability with Product with Serializable</span>
       </span>
       </h4>
-      
+      <p class="comment cmt">The maximum frame size for a websocket connection</p>
     </li><li visbl="pub" name="io.backchat.hookup.MaxTimesThrottle" data-isabs="false">
       <a id="MaxTimesThrottle:MaxTimesThrottle"></a>
       <h4 class="signature">
@@ -411,6 +422,17 @@ These results can indicate Success, Cancellation or a sequence of operation resu
       </span>
       </h4>
       <p class="comment cmt">A base trait for creating messages of different content types</p>
+    </li><li visbl="pub" name="io.backchat.hookup.PublicDirectory" data-isabs="false">
+      <a id="PublicDirectory:PublicDirectory"></a>
+      <h4 class="signature">
+      <span class="kind">case class</span>
+      <span class="symbol"> 
+        <a href="PublicDirectory.html"><span class="name">PublicDirectory</span></a>
+        
+        <span class="params">(<span name="path">path: File</span>)</span><span class="result"> extends ServerCapability with Product with Serializable</span>
+      </span>
+      </h4>
+      <p class="comment cmt">The directory to use as a base directory for serving static files.</p>
     </li><li visbl="pub" name="io.backchat.hookup.Reconnectable" data-isabs="true">
       <a id="Reconnectable:Reconnectable"></a>
       <h4 class="signature">
@@ -658,6 +680,61 @@ any advanced features but just sends json messages back and forth
       </span>
       </h4>
       <p class="comment cmt"></p>
+    </li><li visbl="pub" name="io.backchat.hookup.package#HttpCacheSeconds" data-isabs="false">
+      <a id="HttpCacheSeconds:Int"></a>
+      <h4 class="signature">
+      <span class="kind">val</span>
+      <span class="symbol"> 
+        <span class="name">HttpCacheSeconds</span>
+        
+        <span class="result">: <span name="scala.Int" class="extype">Int</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.package#HttpDateFormat" data-isabs="false">
+      <a id="HttpDateFormat:DateTimeFormatter"></a>
+      <h4 class="signature">
+      <span class="kind">val</span>
+      <span class="symbol"> 
+        <span class="name">HttpDateFormat</span>
+        
+        <span class="result">: <span name="org.joda.time.format.DateTimeFormatter" class="extype">DateTimeFormatter</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.package#HttpDateGMT" data-isabs="false">
+      <a id="HttpDateGMT:String"></a>
+      <h4 class="signature">
+      <span class="kind">val</span>
+      <span class="symbol"> 
+        <span class="name">HttpDateGMT</span>
+        
+        <span class="result">: <span name="java.lang.String" class="extype">String</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.package#HttpDateTimeZone" data-isabs="false">
+      <a id="HttpDateTimeZone:DateTimeZone"></a>
+      <h4 class="signature">
+      <span class="kind">val</span>
+      <span class="symbol"> 
+        <span class="name">HttpDateTimeZone</span>
+        
+        <span class="result">: <span name="org.joda.time.DateTimeZone" class="extype">DateTimeZone</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.package#JsonProtocol" data-isabs="false">
+      <a id="JsonProtocol:JsonProtocolWireFormat"></a>
+      <h4 class="signature">
+      <span class="kind">val</span>
+      <span class="symbol"> 
+        <span class="name">JsonProtocol</span>
+        
+        <span class="result">: <a name="io.backchat.hookup.JsonProtocolWireFormat" class="extype" href="JsonProtocolWireFormat.html">JsonProtocolWireFormat</a></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.package" class="extype" href="package$.html">package</a></dd></dl></div>
     </li><li visbl="pub" name="io.backchat.hookup.JsonProtocolWireFormat" data-isabs="false">
       <a id="JsonProtocolWireFormat:JsonProtocolWireFormat"></a>
       <h4 class="signature">
@@ -704,6 +781,17 @@ is trying to reconnect.</p>
       </span>
       </h4>
       <p class="comment cmt"></p>
+    </li><li visbl="pub" name="io.backchat.hookup.package#SimpleJson" data-isabs="false">
+      <a id="SimpleJson:SimpleJsonWireFormat"></a>
+      <h4 class="signature">
+      <span class="kind">val</span>
+      <span class="symbol"> 
+        <span class="name">SimpleJson</span>
+        
+        <span class="result">: <a name="io.backchat.hookup.SimpleJsonWireFormat" class="extype" href="SimpleJsonWireFormat.html">SimpleJsonWireFormat</a></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.package" class="extype" href="package$.html">package</a></dd></dl></div>
     </li><li visbl="pub" name="io.backchat.hookup.Success" data-isabs="false">
       <a id="Success:Success"></a>
       <h4 class="signature">
@@ -777,6 +865,17 @@ a <a name="io.backchat.hookup.HookupServer.BroadcastFilter" class="extype" href=
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.http" data-isabs="false">
+      <a id="http:http"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="http/package.html"><span class="name">http</span></a>
+        
+        
+      </span>
+      </h4>
+      
     </li><li visbl="pub" name="io.backchat.hookup.package#jvalue2JsonMessage" data-isabs="false">
       <a id="jvalue2JsonMessage(JValue):OutboundMessage with Ackable"></a>
       <h4 class="signature">
@@ -791,6 +890,17 @@ a <a name="io.backchat.hookup.HookupServer.BroadcastFilter" class="extype" href=
 </p><div class="fullcomment"><div class="comment cmt"><p>Implicit conversion from a lift-json jvalue to a <a name="io.backchat.hookup.JsonMessage" class="extype" href="JsonMessage.html">JsonMessage</a>
 </p></div><dl class="paramcmts block"><dt class="param">content</dt><dd class="cmt"><p>The string content of the message</p></dd><dt>returns</dt><dd class="cmt"><p>A <a name="io.backchat.hookup.JsonMessage" class="extype" href="JsonMessage.html">JsonMessage</a>
 </p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>implicit </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.package" class="extype" href="package$.html">package</a></dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.server" data-isabs="false">
+      <a id="server:server"></a>
+      <h4 class="signature">
+      <span class="kind">package</span>
+      <span class="symbol"> 
+        <a href="server/package.html"><span class="name">server</span></a>
+        
+        
+      </span>
+      </h4>
+      
     </li><li visbl="pub" name="io.backchat.hookup.package#setDefaultProtocol" data-isabs="false">
       <a id="setDefaultProtocol(String):Unit"></a>
       <h4 class="signature">
