@@ -51,7 +51,7 @@
 		
 		Documentation generator: <a href="http://code.google.com/p/jsdoc-toolkit/" target="_blank">JsDoc Toolkit</a> 2.4.0<br />
 		Template: <a href="http://www.thebrightlines.com/2010/05/06/new-template-for-jsdoctoolkit-codeview/" target="_blank">Codeview</a> 1.2<br />
-		Generated on: 2012-4-22 10:11
+		Generated on: 2012-4-22 10:42
 	</div>
 </div>
 
@@ -72,7 +72,7 @@ You can opt-in or opt-out of every feature in the hookup client through configur
 
 Usage of the simple hookup client:
 
-<pre>
+{{
   var myHookup = new Hookup({uri: "ws://localhost:8080/thesocket"});
   myHookup.on("open", function() {
     console.log("The websocket to"+myHookup.uri+" is connected.")''
@@ -86,7 +86,7 @@ Usage of the simple hookup client:
       myHookup.send("ECHO: "+data.content);
     }
   });
-</pre>
+}}
 			</p>
 				
 			
