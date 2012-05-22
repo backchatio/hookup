@@ -3,7 +3,7 @@ package http
 
 /**
  * Provides a class for building [[org.jboss.netty.handler.codec.http.HttpRequest]]s.
- * The main class to use is [[com.twitter.finagle.http.RequestBuilder]], as so
+ * The main class to use is [[io.backchat.hookup.http.RequestBuilder]], as so
  *
  * {{{
  * val getRequest = RequestBuilder()
@@ -40,7 +40,7 @@ import org.jboss.netty.handler.codec.base64.Base64
 import org.jboss.netty.buffer.{ChannelBuffers, ChannelBuffer}
 
 /**
- * Factory for [[com.twitter.finagle.http.RequestBuilder]] instances
+ * Factory for [[io.backchat.hookup.http.RequestBuilder]] instances
  */
 object RequestBuilder {
   type Complete = RequestBuilder[RequestConfig.Yes]
