@@ -54,6 +54,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
     var client = Promise[HookupServerClient]()
     val disconnectionLatch = new CountDownLatch(1)
     val ackRequest = new CountDownLatch(2)
+    val allProtos = DefaultProtocols ++ protocols
 
     class WsClient extends HookupServerClient {
       def receive = {
@@ -77,8 +78,8 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
       val info = ServerInfo(
         listenOn = "127.0.0.1", defaultProtocol = "jsonProtocol", port = serverAddress,
         capabilities = if (protocols.isEmpty)
-          Seq(Ping(Timeout(2 seconds)), RaiseAckEvents) else
-          Seq(SubProtocols(protocols.head, protocols.tail:_*)))
+          Seq(Ping(Timeout(2 seconds)), SubProtocols(allProtos.head, allProtos.tail:_*), RaiseAckEvents) else
+          Seq(SubProtocols(allProtos.head, allProtos.tail:_*)))
       HookupServer(info)(new WsClient)
     }
 
@@ -87,22 +88,26 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
       server.stop
     }
 
-    def withClient[T <% Result](handler: HookupClient.Receive, protocols: WireFormat*)(thunk: HookupClient => T): T = {
+    def withClient[T <% Result](handler: HookupClient.Receive, protocols: WireFormat*)(thunk: HookupClient => T): T =
+      withClient(handler, None, protocols:_*)(thunk)
+
+    def withClient[T <% Result](handler: HookupClient.Receive, throttle: Option[Throttle], protocols: WireFormat*)(thunk: HookupClient => T): T = {
       val protos = protocols
       implicit val wireFormat = new JsonProtocolWireFormat()(DefaultFormats)
+      val config = HookupClientConfig(
+                uri = new URI("ws://127.0.0.1:"+serverAddress.toString+"/"),
+                throttle = throttle getOrElse IndefiniteThrottle(1 second, 1 second),
+                buffer = Some(new FileBuffer(new File("./work/buffer-test.log"))),
+                defaultProtocol = protocols.headOption getOrElse wireFormat,
+                protocols = allProtos)
       val cl = new HookupClient {
-        val uri = new URI("ws://127.0.0.1:"+serverAddress.toString+"/")
-        val settings: HookupClientConfig = HookupClientConfig(
-          uri = uri,
-          throttle = IndefiniteThrottle(1 second, 1 second),
-          buffer = Some(new FileBuffer(new File("./work/buffer-test.log"))),
-          defaultProtocol = wireFormat,
-          protocols = protocols)
+        val uri = config.uri
+        val settings: HookupClientConfig = config
         override private[hookup] def raiseEvents = true
         def receive = handler
       }
       try {
-        Await.ready(cl.connect("jsonProtcol"), 3 seconds)
+        Await.ready(cl.connect(config.defaultProtocol.name), 3 seconds)
         thunk(cl)
       } finally {
         cl.disconnect
@@ -114,16 +119,15 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
     }
 
     def acceptsWithSubProtocols = this {
-      withClient({ case _ => }, protocols:_*) { c =>
+      withClient({ case _ => }: HookupClient.Receive, None, protocols:_*) { c =>
         client.isCompleted must beTrue.eventually and (c.isConnected must beTrue.eventually)
       }
     }
 
     def failsWithWrongSubProtocols = this {
-//      withClient({ case _ => }, new NoopWireformat("xmpp")) { c =>
-//        client.isCompleted must beTrue.eventually //and (c.isConnected must beFalse.eventually)
-//      }
-      skipped
+      withClient({ case _ => }: HookupClient.Receive, Some(NoThrottle), new NoopWireformat("xmpp")) { c =>
+        c.isConnected must beFalse.eventually
+      }
     }
 
     def canSendMessagesToTheClient = this {

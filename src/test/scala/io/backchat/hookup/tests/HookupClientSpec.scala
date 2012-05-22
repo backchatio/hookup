@@ -95,10 +95,10 @@ class HookupClientSpec extends Specification with NoTimeConversions { def is =
       "exchange json messages with the server" ! specify("jsonProtocol").exchangesJsonMessages ^ bt ^
     "when configured with simpleJsonProtocol" ^
       "connect to a server" ! specify("simpleJson").connectsToServerSimpleJson ^
-      "exchange json messages with the server" ! specify("simpleJson").exchangesJsonMessagesSimpleJson ^
+      "exchange json messages with the server" ! specify("simpleJson").exchangesJsonMessagesSimpleJson ^ bt ^
     "when client requests simpleJson and server is default" ^
-      "connect to a server" ! specify("simpleJson").pendingSpec ^
-      "exchange json messages with the server" ! specify("simpleJson").pendingSpec ^
+      "connect to a server" ! specify("jsonProtocol").pendingSpec ^
+      "exchange json messages with the server" ! specify("jsonProtocol").pendingSpec ^ bt ^
     "when client requests jsonProtocol and server is default" ^
       "connect to a server" ! specify("simpleJson").pendingSpec ^
       "exchange json messages with the server" ! specify("simpleJson").pendingSpec ^

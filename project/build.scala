@@ -11,7 +11,8 @@ object HookupBuild extends Build {
     scalaVersion := "2.9.1",
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
-      "io.netty" % "netty" % "3.4.4.Final",
+      "io.netty" % "netty" % "3.4.5.Final",
+      "org.scala-tools.time" %% "time" % "0.5",
       "net.liftweb" %% "lift-json" % "2.4" % "compile",
       "commons-io" % "commons-io" % "2.1",
       "com.typesafe.akka" % "akka-actor" % "2.0.1" % "compile",

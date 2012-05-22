@@ -1,5 +1,6 @@
 package io.backchat.hookup
 
+import http.{Status, Version}
 import org.jboss.netty.bootstrap.ServerBootstrap
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory
 import org.jboss.netty.channel._
@@ -8,36 +9,26 @@ import org.jboss.netty.handler.codec.http.websocketx._
 import java.util.Locale.ENGLISH
 import org.jboss.netty.logging.{ InternalLogger, InternalLoggerFactory }
 import java.security.KeyStore
-import java.io.{ FileInputStream, File }
 import javax.net.ssl.{ KeyManagerFactory, SSLContext }
 import org.jboss.netty.handler.ssl.SslHandler
 import org.jboss.netty.handler.codec.http._
 import java.net.{ SocketAddress, InetSocketAddress }
 import scala.collection.JavaConverters._
 import collection.mutable.ListBuffer
-import akka.util.duration._
-import org.jboss.netty.handler.timeout.{ IdleStateEvent, IdleState, IdleStateHandler, IdleStateAwareChannelHandler }
+import org.jboss.netty.handler.timeout.IdleStateHandler
 import net.liftweb.json._
 import JsonDSL._
 import java.util.concurrent.{ ConcurrentHashMap, ConcurrentLinkedQueue, TimeUnit, Executors }
-import _root_.io.backchat.hookup.HookupServer.{ WebSocketCancellable }
-import akka.util.{ Index, Timeout }
-import annotation.switch
-import org.jboss.netty.handler.codec.frame.FrameDecoder
-import org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1
-import org.jboss.netty.handler.codec.http.HttpResponseStatus.OK
-import org.jboss.netty.buffer.{ ChannelBuffer, ChannelBuffers }
+import akka.util.Timeout
+import org.jboss.netty.buffer.ChannelBuffers
 import org.jboss.netty.util.{ CharsetUtil, Timeout ⇒ NettyTimeout, TimerTask, HashedWheelTimer }
 import com.typesafe.config.Config
-import akka.actor.{Actor, ActorRef, DefaultCancellable, Cancellable}
-import akka.config.ConfigurationException
-import org.jboss.netty.handler.codec.http.HttpHeaders.Names._
+import akka.actor.{Actor, ActorRef, Cancellable}
 import org.jboss.netty.handler.codec.http.HttpHeaders._
-import java.text.SimpleDateFormat
-import java.util.{Date, TimeZone}
-import java.util.logging.{Level, Logger}
 import akka.dispatch.{ExecutionContext, Promise, Future}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference, AtomicLong}
+import java.io.{FileNotFoundException, FileInputStream, File}
+import server.FlashPolicyHandler
 
 /**
  * A marker trait to indicate something is a a configuration for the server.
@@ -86,7 +77,26 @@ case class Ping(timeout: Timeout) extends ServerCapability
  */
 case class FlashPolicy(domain: String, ports: Seq[Int]) extends ServerCapability
 
+/**
+ * The maximum frame size for a websocket connection
+ * @param size
+ */
 case class MaxFrameSize(size: Long = Long.MaxValue) extends ServerCapability
+
+/**
+ * The directory to use as a base directory for serving static files.
+ * @param path The [[java.io.File]] to use as base path
+ */
+case class PublicDirectory(path: File) extends ServerCapability
+
+/**
+ * The file to use as favico.ico response.
+ * If you use the public directory capabillity you can also place a file in the public directory
+ * named favico.{ico,png,gif} and the static file server will serve the request.
+ *
+ * @param path The [[java.io.File]] to use as base path
+ */
+case class Favico(path: File) extends ServerCapability
 
 /**
  * Private object used in unit tests
@@ -166,6 +176,20 @@ object ServerInfo {
         if (config.hasPath("flashPolicy.port")) List(config.getInt("flashPolicy.port")) else Nil
       }
       caps += FlashPolicy(domain, ports)
+    }
+
+    if (config.hasPath("publicDirectory")) {
+      val path = new File(config.getString("publicDirectory"))
+      if (path.exists())
+        caps += PublicDirectory(path)
+      else throw new FileNotFoundException(path.toString)
+    }
+
+    if (config.hasPath("favico")) {
+      val path = new File(config.getString("favico"))
+      if (path.exists())
+        caps += Favico(path)
+      else throw new FileNotFoundException(path.toString)
     }
 
     if (config.hasPath("ssl")) {
@@ -269,6 +293,8 @@ case class ServerInfo(
        <allow-access-from domain="*" to-ports="*"/>
      </cross-domain-policy>).toString()
   }
+
+//  def has[T: Manifest]: Boolean = capabilities exists { c => manifest[T].erasure isAssignableFrom c.getClass  }
 }
 
 
@@ -280,7 +306,7 @@ object HookupServer {
   import ServerInfo.DefaultServerName
   //  type WebSocketHandler = PartialFunction[WebSocketMessage, Unit]
 
-  import HookupClient.{ Receive }
+  import HookupClient.Receive
 
   /**
    * A filter for broadcast channels, a predicate that can't be null
@@ -552,7 +578,7 @@ object HookupServer {
 
     def close() = {
       channel.send(Disconnect)
-    };
+    }
   }
 
 
@@ -651,49 +677,6 @@ object HookupServer {
 
   }
 
-  private[this] val PolicyXml = <cross-domain-policy><allow-access-from domain="*" to-ports="*"/></cross-domain-policy>
-  private val AllowAllPolicy = ChannelBuffers.copiedBuffer(PolicyXml.toString(), CharsetUtil.UTF_8)
-
-  /**
-   * A flash policy handler for netty. This needs to be included in the pipeline before anything else has touched
-   * the message.
-   *
-   * @see [[https://github.com/cgbystrom/netty-tools/blob/master/src/main/java/se/cgbystrom/netty/FlashPolicyHandler.java]]
-   * @param policyResponse The response xml to send for a request
-   */
-  class FlashPolicyHandler(policyResponse: ChannelBuffer = AllowAllPolicy) extends FrameDecoder {
-
-    def decode(ctx: ChannelHandlerContext, channel: Channel, buffer: ChannelBuffer) = {
-      if (buffer.readableBytes > 1) {
-
-        val magic1 = buffer.getUnsignedByte(buffer.readerIndex());
-        val magic2 = buffer.getUnsignedByte(buffer.readerIndex() + 1);
-        val isFlashPolicyRequest = (magic1 == '<' && magic2 == 'p');
-
-        if (isFlashPolicyRequest) {
-          // Discard everything
-          buffer.skipBytes(buffer.readableBytes())
-
-          // Make sure we don't have any downstream handlers interfering with our injected write of policy request.
-          removeAllPipelineHandlers(channel.getPipeline)
-          channel.write(policyResponse).addListener(ChannelFutureListener.CLOSE)
-          null
-        } else {
-
-          // Remove ourselves, important since the byte length check at top can hinder frame decoding
-          // down the pipeline
-          ctx.getPipeline.remove(this)
-          buffer.readBytes(buffer.readableBytes())
-        }
-      } else null
-    }
-
-    private def removeAllPipelineHandlers(pipe: ChannelPipeline) {
-      while (pipe.getFirst != null) {
-        pipe.removeFirst();
-      }
-    }
-  }
 
   /**
    * A 100 Continue response
@@ -809,15 +792,23 @@ object HookupServer {
 
     private def handleUpgrade(ctx: ChannelHandlerContext, httpRequest: HttpRequest) {
       val protos = if (subProtocols.isEmpty) null else subProtocols.map(_._1).mkString(",")
-      println("protos: %s" format protos)
-      val handshakerFactory = new WebSocketServerHandshakerFactory(websocketLocation(httpRequest), protos, false, maxFrameSize)
-      handshaker = handshakerFactory.newHandshaker(httpRequest)
-      if (handshaker == null) handshakerFactory.sendUnsupportedWebSocketVersionResponse(ctx.getChannel)
-      else {
-        handshaker.handshake(ctx.getChannel, httpRequest)
-        client = clientFrom(ctx)
-        if (raiseEvents) Channels.fireMessageReceived(ctx, ("client" -> client))
-        client.receive.lift(Connected)
+      try {
+        val handshakerFactory = new WebSocketServerHandshakerFactory(websocketLocation(httpRequest), protos, false, maxFrameSize)
+        handshaker = handshakerFactory.newHandshaker(httpRequest)
+        if (handshaker == null) handshakerFactory.sendUnsupportedWebSocketVersionResponse(ctx.getChannel)
+        else {
+          handshaker.handshake(ctx.getChannel, httpRequest)
+          client = clientFrom(ctx)
+          if (raiseEvents) Channels.fireMessageReceived(ctx, ("client" -> client))
+          client.receive.lift(Connected)
+        }
+      } catch {
+        case e: WebSocketHandshakeException =>
+          val res = new DefaultHttpResponse(Version.Http11, Status.SwitchingProtocols)
+          res.setStatus(HttpResponseStatus.UPGRADE_REQUIRED)
+          res.setHeader(Names.SEC_WEBSOCKET_VERSION, WebSocketVersion.V13.toHttpHeaderValue)
+          res.setHeader(Names.SEC_WEBSOCKET_PROTOCOL, protos)
+          ctx.getChannel.write(res).addListener(ChannelFutureListener.CLOSE)
       }
     }
 
@@ -981,54 +972,6 @@ object HookupServer {
     }
   }
 
-
-
-  /**
-   * A http request handler that responses to `ping` requests with the word `pong` for the specified path
-   *
-   * @param path The path for the ping endpoint
-   */
-  class LoadBalancerPing(path: String) extends SimpleChannelUpstreamHandler {
-    override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
-      e.getMessage match {
-        case r: HttpRequest if r.getUri.toLowerCase.startsWith(path) =>
-          val res = new DefaultHttpResponse(HTTP_1_1, OK)
-          val content = ChannelBuffers.copiedBuffer("pong", CharsetUtil.UTF_8)
-          val dateformat = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz")
-          dateformat.setTimeZone(TimeZone.getTimeZone("UTC"))
-          res.setHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
-          res.setHeader(Names.EXPIRES, dateformat.format(new Date))
-          res.setHeader(Names.CACHE_CONTROL, "no-cache, must-revalidate")
-          res.setHeader(Names.PRAGMA, "no-cache")
-
-          res.setContent(content)
-          ctx.getChannel.write(res).addListener(ChannelFutureListener.CLOSE)
-        case _ => ctx.sendUpstream(e)
-      }
-    }
-  }
-
-  /**
-   * An unfinished implementation of a favico handler.
-   * currently always responds with 404.
-   *
-   * @param favico the file that is the favico. (not used currently)
-   */
-  class Favico(favico: Option[File] = None) extends SimpleChannelUpstreamHandler {
-    override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
-      e.getMessage match {
-        case r: HttpRequest if r.getUri.toLowerCase.startsWith("/favicon.ico") =>
-          val status = HttpResponseStatus.NOT_FOUND
-          val response: HttpResponse = new DefaultHttpResponse(HTTP_1_1, status)
-          response.setHeader(CONTENT_TYPE, "text/plain; charset=UTF-8")
-          response.setContent(ChannelBuffers.copiedBuffer("Failure: "+status.toString+"\r\n", CharsetUtil.UTF_8))
-          ctx.getChannel.write(response).addListener(ChannelFutureListener.CLOSE)
-
-        case _ => ctx.sendUpstream(e)
-      }
-    }
-  }
-
 }
 
 /**
@@ -1093,7 +1036,6 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient) exte
   def port = config.port
 
   import HookupServer._
-  import HookupClient.executionContext
 
   /**
    * the [[org.jboss.netty.logging.InternalLogger]] to use as logger for this server.
@@ -1165,6 +1107,7 @@ class HookupServer(val config: ServerInfo, factory: ⇒ HookupServerClient) exte
     pipe.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192))
     pipe.addLast("aggregator", new HttpChunkAggregator(64 * 1024))
     pipe.addLast("encoder", new HttpResponseEncoder)
+//    pipe.addLast("chunkedWriter", new ChunkedWriteHandler)
     config.contentCompression foreach { ctx ⇒
       pipe.addLast("deflater", new HttpContentCompressor(ctx.level))
     }

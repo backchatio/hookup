@@ -8,6 +8,9 @@ import java.util.concurrent.TimeUnit
 import org.jboss.netty.logging.{Slf4JLoggerFactory, InternalLoggerFactory}
 import net.liftweb.json.DefaultFormats
 import reflect.BeanProperty
+import org.joda.time.DateTimeZone
+import org.joda.time.format.DateTimeFormat
+import org.jboss.netty.util.CharsetUtil
 
 /**
  * The package object for the library.
@@ -17,15 +20,22 @@ import reflect.BeanProperty
 package object hookup {
 
 
+
+  val HttpDateGMT = "GMT"
+  val HttpDateTimeZone = DateTimeZone.forID(HttpDateGMT)
+  val HttpDateFormat = DateTimeFormat.forPattern("EEE, dd MMM yyyy HH:mm:ss zzz").withZone(HttpDateTimeZone)
+  val HttpCacheSeconds = 60
+
+  private[hookup] val Utf8 = CharsetUtil.UTF_8
+
+  /// code_ref: default_protocols
+  val SimpleJson = new SimpleJsonWireFormat()(DefaultFormats)
+  val JsonProtocol = new JsonProtocolWireFormat()(DefaultFormats)
   /**
    * The default protocols hookup understands
    */
-  /// code_ref: default_protocols
   @BeanProperty
-  val DefaultProtocols = 
-    Seq(
-      new JsonProtocolWireFormat()(DefaultFormats),
-      new SimpleJsonWireFormat()(DefaultFormats))
+  val DefaultProtocols = Seq(SimpleJson, JsonProtocol)
   /// end_code_ref
 
   /**
