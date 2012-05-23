@@ -8,3 +8,8 @@ blacklist.txt
 .idea_modules
 node_modules
 *.log
+cache
+.classpath
+.project
+.cache
+.settings
