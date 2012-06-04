@@ -86,7 +86,7 @@ _.extend(WireFormat.prototype, /** @lends WireFormat.prototype */ {
     }
   },
   /**
-   * Unwraps the message from the envelope, this is being used before raising the data event on a hookup client.
+   * Unwraps the message from the envelope, this is used before raising the data event on a hookup client.
    * 
    * @param {Object|String} message The message for which to get the content.
    * @returns {String|Object} The content of the message if any.
