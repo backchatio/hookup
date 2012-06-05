@@ -165,9 +165,9 @@ object Request {
   /** Create Request from HttpRequest. */
   def apply(httpRequestArg: HttpRequest): MockRequest = {
     new MockRequest {
-      override val httpRequest = httpRequestArg
+      override lazy val httpRequest = httpRequestArg
       override val httpMessage = httpRequestArg
-      override val remoteSocketAddress = new InetSocketAddress("127.0.0.1", 12345)
+      override lazy val remoteSocketAddress = new InetSocketAddress("127.0.0.1", 12345)
     }
   }
 
@@ -181,16 +181,16 @@ object Request {
 
   // for testing
   protected class MockRequest extends Request {
-    val httpRequest: HttpRequest = new DefaultHttpRequest(Version.Http11, Method.Get, "/")
+    lazy val httpRequest: HttpRequest = new DefaultHttpRequest(Version.Http11, Method.Get, "/")
     override val httpMessage: HttpMessage = httpRequest
-    val remoteSocketAddress = new InetSocketAddress("127.0.0.1", 12345)
+    lazy val remoteSocketAddress = new InetSocketAddress("127.0.0.1", 12345)
 
     // Create a MockRequest with a specific IP
     def withIp(ip: String) =
       new MockRequest {
-        override val httpRequest = MockRequest.this
+        override lazy val httpRequest = MockRequest.this
         override final val httpMessage = MockRequest.this
-        override val remoteSocketAddress = new InetSocketAddress(ip, 12345)
+        override lazy val remoteSocketAddress = new InetSocketAddress(ip, 12345)
       }
 
     // Create an internal MockRequest
