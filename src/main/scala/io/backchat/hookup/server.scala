@@ -29,6 +29,7 @@ import akka.dispatch.{ExecutionContext, Promise, Future}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference, AtomicLong}
 import java.io.{FileNotFoundException, FileInputStream, File}
 import server.FlashPolicyHandler
+import java.nio.channels.ClosedChannelException
 
 /**
  * A marker trait to indicate something is a a configuration for the server.
@@ -783,7 +784,12 @@ object HookupServer {
 
     override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
       if (client != null && client.receive != null) client.receive lift Error(Option(e.getCause))
-      else logger.error("Exception during connection.", e.getCause)
+      else {
+        e.getCause match {
+          case _: ClosedChannelException => logger.warn("Can't write to a channel that has already been closed.")
+          case err => logger.error("Exception during connection.", e.getCause)
+        }
+      }
     }
 
     override def channelClosed(ctx: ChannelHandlerContext, e: ChannelStateEvent) {
