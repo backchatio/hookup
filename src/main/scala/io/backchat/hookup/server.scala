@@ -730,13 +730,15 @@ object HookupServer {
     }
 
     override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
-      e.getMessage match {
-        case r: HttpRequest =>
-          logger debug "got a request: %s".format(r)
-          logger debug "is websocket upgrade: %b".format(isWebSocketUpgrade(r))
-          logger debug "is subprotocol: %b".format(isSubProto(r))
-        case m =>
-          logger debug "got a message: %s".format(m.getClass)
+      if (logger.isDebugEnabled) {
+        e.getMessage match {
+          case r: HttpRequest =>
+            logger debug "got a request: %s".format(r)
+            logger debug "is websocket upgrade: %b".format(isWebSocketUpgrade(r))
+            logger debug "is subprotocol: %b".format(isSubProto(r))
+          case m =>
+            logger debug "got a message: %s".format(m.getClass)
+        }
       }
 
       e.getMessage match {
@@ -795,17 +797,13 @@ object HookupServer {
     private def isWebSocketUpgrade(httpRequest: HttpRequest): Boolean = {
       val connHdr = httpRequest.getHeaders(Names.CONNECTION).asScala
       val upgrHdr = httpRequest.getHeader(Names.UPGRADE).blankOption
-      logger.debug("connection header: [%s]" format connHdr.mkString(","))
-      upgrHdr foreach { h => logger.debug("upgrade header: [%s]" format h) }
-      val r1 = connHdr.nonEmpty && connHdr.exists(_.equalsIgnoreCase(Values.UPGRADE))
-      val r2 = upgrHdr.isDefined && upgrHdr.forall(_.equalsIgnoreCase(Values.WEBSOCKET))
-      logger debug ("upgrade header matches: %b" format r2)
-      logger debug ("connection header matches: %b" format r1)
-      r1 && r2
+      val connectionHeaderMatches = connHdr.nonEmpty && connHdr.exists(_.equalsIgnoreCase(Values.UPGRADE))
+      val upgradeHeaderMatches = upgrHdr.isDefined && upgrHdr.forall(_.equalsIgnoreCase(Values.WEBSOCKET))
+      connectionHeaderMatches && upgradeHeaderMatches
     }
 
     private def handleUpgrade(ctx: ChannelHandlerContext, httpRequest: HttpRequest) {
-      logger debug ("handling websocket upgrade for %s" format httpRequest)
+      if (logger.isDebugEnabled) logger debug ("handling websocket upgrade for %s" format httpRequest)
       val protos = if (subProtocols.isEmpty) null else subProtocols.map(_._1).mkString(",")
       try {
         val handshakerFactory = new WebSocketServerHandshakerFactory(websocketLocation(httpRequest), protos, false, maxFrameSize)
@@ -819,7 +817,7 @@ object HookupServer {
         }
       } catch {
         case e: WebSocketHandshakeException =>
-          logger.debug("Problem handshaking.", e)
+          if (logger.isDebugEnabled) logger.debug("Problem handshaking.", e)
           val res = new DefaultHttpResponse(Version.Http11, Status.SwitchingProtocols)
           res.setStatus(HttpResponseStatus.UPGRADE_REQUIRED)
           res.setHeader(Names.SEC_WEBSOCKET_VERSION, WebSocketVersion.V13.toHttpHeaderValue)
