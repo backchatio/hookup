@@ -793,10 +793,15 @@ object HookupServer {
     }
 
     private def isWebSocketUpgrade(httpRequest: HttpRequest): Boolean = {
-      val connHdr = httpRequest.getHeader(Names.CONNECTION)
-      val upgrHdr = httpRequest.getHeader(Names.UPGRADE)
-      (connHdr != null && connHdr.equalsIgnoreCase(Values.UPGRADE)) &&
-        (upgrHdr != null && upgrHdr.equalsIgnoreCase(Values.WEBSOCKET))
+      val connHdr = httpRequest.getHeaders(Names.CONNECTION).asScala
+      val upgrHdr = httpRequest.getHeader(Names.UPGRADE).blankOption
+      logger.debug("connection header: [%s]" format connHdr.mkString(","))
+      upgrHdr foreach { h => logger.debug("upgrade header: [%s]" format h) }
+      val r1 = connHdr.nonEmpty && connHdr.exists(_.equalsIgnoreCase(Values.UPGRADE))
+      val r2 = upgrHdr.isDefined && upgrHdr.forall(_.equalsIgnoreCase(Values.WEBSOCKET))
+      logger debug ("upgrade header matches: %b" format r2)
+      logger debug ("connection header matches: %b" format r1)
+      r1 && r2
     }
 
     private def handleUpgrade(ctx: ChannelHandlerContext, httpRequest: HttpRequest) {
