@@ -15,8 +15,8 @@ object HookupBuild extends Build {
       "org.scala-tools.time" %% "time" % "0.5",
       "net.liftweb" %% "lift-json" % "2.4" % "compile",
       "commons-io" % "commons-io" % "2.1",
-      "com.typesafe.akka" % "akka-actor" % "2.0.1" % "compile",
-      "com.typesafe.akka" % "akka-testkit" % "2.0.1" % "test",
+      "com.typesafe.akka" % "akka-actor" % "2.0.2" % "compile",
+      "com.typesafe.akka" % "akka-testkit" % "2.0.2" % "test",
       "org.specs2" %% "specs2" % "1.10" % "test",
       "junit" % "junit" % "4.10" % "test"
     ),
