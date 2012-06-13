@@ -18,9 +18,7 @@ object StaticFileHandler {
   // Many people would put a cache in but to me that is just a horrifying thought.
   // There is zero-copy so you don't incur a cost and you're not storing those
   // 2GB files in memory either. Either you store the bytes in the JVM which bloats them a bit
-  // or you keep them on a store that is made to store files the disk.
-
-
+  // or you keep them on a store that is made to store files: the disk.
   def serveFile(ctx: ChannelHandlerContext, request: HttpRequest, file: File, contentType: Option[String] = None) = {
     try {
       val raf = new RandomAccessFile(file, "r")

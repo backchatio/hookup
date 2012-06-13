@@ -28,7 +28,6 @@ cp -R target/jekyll/* target/site/
 
 # generate yardocs 
 # first write the yardocs
-# generate scaladoc 
 
 
 # commit changes to gh-pages

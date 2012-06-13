@@ -98,6 +98,7 @@ There are [code examples](https://github.com/backchatio/hookup/tree/master/src/m
 * Echo ([server](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/PrintingEchoServer.scala) | [client](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/PrintingEchoClient.scala))
 * All Events ([server](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/PrintAllEventsServer.scala) | [client](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/PrintAllEventsClient.scala))
 * Chat ([server](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/ChatServer.scala) | [client](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/ChatClient.scala))
+* PubSub ([server](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/PubSubServer.scala) | [client](https://github.com/backchatio/hookup/blob/master/src/main/scala/io/backchat/hookup/examples/PubSubClient.scala))
 
 ## Patches
 Patches are gladly accepted from their original author. Along with any patches, please state that the patch is your original work and that you license the work to the *backchat-websocket* project under the MIT License.
