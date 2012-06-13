@@ -2,40 +2,35 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html>
         <head>
-          <title>io.backchat.hookup.BroadcastChannelLike</title>
+          <title>io.backchat.hookup.examples.PubSubServer</title>
           <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
           
-      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
-      <script type="text/javascript" src="../../../lib/jquery.js"></script>
-      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
-      <script type="text/javascript" src="../../../lib/template.js"></script>
-      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../../lib/template.css" />
+      <script type="text/javascript" src="../../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../../lib/tools.tooltip.js"></script>
     
         </head>
-        <body class="type">
+        <body class="value">
       <div id="definition">
-        <img src="../../../lib/trait_big.png" />
-        <p id="owner"><a name="io" class="extype" href="../../package.html">io</a>.<a name="io.backchat" class="extype" href="../package.html">backchat</a>.<a name="io.backchat.hookup" class="extype" href="package.html">hookup</a></p>
-        <h1>BroadcastChannelLike</h1>
+        <img src="../../../../lib/object_big.png" />
+        <p id="owner"><a name="io" class="extype" href="../../../package.html">io</a>.<a name="io.backchat" class="extype" href="../../package.html">backchat</a>.<a name="io.backchat.hookup" class="extype" href="../package.html">hookup</a>.<a name="io.backchat.hookup.examples" class="extype" href="package.html">examples</a></p>
+        <h1>PubSubServer</h1>
       </div>
 
       <h4 class="signature" id="signature">
-      <span class="kind">trait</span>
+      <span class="kind">object</span>
       <span class="symbol"> 
-        <span class="name">BroadcastChannelLike</span>
+        <span class="name">PubSubServer</span>
         
         <span class="result"> extends AnyRef</span>
       </span>
       </h4>
       
-          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>Broadcast channel like is either a connection or a proxy for a connection.
-It contains the methods for sending and disconnecting from a socket
-</p></div><div class="toggleContainer block">
+          <div class="fullcommenttop" id="comment"><div class="toggleContainer block">
           <span class="toggle">Linear Supertypes</span>
           <div class="superTypes hiddenContent">AnyRef, <span name="scala.Any" class="extype">Any</span></div>
-        </div><div class="toggleContainer block">
-          <span class="toggle">Known Subclasses</span>
-          <div class="subClasses hiddenContent"><a name="io.backchat.hookup.BroadcastChannel" class="extype" href="BroadcastChannel.html">BroadcastChannel</a>, <a name="io.backchat.hookup.DefaultHookupClient" class="extype" href="DefaultHookupClient.html">DefaultHookupClient</a>, <a name="io.backchat.hookup.HookupClient" class="extype" href="HookupClient.html">HookupClient</a>, <a name="io.backchat.hookup.HookupClientLike" class="extype" href="HookupClientLike.html">HookupClientLike</a>, <a name="io.backchat.hookup.HookupServer.HookupServerClient" class="extype" href="HookupServer$$HookupServerClient.html">HookupServerClient</a>, <a name="io.backchat.hookup.JavaHookupClient" class="extype" href="JavaHookupClient.html">JavaHookupClient</a>, <a name="io.backchat.hookup.examples.PubSubClient.PubSubClient" class="extype" href="examples/PubSubClient$$PubSubClient.html">PubSubClient</a></div>
         </div></div>
         
 
@@ -51,7 +46,7 @@ It contains the methods for sending and disconnecting from a socket
                 <span class="filtertype">Inherited</span>
                 <ol><li class="hideall out"><span>Hide All</span></li>
                 <li class="showall in"><span>Show all</span></li></ol>
-                <ol id="linearization"><li name="io.backchat.hookup.BroadcastChannelLike" class="in"><span>BroadcastChannelLike</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+                <ol id="linearization"><li name="io.backchat.hookup.examples.PubSubServer" class="in"><span>PubSubServer</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
               </div>
           <div id="visbl">
               <span class="filtertype">Visibility</span>
@@ -63,37 +58,10 @@ It contains the methods for sending and disconnecting from a socket
 
         
         
-        <div class="values members" id="values">
-              <h3>Abstract Value Members</h3>
-              <ol><li visbl="pub" name="io.backchat.hookup.BroadcastChannelLike#disconnect" data-isabs="true">
-      <a id="disconnect():Future[OperationResult]"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">disconnect</span>
         
-        <span class="params">()</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>]</span>
-      </span>
-      </h4>
-      <p class="shortcomment cmt">Disconnect from the socket, perform closing handshake if necessary</p><div class="fullcomment"><div class="comment cmt"><p>Disconnect from the socket, perform closing handshake if necessary</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>An akka.dispatch.Future of <a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>
-</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>abstract </dd></dl></div>
-    </li><li visbl="pub" name="io.backchat.hookup.BroadcastChannelLike#send" data-isabs="true">
-      <a id="send(OutboundMessage):Future[OperationResult]"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">send</span>
-        
-        <span class="params">(<span name="message">message: <a name="io.backchat.hookup.OutboundMessage" class="extype" href="OutboundMessage.html">OutboundMessage</a></span>)</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>]</span>
-      </span>
-      </h4>
-      <p class="shortcomment cmt">Send a message over the current connection</p><div class="fullcomment"><div class="comment cmt"><p>Send a message over the current connection</p></div><dl class="paramcmts block"><dt class="param">message</dt><dd class="cmt"><p>A <a name="io.backchat.hookup.OutboundMessage" class="extype" href="OutboundMessage.html">OutboundMessage</a> message</p></dd><dt>returns</dt><dd class="cmt"><p>An akka.dispatch.Future of <a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>
-</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>abstract </dd></dl></div>
-    </li></ol>
-            </div>
 
         <div class="values members" id="values">
-              <h3>Concrete Value Members</h3>
+              <h3>Value Members</h3>
               <ol><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
       <a id="!=(AnyRef):Boolean"></a>
       <h4 class="signature">
@@ -170,7 +138,7 @@ It contains the methods for sending and disconnecting from a socket
         <span class="params">()</span><span class="result">: AnyRef</span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -206,7 +174,7 @@ It contains the methods for sending and disconnecting from a socket
         <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -243,6 +211,17 @@ It contains the methods for sending and disconnecting from a socket
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.examples.PubSubServer#main" data-isabs="false">
+      <a id="main(Array[String]):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">main</span>
+        
+        <span class="params">(<span name="args">args: <span name="scala.Array" class="extype">Array</span>[String]</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      
     </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
       <a id="ne(AnyRef):Boolean"></a>
       <h4 class="signature">
@@ -276,6 +255,28 @@ It contains the methods for sending and disconnecting from a socket
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.examples.PubSubServer#publish" data-isabs="false">
+      <a id="publish(String,JValue):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">publish</span>
+        
+        <span class="params">(<span name="topic">topic: String</span>, <span name="data">data: JValue</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      
+    </li><li visbl="pub" name="io.backchat.hookup.examples.PubSubServer#subscribe" data-isabs="false">
+      <a id="subscribe(String,HookupServerClient):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">subscribe</span>
+        
+        <span class="params">(<span name="topic">topic: String</span>, <span name="client">client: HookupServerClient</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      
     </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
       <a id="synchronized[T0](⇒ T0):T0"></a>
       <h4 class="signature">
@@ -298,6 +299,17 @@ It contains the methods for sending and disconnecting from a socket
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.examples.PubSubServer#unsubscribe" data-isabs="false">
+      <a id="unsubscribe(String,HookupServerClient):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">unsubscribe</span>
+        
+        <span class="params">(<span name="topic">topic: String</span>, <span name="client">client: HookupServerClient</span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      
     </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
       <a id="wait():Unit"></a>
       <h4 class="signature">

@@ -2,60 +2,35 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html>
         <head>
-          <title>io.backchat.hookup.HookupClient</title>
+          <title>io.backchat.hookup.examples.PubSubClient.PubSubClient</title>
           <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
           
-      <link type="text/css" media="screen" rel="stylesheet" href="../../../lib/template.css" />
-      <script type="text/javascript" src="../../../lib/jquery.js"></script>
-      <script type="text/javascript" src="../../../lib/jquery-ui.js"></script>
-      <script type="text/javascript" src="../../../lib/template.js"></script>
-      <script type="text/javascript" src="../../../lib/tools.tooltip.js"></script>
+      <link type="text/css" media="screen" rel="stylesheet" href="../../../../lib/template.css" />
+      <script type="text/javascript" src="../../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../../lib/tools.tooltip.js"></script>
     
         </head>
         <body class="type">
       <div id="definition">
-        <a title="Go to companion" href="HookupClient$.html"><img src="../../../lib/trait_to_object_big.png" /></a>
-        <p id="owner"><a name="io" class="extype" href="../../package.html">io</a>.<a name="io.backchat" class="extype" href="../package.html">backchat</a>.<a name="io.backchat.hookup" class="extype" href="package.html">hookup</a></p>
-        <h1><a title="Go to companion" href="HookupClient$.html">HookupClient</a></h1>
+        <img src="../../../../lib/class_big.png" />
+        <p id="owner"><a name="io" class="extype" href="../../../package.html">io</a>.<a name="io.backchat" class="extype" href="../../package.html">backchat</a>.<a name="io.backchat.hookup" class="extype" href="../package.html">hookup</a>.<a name="io.backchat.hookup.examples" class="extype" href="package.html">examples</a>.<a name="io.backchat.hookup.examples.PubSubClient" class="extype" href="PubSubClient$.html">PubSubClient</a></p>
+        <h1>PubSubClient</h1>
       </div>
 
       <h4 class="signature" id="signature">
-      <span class="kind">trait</span>
+      <span class="kind">class</span>
       <span class="symbol"> 
-        <span class="name">HookupClient</span>
+        <span class="name">PubSubClient</span>
         
-        <span class="result"> extends <a name="io.backchat.hookup.HookupClientLike" class="extype" href="HookupClientLike.html">HookupClientLike</a> with <a name="io.backchat.hookup.Connectable" class="extype" href="Connectable.html">Connectable</a> with <a name="io.backchat.hookup.Reconnectable" class="extype" href="Reconnectable.html">Reconnectable</a> with <span name="java.io.Closeable" class="extype">Closeable</span></span>
+        <span class="result"> extends <a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a></span>
       </span>
       </h4>
       
-          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>The Hookup client provides a client for the hookup server, it doesn't lock you in to using a specific message format.
-The default implementation uses websockets to communicate with the server.
-You can opt-in or opt-out of every feature in the hookup client through configuration.</p><p>Usage of the simple hookup client:</p><p><pre>
-  new HookupClient {
-    val uri = new URI("ws://localhost:8080/thesocket")
-
-    def receive = {
-      case Disconnected(_) ⇒ println("The websocket to " + uri.toASCIIString + " disconnected.")
-      case TextMessage(message) ⇒ {
-        println("RECV: " + message)
-        send("ECHO: " + message)
-      }
-    }
-
-    connect() onSuccess {
-      case Success ⇒
-        println("The websocket to " + uri.toASCIIString + "is connected.")
-      case _ ⇒
-    }
-  }
-</pre>
-</p></div><dl class="attributes block"> <dt>See also</dt><dd><span class="cmt"><p><a name="io.backchat.hookup.HookupClientConfig" class="extype" href="HookupClientConfig.html">HookupClientConfig</a>
-</p></span></dd></dl><div class="toggleContainer block">
+          <div class="fullcommenttop" id="comment"><div class="toggleContainer block">
           <span class="toggle">Linear Supertypes</span>
-          <div class="superTypes hiddenContent"><span name="java.io.Closeable" class="extype">Closeable</span>, <span name="java.lang.AutoCloseable" class="extype">AutoCloseable</span>, <a name="io.backchat.hookup.Reconnectable" class="extype" href="Reconnectable.html">Reconnectable</a>, <a name="io.backchat.hookup.Connectable" class="extype" href="Connectable.html">Connectable</a>, <a name="io.backchat.hookup.HookupClientLike" class="extype" href="HookupClientLike.html">HookupClientLike</a>, <a name="io.backchat.hookup.BroadcastChannelLike" class="extype" href="BroadcastChannelLike.html">BroadcastChannelLike</a>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
-        </div><div class="toggleContainer block">
-          <span class="toggle">Known Subclasses</span>
-          <div class="subClasses hiddenContent"><a name="io.backchat.hookup.DefaultHookupClient" class="extype" href="DefaultHookupClient.html">DefaultHookupClient</a>, <a name="io.backchat.hookup.JavaHookupClient" class="extype" href="JavaHookupClient.html">JavaHookupClient</a>, <a name="io.backchat.hookup.examples.PubSubClient.PubSubClient" class="extype" href="examples/PubSubClient$$PubSubClient.html">PubSubClient</a></div>
+          <div class="superTypes hiddenContent"><a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a>, <span name="java.io.Closeable" class="extype">Closeable</span>, <span name="java.lang.AutoCloseable" class="extype">AutoCloseable</span>, <a name="io.backchat.hookup.Reconnectable" class="extype" href="../Reconnectable.html">Reconnectable</a>, <a name="io.backchat.hookup.Connectable" class="extype" href="../Connectable.html">Connectable</a>, <a name="io.backchat.hookup.HookupClientLike" class="extype" href="../HookupClientLike.html">HookupClientLike</a>, <a name="io.backchat.hookup.BroadcastChannelLike" class="extype" href="../BroadcastChannelLike.html">BroadcastChannelLike</a>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
         </div></div>
         
 
@@ -71,7 +46,7 @@ You can opt-in or opt-out of every feature in the hookup client through configur
                 <span class="filtertype">Inherited</span>
                 <ol><li class="hideall out"><span>Hide All</span></li>
                 <li class="showall in"><span>Show all</span></li></ol>
-                <ol id="linearization"><li name="io.backchat.hookup.HookupClient" class="in"><span>HookupClient</span></li><li name="java.io.Closeable" class="in"><span>Closeable</span></li><li name="java.lang.AutoCloseable" class="in"><span>AutoCloseable</span></li><li name="io.backchat.hookup.Reconnectable" class="in"><span>Reconnectable</span></li><li name="io.backchat.hookup.Connectable" class="in"><span>Connectable</span></li><li name="io.backchat.hookup.HookupClientLike" class="in"><span>HookupClientLike</span></li><li name="io.backchat.hookup.BroadcastChannelLike" class="in"><span>BroadcastChannelLike</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+                <ol id="linearization"><li name="io.backchat.hookup.examples.PubSubClient.PubSubClient" class="in"><span>PubSubClient</span></li><li name="io.backchat.hookup.HookupClient" class="in"><span>HookupClient</span></li><li name="java.io.Closeable" class="in"><span>Closeable</span></li><li name="java.lang.AutoCloseable" class="in"><span>AutoCloseable</span></li><li name="io.backchat.hookup.Reconnectable" class="in"><span>Reconnectable</span></li><li name="io.backchat.hookup.Connectable" class="in"><span>Connectable</span></li><li name="io.backchat.hookup.HookupClientLike" class="in"><span>HookupClientLike</span></li><li name="io.backchat.hookup.BroadcastChannelLike" class="in"><span>BroadcastChannelLike</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
               </div>
           <div id="visbl">
               <span class="filtertype">Visibility</span>
@@ -79,41 +54,28 @@ You can opt-in or opt-out of every feature in the hookup client through configur
             </div>
         </div>
 
-        
-
-        
-        
-        <div class="values members" id="values">
-              <h3>Abstract Value Members</h3>
-              <ol><li visbl="pub" name="io.backchat.hookup.HookupClientLike#receive" data-isabs="true">
-      <a id="receive:Receive"></a>
+        <div class="members" id="constructors">
+              <h3>Instance Constructors</h3>
+              <ol><li visbl="pub" name="io.backchat.hookup.examples.PubSubClient.PubSubClient#this" data-isabs="false">
+      <a id="this:PubSubClient"></a>
       <h4 class="signature">
-      <span class="kind">def</span>
+      <span class="kind">new</span>
       <span class="symbol"> 
-        <span class="name">receive</span>
+        <span class="name">PubSubClient</span>
         
-        <span class="result">: Receive</span>
+        <span class="params">(<span name="name">name: String</span>)</span>
       </span>
       </h4>
-      <p class="shortcomment cmt">Handle inbound <a name="io.backchat.hookup.InboundMessage" class="extype" href="InboundMessage.html">InboundMessage</a> instances</p><div class="fullcomment"><div class="comment cmt"><p>Handle inbound <a name="io.backchat.hookup.InboundMessage" class="extype" href="InboundMessage.html">InboundMessage</a> instances</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>a io.backchat.hookup.HookupClient.Receive as message handler
-</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>abstract </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClientLike" class="extype" href="HookupClientLike.html">HookupClientLike</a></dd></dl></div>
-    </li><li visbl="pub" name="io.backchat.hookup.HookupClient#settings" data-isabs="true">
-      <a id="settings:HookupClientConfig"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">settings</span>
-        
-        <span class="result">: <a name="io.backchat.hookup.HookupClientConfig" class="extype" href="HookupClientConfig.html">HookupClientConfig</a></span>
-      </span>
-      </h4>
-      <p class="shortcomment cmt">The configuration of this client.</p><div class="fullcomment"><div class="comment cmt"><p>The configuration of this client.</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>The <a name="io.backchat.hookup.HookupClientConfig" class="extype" href="HookupClientConfig.html">HookupClientConfig</a> as configuration object
-</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>abstract </dd></dl></div>
+      
     </li></ol>
             </div>
 
+        
+        
+        
+
         <div class="values members" id="values">
-              <h3>Concrete Value Members</h3>
+              <h3>Value Members</h3>
               <ol><li visbl="pub" name="io.backchat.hookup.HookupClient#!" data-isabs="false">
       <a id="!(OutboundMessage):Future[OperationResult]"></a>
       <h4 class="signature">
@@ -121,12 +83,12 @@ You can opt-in or opt-out of every feature in the hookup client through configur
       <span class="symbol"> 
         <span class="name">!</span>
         
-        <span class="params">(<span name="message">message: <a name="io.backchat.hookup.OutboundMessage" class="extype" href="OutboundMessage.html">OutboundMessage</a></span>)</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>]</span>
+        <span class="params">(<span name="message">message: <a name="io.backchat.hookup.OutboundMessage" class="extype" href="../OutboundMessage.html">OutboundMessage</a></span>)</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="../OperationResult.html">OperationResult</a>]</span>
       </span>
       </h4>
       <p class="shortcomment cmt">Send a message to the server.</p><div class="fullcomment"><div class="comment cmt"><p>Send a message to the server.
-</p></div><dl class="paramcmts block"><dt class="param">message</dt><dd class="cmt"><p>The <a name="io.backchat.hookup.OutboundMessage" class="extype" href="OutboundMessage.html">OutboundMessage</a> to send</p></dd><dt>returns</dt><dd class="cmt"><p>A akka.dispatch.Future with the <a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>
-</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd></dl></div>
+</p></div><dl class="paramcmts block"><dt class="param">message</dt><dd class="cmt"><p>The <a name="io.backchat.hookup.OutboundMessage" class="extype" href="../OutboundMessage.html">OutboundMessage</a> to send</p></dd><dt>returns</dt><dd class="cmt"><p>A akka.dispatch.Future with the <a name="io.backchat.hookup.OperationResult" class="extype" href="../OperationResult.html">OperationResult</a>
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a></dd></dl></div>
     </li><li visbl="pub" name="scala.AnyRef#!=" data-isabs="false">
       <a id="!=(AnyRef):Boolean"></a>
       <h4 class="signature">
@@ -204,7 +166,7 @@ You can opt-in or opt-out of every feature in the hookup client through configur
       </span>
       </h4>
       <p class="shortcomment cmt">A flag indicating whether this websocket client can fallback to buffering.</p><div class="fullcomment"><div class="comment cmt"><p>A flag indicating whether this websocket client can fallback to buffering.</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>whether this websocket client can fallback to buffering or not.
-</p></dd></dl></div>
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a></dd></dl></div>
     </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
       <a id="clone():AnyRef"></a>
       <h4 class="signature">
@@ -215,7 +177,7 @@ You can opt-in or opt-out of every feature in the hookup client through configur
         <span class="params">()</span><span class="result">: AnyRef</span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -229,7 +191,7 @@ You can opt-in or opt-out of every feature in the hookup client through configur
         <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="">HookupClient</a> → Closeable → AutoCloseable</dd></dl></div>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a> → Closeable → AutoCloseable</dd></dl></div>
     </li><li visbl="pub" name="io.backchat.hookup.HookupClient#connect" data-isabs="false">
       <a id="connect(String*):Future[OperationResult]"></a>
       <h4 class="signature">
@@ -237,12 +199,12 @@ You can opt-in or opt-out of every feature in the hookup client through configur
       <span class="symbol"> 
         <span class="name">connect</span>
         
-        <span class="params">(<span name="protocols">protocols: String*</span>)</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>]</span>
+        <span class="params">(<span name="protocols">protocols: String*</span>)</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="../OperationResult.html">OperationResult</a>]</span>
       </span>
       </h4>
       <p class="shortcomment cmt">Connect to the server.</p><div class="fullcomment"><div class="comment cmt"><p>Connect to the server.
-</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>A akka.dispatch.Future with the <a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>
-</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="">HookupClient</a> → <a name="io.backchat.hookup.Connectable" class="extype" href="Connectable.html">Connectable</a></dd></dl></div>
+</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>A akka.dispatch.Future with the <a name="io.backchat.hookup.OperationResult" class="extype" href="../OperationResult.html">OperationResult</a>
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a> → <a name="io.backchat.hookup.Connectable" class="extype" href="../Connectable.html">Connectable</a></dd></dl></div>
     </li><li visbl="pub" name="io.backchat.hookup.HookupClient#disconnect" data-isabs="false">
       <a id="disconnect():Future[OperationResult]"></a>
       <h4 class="signature">
@@ -250,12 +212,12 @@ You can opt-in or opt-out of every feature in the hookup client through configur
       <span class="symbol"> 
         <span class="name">disconnect</span>
         
-        <span class="params">()</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>]</span>
+        <span class="params">()</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="../OperationResult.html">OperationResult</a>]</span>
       </span>
       </h4>
       <p class="shortcomment cmt">Disconnect from the server.</p><div class="fullcomment"><div class="comment cmt"><p>Disconnect from the server.
-</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>A akka.dispatch.Future with the <a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>
-</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="">HookupClient</a> → <a name="io.backchat.hookup.BroadcastChannelLike" class="extype" href="BroadcastChannelLike.html">BroadcastChannelLike</a></dd></dl></div>
+</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>A akka.dispatch.Future with the <a name="io.backchat.hookup.OperationResult" class="extype" href="../OperationResult.html">OperationResult</a>
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a> → <a name="io.backchat.hookup.BroadcastChannelLike" class="extype" href="../BroadcastChannelLike.html">BroadcastChannelLike</a></dd></dl></div>
     </li><li visbl="pub" name="scala.AnyRef#eq" data-isabs="false">
       <a id="eq(AnyRef):Boolean"></a>
       <h4 class="signature">
@@ -289,7 +251,7 @@ You can opt-in or opt-out of every feature in the hookup client through configur
       </span>
       </h4>
       <p class="shortcomment cmt">The execution context for futures within this client.</p><div class="fullcomment"><div class="comment cmt"><p>The execution context for futures within this client.</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>The akka.dispatch.ExecutionContext
-</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>protected implicit </dd></dl></div>
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>protected implicit </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a></dd></dl></div>
     </li><li visbl="prt" name="scala.AnyRef#finalize" data-isabs="false">
       <a id="finalize():Unit"></a>
       <h4 class="signature">
@@ -300,7 +262,7 @@ You can opt-in or opt-out of every feature in the hookup client through configur
         <span class="params">()</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -337,7 +299,7 @@ You can opt-in or opt-out of every feature in the hookup client through configur
       </span>
       </h4>
       <p class="shortcomment cmt">A flag indicating connection status.</p><div class="fullcomment"><div class="comment cmt"><p>A flag indicating connection status.</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>a boolean indicating connection status
-</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="">HookupClient</a> → <a name="io.backchat.hookup.Connectable" class="extype" href="Connectable.html">Connectable</a></dd></dl></div>
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a> → <a name="io.backchat.hookup.Connectable" class="extype" href="../Connectable.html">Connectable</a></dd></dl></div>
     </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
       <a id="isInstanceOf[T0]:Boolean"></a>
       <h4 class="signature">
@@ -349,6 +311,17 @@ You can opt-in or opt-out of every feature in the hookup client through configur
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.examples.PubSubClient.PubSubClient#messageCounter" data-isabs="false">
+      <a id="messageCounter:AtomicInteger"></a>
+      <h4 class="signature">
+      <span class="kind">val</span>
+      <span class="symbol"> 
+        <span class="name">messageCounter</span>
+        
+        <span class="result">: <span name="java.util.concurrent.atomic.AtomicInteger" class="extype">AtomicInteger</span></span>
+      </span>
+      </h4>
+      
     </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
       <a id="ne(AnyRef):Boolean"></a>
       <h4 class="signature">
@@ -382,6 +355,18 @@ You can opt-in or opt-out of every feature in the hookup client through configur
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.examples.PubSubClient.PubSubClient#receive" data-isabs="false">
+      <a id="receive:PartialFunction[InboundMessage, Unit]"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">receive</span>
+        
+        <span class="result">: <span name="scala.PartialFunction" class="extype">PartialFunction</span>[<a name="io.backchat.hookup.InboundMessage" class="extype" href="../InboundMessage.html">InboundMessage</a>, <span name="scala.Unit" class="extype">Unit</span>]</span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">Handle inbound <a name="io.backchat.hookup.InboundMessage" class="extype" href="../InboundMessage.html">InboundMessage</a> instances</p><div class="fullcomment"><div class="comment cmt"><p>Handle inbound <a name="io.backchat.hookup.InboundMessage" class="extype" href="../InboundMessage.html">InboundMessage</a> instances</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>a io.backchat.hookup.HookupClient.Receive as message handler
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.examples.PubSubClient.PubSubClient" class="extype" href="">PubSubClient</a> → <a name="io.backchat.hookup.HookupClientLike" class="extype" href="../HookupClientLike.html">HookupClientLike</a></dd></dl></div>
     </li><li visbl="pub" name="io.backchat.hookup.HookupClient#reconnect" data-isabs="false">
       <a id="reconnect():Future[OperationResult]"></a>
       <h4 class="signature">
@@ -389,12 +374,12 @@ You can opt-in or opt-out of every feature in the hookup client through configur
       <span class="symbol"> 
         <span class="name">reconnect</span>
         
-        <span class="params">()</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>]</span>
+        <span class="params">()</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="../OperationResult.html">OperationResult</a>]</span>
       </span>
       </h4>
       <p class="shortcomment cmt">Reconnect to the server.</p><div class="fullcomment"><div class="comment cmt"><p>Reconnect to the server.
-</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>A akka.dispatch.Future with the <a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>
-</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="">HookupClient</a> → <a name="io.backchat.hookup.Reconnectable" class="extype" href="Reconnectable.html">Reconnectable</a></dd></dl></div>
+</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>A akka.dispatch.Future with the <a name="io.backchat.hookup.OperationResult" class="extype" href="../OperationResult.html">OperationResult</a>
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a> → <a name="io.backchat.hookup.Reconnectable" class="extype" href="../Reconnectable.html">Reconnectable</a></dd></dl></div>
     </li><li visbl="pub" name="io.backchat.hookup.HookupClient#send" data-isabs="false">
       <a id="send(OutboundMessage):Future[OperationResult]"></a>
       <h4 class="signature">
@@ -402,12 +387,24 @@ You can opt-in or opt-out of every feature in the hookup client through configur
       <span class="symbol"> 
         <span class="name">send</span>
         
-        <span class="params">(<span name="message">message: <a name="io.backchat.hookup.OutboundMessage" class="extype" href="OutboundMessage.html">OutboundMessage</a></span>)</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>]</span>
+        <span class="params">(<span name="message">message: <a name="io.backchat.hookup.OutboundMessage" class="extype" href="../OutboundMessage.html">OutboundMessage</a></span>)</span><span class="result">: <span name="akka.dispatch.Future" class="extype">Future</span>[<a name="io.backchat.hookup.OperationResult" class="extype" href="../OperationResult.html">OperationResult</a>]</span>
       </span>
       </h4>
       <p class="shortcomment cmt">Send a message to the server.</p><div class="fullcomment"><div class="comment cmt"><p>Send a message to the server.
-</p></div><dl class="paramcmts block"><dt class="param">message</dt><dd class="cmt"><p>The <a name="io.backchat.hookup.OutboundMessage" class="extype" href="OutboundMessage.html">OutboundMessage</a> to send</p></dd><dt>returns</dt><dd class="cmt"><p>A akka.dispatch.Future with the <a name="io.backchat.hookup.OperationResult" class="extype" href="OperationResult.html">OperationResult</a>
-</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="">HookupClient</a> → <a name="io.backchat.hookup.BroadcastChannelLike" class="extype" href="BroadcastChannelLike.html">BroadcastChannelLike</a></dd></dl></div>
+</p></div><dl class="paramcmts block"><dt class="param">message</dt><dd class="cmt"><p>The <a name="io.backchat.hookup.OutboundMessage" class="extype" href="../OutboundMessage.html">OutboundMessage</a> to send</p></dd><dt>returns</dt><dd class="cmt"><p>A akka.dispatch.Future with the <a name="io.backchat.hookup.OperationResult" class="extype" href="../OperationResult.html">OperationResult</a>
+</p></dd></dl><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd><a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a> → <a name="io.backchat.hookup.BroadcastChannelLike" class="extype" href="../BroadcastChannelLike.html">BroadcastChannelLike</a></dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.examples.PubSubClient.PubSubClient#settings" data-isabs="false">
+      <a id="settings:HookupClientConfig"></a>
+      <h4 class="signature">
+      <span class="kind">val</span>
+      <span class="symbol"> 
+        <span class="name">settings</span>
+        
+        <span class="result">: <a name="io.backchat.hookup.HookupClientConfig" class="extype" href="../HookupClientConfig.html">HookupClientConfig</a></span>
+      </span>
+      </h4>
+      <p class="shortcomment cmt">The configuration of this client.</p><div class="fullcomment"><div class="comment cmt"><p>The configuration of this client.</p></div><dl class="paramcmts block"><dt>returns</dt><dd class="cmt"><p>The <a name="io.backchat.hookup.HookupClientConfig" class="extype" href="../HookupClientConfig.html">HookupClientConfig</a> as configuration object
+</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.examples.PubSubClient.PubSubClient" class="extype" href="">PubSubClient</a> → <a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a></dd></dl></div>
     </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
       <a id="synchronized[T0](⇒ T0):T0"></a>
       <h4 class="signature">
@@ -430,6 +427,17 @@ You can opt-in or opt-out of every feature in the hookup client through configur
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="pub" name="io.backchat.hookup.examples.PubSubClient.PubSubClient#uri" data-isabs="false">
+      <a id="uri:URI"></a>
+      <h4 class="signature">
+      <span class="kind">val</span>
+      <span class="symbol"> 
+        <span class="name">uri</span>
+        
+        <span class="result">: <span name="java.net.URI" class="extype">URI</span></span>
+      </span>
+      </h4>
+      
     </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
       <a id="wait():Unit"></a>
       <h4 class="signature">
@@ -477,18 +485,20 @@ You can opt-in or opt-out of every feature in the hookup client through configur
 
         
 
-        <div name="java.io.Closeable" class="parent">
+        <div name="io.backchat.hookup.HookupClient" class="parent">
+              <h3>Inherited from <a name="io.backchat.hookup.HookupClient" class="extype" href="../HookupClient.html">HookupClient</a></h3>
+            </div><div name="java.io.Closeable" class="parent">
               <h3>Inherited from <span name="java.io.Closeable" class="extype">Closeable</span></h3>
             </div><div name="java.lang.AutoCloseable" class="parent">
               <h3>Inherited from <span name="java.lang.AutoCloseable" class="extype">AutoCloseable</span></h3>
             </div><div name="io.backchat.hookup.Reconnectable" class="parent">
-              <h3>Inherited from <a name="io.backchat.hookup.Reconnectable" class="extype" href="Reconnectable.html">Reconnectable</a></h3>
+              <h3>Inherited from <a name="io.backchat.hookup.Reconnectable" class="extype" href="../Reconnectable.html">Reconnectable</a></h3>
             </div><div name="io.backchat.hookup.Connectable" class="parent">
-              <h3>Inherited from <a name="io.backchat.hookup.Connectable" class="extype" href="Connectable.html">Connectable</a></h3>
+              <h3>Inherited from <a name="io.backchat.hookup.Connectable" class="extype" href="../Connectable.html">Connectable</a></h3>
             </div><div name="io.backchat.hookup.HookupClientLike" class="parent">
-              <h3>Inherited from <a name="io.backchat.hookup.HookupClientLike" class="extype" href="HookupClientLike.html">HookupClientLike</a></h3>
+              <h3>Inherited from <a name="io.backchat.hookup.HookupClientLike" class="extype" href="../HookupClientLike.html">HookupClientLike</a></h3>
             </div><div name="io.backchat.hookup.BroadcastChannelLike" class="parent">
-              <h3>Inherited from <a name="io.backchat.hookup.BroadcastChannelLike" class="extype" href="BroadcastChannelLike.html">BroadcastChannelLike</a></h3>
+              <h3>Inherited from <a name="io.backchat.hookup.BroadcastChannelLike" class="extype" href="../BroadcastChannelLike.html">BroadcastChannelLike</a></h3>
             </div><div name="scala.AnyRef" class="parent">
               <h3>Inherited from AnyRef</h3>
             </div><div name="scala.Any" class="parent">
