@@ -32,14 +32,13 @@ packageOptions <<= (packageOptions, name, version, organization) map {
      )
 }
 
-homepage := Some(url("https://backchat.io"))
+homepage := Some(url("https://backchatio.github.com/hookup"))
 
 startYear := Some(2012)
 
 licenses := Seq(("MIT", url("http://github.com/backchatio/hookup/raw/HEAD/LICENSE")))
 
 pomExtra <<= (pomExtra, name, description) {(pom, name, desc) => pom ++ Group(
-  <url>http://github.com/backchatio/hookup</url>
   <scm>
     <connection>scm:git:git://github.com/backchatio/hookup.git</connection>
     <developerConnection>scm:git:git@github.com:backchatio/hookup.git</developerConnection>

@@ -7,13 +7,14 @@ object HookupBuild extends Build {
   val projectSettings = Defaults.defaultSettings ++ Seq(
     organization := "io.backchat.hookup",
     name := "hookup",
-    version := "0.2.2-SNAPSHOT",
+    version := "0.2.2",
     scalaVersion := "2.9.1",
+    crossScalaVersions := Seq("2.9.1", "2.9.1-1", "2.9.2"),
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
-      "io.netty" % "netty" % "3.4.6.Final",
-      "org.scala-tools.time" %% "time" % "0.5",
-      "net.liftweb" %% "lift-json" % "2.4" % "compile",
+      "io.netty" % "netty" % "3.5.0.Final",
+      "org.scala-tools.time" % "time_2.9.1" % "0.5",
+      "net.liftweb" % "lift-json_2.9.1" % "2.4" % "compile",
       "commons-io" % "commons-io" % "2.1",
       "com.typesafe.akka" % "akka-actor" % "2.0.2" % "compile",
       "com.typesafe.akka" % "akka-testkit" % "2.0.2" % "test",
