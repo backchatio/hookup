@@ -86,16 +86,7 @@ We don&#39;t have an abstraction on top of Netty&#39;s request and response mode
 
 <p>A <a href="http://backchatio.github.com/hookup/scaladoc/#io.backchat.hookup.HookupServer"><code>HookupServer</code></a> has 2 methods that allow you to register callbacks on either startup or shutdown. There are more things you can configure on a server than just the port. Take a look at the <a href=""><code>ServerInfo</code></a> class to find out all the properties.</p>
 
-<div class="highlight"><pre><code class="scala"><span class="k">case</span> <span class="k">class</span> <span class="nc">ServerInfo</span><span class="o">(</span>
-    <span class="n">name</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="nc">ServerInfo</span><span class="o">.</span><span class="nc">DefaultServerName</span><span class="o">,</span>
-    <span class="n">version</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="nc">BuildInfo</span><span class="o">.</span><span class="n">version</span><span class="o">,</span>
-    <span class="n">listenOn</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="s">&quot;0.0.0.0&quot;</span><span class="o">,</span>
-    <span class="n">port</span><span class="k">:</span> <span class="kt">Int</span> <span class="o">=</span> <span class="mi">8765</span><span class="o">,</span>
-    <span class="n">defaultProtocol</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=</span> <span class="nc">DefaultProtocol</span><span class="o">,</span>
-    <span class="n">capabilities</span><span class="k">:</span> <span class="kt">Seq</span><span class="o">[</span><span class="kt">ServerCapability</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Seq</span><span class="o">.</span><span class="n">empty</span><span class="o">,</span>
-    <span class="n">executionContext</span><span class="k">:</span> <span class="kt">ExecutionContext</span> <span class="o">=</span> <span class="nc">HookupClient</span><span class="o">.</span><span class="n">executionContext</span><span class="o">)</span> <span class="o">{</span>
-</code></pre>
-</div>
+<p>Liquid error: undefined method `[]&#39; for nil:NilClass</p>
 
 <p>You can also configure the server from a typesafe config object, a full config looks something like this.</p>
 <div class="highlight"><pre><code class="text">myServer {

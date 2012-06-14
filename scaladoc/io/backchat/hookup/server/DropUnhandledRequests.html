@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html>
         <head>
-          <title>io.backchat.hookup.server.FlashPolicyHandler</title>
+          <title>io.backchat.hookup.server.DropUnhandledRequests</title>
           <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
           
       <link type="text/css" media="screen" rel="stylesheet" href="../../../../lib/template.css" />
@@ -14,25 +14,23 @@
         </head>
         <body class="type">
       <div id="definition">
-        <a title="Go to companion" href="FlashPolicyHandler$.html"><img src="../../../../lib/class_to_object_big.png" /></a>
+        <img src="../../../../lib/class_big.png" />
         <p id="owner"><a name="io" class="extype" href="../../../package.html">io</a>.<a name="io.backchat" class="extype" href="../../package.html">backchat</a>.<a name="io.backchat.hookup" class="extype" href="../package.html">hookup</a>.<a name="io.backchat.hookup.server" class="extype" href="package.html">server</a></p>
-        <h1><a title="Go to companion" href="FlashPolicyHandler$.html">FlashPolicyHandler</a></h1>
+        <h1>DropUnhandledRequests</h1>
       </div>
 
       <h4 class="signature" id="signature">
       <span class="kind">class</span>
       <span class="symbol"> 
-        <span class="name">FlashPolicyHandler</span>
+        <span class="name">DropUnhandledRequests</span>
         
-        <span class="result"> extends <span name="org.jboss.netty.handler.codec.frame.FrameDecoder" class="extype">FrameDecoder</span></span>
+        <span class="result"> extends <span name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="extype">SimpleChannelUpstreamHandler</span></span>
       </span>
       </h4>
       
-          <div class="fullcommenttop" id="comment"><div class="comment cmt"><p>A flash policy handler for netty. This needs to be included in the pipeline before anything else has touched
-the message.
-</p></div><dl class="attributes block"> <dt>See also</dt><dd><span class="cmt"><p><a href="https://github.com/cgbystrom/netty-tools/blob/master/src/main/java/se/cgbystrom/netty/FlashPolicyHandler.java">https://github.com/cgbystrom/netty-tools/blob/master/src/main/java/se/cgbystrom/netty/FlashPolicyHandler.java</a></p></span></dd></dl><div class="toggleContainer block">
+          <div class="fullcommenttop" id="comment"><div class="toggleContainer block">
           <span class="toggle">Linear Supertypes</span>
-          <div class="superTypes hiddenContent"><span name="org.jboss.netty.handler.codec.frame.FrameDecoder" class="extype">FrameDecoder</span>, <span name="org.jboss.netty.channel.LifeCycleAwareChannelHandler" class="extype">LifeCycleAwareChannelHandler</span>, <span name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="extype">SimpleChannelUpstreamHandler</span>, <span name="org.jboss.netty.channel.ChannelUpstreamHandler" class="extype">ChannelUpstreamHandler</span>, <span name="org.jboss.netty.channel.ChannelHandler" class="extype">ChannelHandler</span>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+          <div class="superTypes hiddenContent"><span name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="extype">SimpleChannelUpstreamHandler</span>, <span name="org.jboss.netty.channel.ChannelUpstreamHandler" class="extype">ChannelUpstreamHandler</span>, <span name="org.jboss.netty.channel.ChannelHandler" class="extype">ChannelHandler</span>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
         </div></div>
         
 
@@ -48,7 +46,7 @@ the message.
                 <span class="filtertype">Inherited</span>
                 <ol><li class="hideall out"><span>Hide All</span></li>
                 <li class="showall in"><span>Show all</span></li></ol>
-                <ol id="linearization"><li name="io.backchat.hookup.server.FlashPolicyHandler" class="in"><span>FlashPolicyHandler</span></li><li name="org.jboss.netty.handler.codec.frame.FrameDecoder" class="in"><span>FrameDecoder</span></li><li name="org.jboss.netty.channel.LifeCycleAwareChannelHandler" class="in"><span>LifeCycleAwareChannelHandler</span></li><li name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="in"><span>SimpleChannelUpstreamHandler</span></li><li name="org.jboss.netty.channel.ChannelUpstreamHandler" class="in"><span>ChannelUpstreamHandler</span></li><li name="org.jboss.netty.channel.ChannelHandler" class="in"><span>ChannelHandler</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+                <ol id="linearization"><li name="io.backchat.hookup.server.DropUnhandledRequests" class="in"><span>DropUnhandledRequests</span></li><li name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="in"><span>SimpleChannelUpstreamHandler</span></li><li name="org.jboss.netty.channel.ChannelUpstreamHandler" class="in"><span>ChannelUpstreamHandler</span></li><li name="org.jboss.netty.channel.ChannelHandler" class="in"><span>ChannelHandler</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
               </div>
           <div id="visbl">
               <span class="filtertype">Visibility</span>
@@ -58,18 +56,17 @@ the message.
 
         <div class="members" id="constructors">
               <h3>Instance Constructors</h3>
-              <ol><li visbl="pub" name="io.backchat.hookup.server.FlashPolicyHandler#this" data-isabs="false">
-      <a id="this:FlashPolicyHandler"></a>
+              <ol><li visbl="pub" name="io.backchat.hookup.server.DropUnhandledRequests#this" data-isabs="false">
+      <a id="this:DropUnhandledRequests"></a>
       <h4 class="signature">
       <span class="kind">new</span>
       <span class="symbol"> 
-        <span class="name">FlashPolicyHandler</span>
+        <span class="name">DropUnhandledRequests</span>
         
-        <span class="params">(<span name="policyResponse">policyResponse: <span name="org.jboss.netty.buffer.ChannelBuffer" class="extype">ChannelBuffer</span></span>)</span>
+        <span class="params">()</span>
       </span>
       </h4>
-      <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="paramcmts block"><dt class="param">policyResponse</dt><dd class="cmt"><p>The response xml to send for a request
-</p></dd></dl></div>
+      
     </li></ol>
             </div>
 
@@ -134,45 +131,6 @@ the message.
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li visbl="prt" name="org.jboss.netty.handler.codec.frame.FrameDecoder#actualReadableBytes" data-isabs="false">
-      <a id="actualReadableBytes():Int"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">actualReadableBytes</span>
-        
-        <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
-      </span>
-      </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.frame" class="extype" href="../../../../org/jboss/netty/handler/codec/frame/package.html">frame</a>] </dd><dt>Definition Classes</dt><dd>FrameDecoder</dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#afterAdd" data-isabs="false">
-      <a id="afterAdd(ChannelHandlerContext):Unit"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">afterAdd</span>
-        
-        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
-      </span>
-      </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → LifeCycleAwareChannelHandler</dd><dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#afterRemove" data-isabs="false">
-      <a id="afterRemove(ChannelHandlerContext):Unit"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">afterRemove</span>
-        
-        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
-      </span>
-      </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → LifeCycleAwareChannelHandler</dd><dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">()</span>
-              
-        </dd></dl></div>
     </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
       <a id="asInstanceOf[T0]:T0"></a>
       <h4 class="signature">
@@ -184,34 +142,6 @@ the message.
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#beforeAdd" data-isabs="false">
-      <a id="beforeAdd(ChannelHandlerContext):Unit"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">beforeAdd</span>
-        
-        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
-      </span>
-      </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → LifeCycleAwareChannelHandler</dd><dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#beforeRemove" data-isabs="false">
-      <a id="beforeRemove(ChannelHandlerContext):Unit"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">beforeRemove</span>
-        
-        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
-      </span>
-      </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → LifeCycleAwareChannelHandler</dd><dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">()</span>
-              
-        </dd></dl></div>
     </li><li visbl="pub" name="org.jboss.netty.channel.SimpleChannelUpstreamHandler#channelBound" data-isabs="false">
       <a id="channelBound(ChannelHandlerContext,ChannelStateEvent):Unit"></a>
       <h4 class="signature">
@@ -226,7 +156,7 @@ the message.
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#channelClosed" data-isabs="false">
+    </li><li visbl="pub" name="org.jboss.netty.channel.SimpleChannelUpstreamHandler#channelClosed" data-isabs="false">
       <a id="channelClosed(ChannelHandlerContext,ChannelStateEvent):Unit"></a>
       <h4 class="signature">
       <span class="kind">def</span>
@@ -236,7 +166,7 @@ the message.
         <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.ChannelStateEvent" class="extype">ChannelStateEvent</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -254,7 +184,7 @@ the message.
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#channelDisconnected" data-isabs="false">
+    </li><li visbl="pub" name="org.jboss.netty.channel.SimpleChannelUpstreamHandler#channelDisconnected" data-isabs="false">
       <a id="channelDisconnected(ChannelHandlerContext,ChannelStateEvent):Unit"></a>
       <h4 class="signature">
       <span class="kind">def</span>
@@ -264,7 +194,7 @@ the message.
         <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.ChannelStateEvent" class="extype">ChannelStateEvent</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -338,20 +268,6 @@ the message.
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
-    </li><li visbl="prt" name="org.jboss.netty.handler.codec.frame.FrameDecoder#cleanup" data-isabs="false">
-      <a id="cleanup(ChannelHandlerContext,ChannelStateEvent):Unit"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">cleanup</span>
-        
-        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.ChannelStateEvent" class="extype">ChannelStateEvent</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
-      </span>
-      </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.frame" class="extype" href="../../../../org/jboss/netty/handler/codec/frame/package.html">frame</a>] </dd><dt>Definition Classes</dt><dd>FrameDecoder</dd><dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">()</span>
-              
-        </dd></dl></div>
     </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
       <a id="clone():AnyRef"></a>
       <h4 class="signature">
@@ -363,31 +279,6 @@ the message.
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="java.lang" class="extype" href="../../../../java/lang/package.html">lang</a>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">()</span>
-              
-        </dd></dl></div>
-    </li><li visbl="pub" name="io.backchat.hookup.server.FlashPolicyHandler#decode" data-isabs="false">
-      <a id="decode(ChannelHandlerContext,Channel,ChannelBuffer):AnyRef"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">decode</span>
-        
-        <span class="params">(<span name="ctx">ctx: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="channel">channel: <span name="org.jboss.netty.channel.Channel" class="extype">Channel</span></span>, <span name="buffer">buffer: <span name="org.jboss.netty.buffer.ChannelBuffer" class="extype">ChannelBuffer</span></span>)</span><span class="result">: AnyRef</span>
-      </span>
-      </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.server.FlashPolicyHandler" class="extype" href="">FlashPolicyHandler</a> → FrameDecoder</dd></dl></div>
-    </li><li visbl="prt" name="org.jboss.netty.handler.codec.frame.FrameDecoder#decodeLast" data-isabs="false">
-      <a id="decodeLast(ChannelHandlerContext,Channel,ChannelBuffer):AnyRef"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">decodeLast</span>
-        
-        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.Channel" class="extype">Channel</span></span>, <span name="arg2">arg2: <span name="org.jboss.netty.buffer.ChannelBuffer" class="extype">ChannelBuffer</span></span>)</span><span class="result">: AnyRef</span>
-      </span>
-      </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.frame" class="extype" href="../../../../org/jboss/netty/handler/codec/frame/package.html">frame</a>] </dd><dt>Definition Classes</dt><dd>FrameDecoder</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -413,7 +304,7 @@ the message.
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#exceptionCaught" data-isabs="false">
+    </li><li visbl="pub" name="org.jboss.netty.channel.SimpleChannelUpstreamHandler#exceptionCaught" data-isabs="false">
       <a id="exceptionCaught(ChannelHandlerContext,ExceptionEvent):Unit"></a>
       <h4 class="signature">
       <span class="kind">def</span>
@@ -423,7 +314,7 @@ the message.
         <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.ExceptionEvent" class="extype">ExceptionEvent</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -477,17 +368,6 @@ the message.
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li visbl="prt" name="org.jboss.netty.handler.codec.frame.FrameDecoder#internalBuffer" data-isabs="false">
-      <a id="internalBuffer():ChannelBuffer"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">internalBuffer</span>
-        
-        <span class="params">()</span><span class="result">: <span name="org.jboss.netty.buffer.ChannelBuffer" class="extype">ChannelBuffer</span></span>
-      </span>
-      </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.frame" class="extype" href="../../../../org/jboss/netty/handler/codec/frame/package.html">frame</a>] </dd><dt>Definition Classes</dt><dd>FrameDecoder</dd></dl></div>
     </li><li visbl="pub" name="scala.Any#isInstanceOf" data-isabs="false">
       <a id="isInstanceOf[T0]:Boolean"></a>
       <h4 class="signature">
@@ -499,20 +379,17 @@ the message.
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#messageReceived" data-isabs="false">
+    </li><li visbl="pub" name="io.backchat.hookup.server.DropUnhandledRequests#messageReceived" data-isabs="false">
       <a id="messageReceived(ChannelHandlerContext,MessageEvent):Unit"></a>
       <h4 class="signature">
       <span class="kind">def</span>
       <span class="symbol"> 
         <span class="name">messageReceived</span>
         
-        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.MessageEvent" class="extype">MessageEvent</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+        <span class="params">(<span name="ctx">ctx: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="e">e: <span name="org.jboss.netty.channel.MessageEvent" class="extype">MessageEvent</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">()</span>
-              
-        </dd></dl></div>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a name="io.backchat.hookup.server.DropUnhandledRequests" class="extype" href="">DropUnhandledRequests</a> → SimpleChannelUpstreamHandler</dd></dl></div>
     </li><li visbl="pub" name="scala.AnyRef#ne" data-isabs="false">
       <a id="ne(AnyRef):Boolean"></a>
       <h4 class="signature">
@@ -524,17 +401,6 @@ the message.
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li visbl="prt" name="org.jboss.netty.handler.codec.frame.FrameDecoder#newCumulationBuffer" data-isabs="false">
-      <a id="newCumulationBuffer(ChannelHandlerContext,Int):ChannelBuffer"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">newCumulationBuffer</span>
-        
-        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="org.jboss.netty.buffer.ChannelBuffer" class="extype">ChannelBuffer</span></span>
-      </span>
-      </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.frame" class="extype" href="../../../../org/jboss/netty/handler/codec/frame/package.html">frame</a>] </dd><dt>Definition Classes</dt><dd>FrameDecoder</dd></dl></div>
     </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
       <a id="notify():Unit"></a>
       <h4 class="signature">
@@ -557,17 +423,17 @@ the message.
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#replace" data-isabs="false">
-      <a id="replace(String,ChannelHandler):Unit"></a>
+    </li><li visbl="prt" name="io.backchat.hookup.server.DropUnhandledRequests#sendError" data-isabs="false">
+      <a id="sendError(ChannelHandlerContext,HttpResponseStatus):Unit"></a>
       <h4 class="signature">
       <span class="kind">def</span>
       <span class="symbol"> 
-        <span class="name">replace</span>
+        <span class="name">sendError</span>
         
-        <span class="params">(<span name="arg0">arg0: <span name="java.lang.String" class="extype">String</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.ChannelHandler" class="extype">ChannelHandler</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+        <span class="params">(<span name="ctx">ctx: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="status">status: <span name="org.jboss.netty.handler.codec.http.HttpResponseStatus" class="extype">HttpResponseStatus</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder</dd></dl></div>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected </dd></dl></div>
     </li><li visbl="pub" name="scala.AnyRef#synchronized" data-isabs="false">
       <a id="synchronized[T0](⇒ T0):T0"></a>
       <h4 class="signature">
@@ -590,17 +456,6 @@ the message.
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li visbl="prt" name="org.jboss.netty.handler.codec.frame.FrameDecoder#unfoldAndFireMessageReceived" data-isabs="false">
-      <a id="unfoldAndFireMessageReceived(ChannelHandlerContext,SocketAddress,Any):Unit"></a>
-      <h4 class="signature">
-      <span class="kind">def</span>
-      <span class="symbol"> 
-        <span class="name">unfoldAndFireMessageReceived</span>
-        
-        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="java.net.SocketAddress" class="extype">SocketAddress</span></span>, <span name="arg2">arg2: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
-      </span>
-      </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.frame" class="extype" href="../../../../org/jboss/netty/handler/codec/frame/package.html">frame</a>] final </dd><dt>Definition Classes</dt><dd>FrameDecoder</dd></dl></div>
     </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
       <a id="wait():Unit"></a>
       <h4 class="signature">
@@ -662,11 +517,7 @@ the message.
 
         
 
-        <div name="org.jboss.netty.handler.codec.frame.FrameDecoder" class="parent">
-              <h3>Inherited from <span name="org.jboss.netty.handler.codec.frame.FrameDecoder" class="extype">FrameDecoder</span></h3>
-            </div><div name="org.jboss.netty.channel.LifeCycleAwareChannelHandler" class="parent">
-              <h3>Inherited from <span name="org.jboss.netty.channel.LifeCycleAwareChannelHandler" class="extype">LifeCycleAwareChannelHandler</span></h3>
-            </div><div name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="parent">
+        <div name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="parent">
               <h3>Inherited from <span name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="extype">SimpleChannelUpstreamHandler</span></h3>
             </div><div name="org.jboss.netty.channel.ChannelUpstreamHandler" class="parent">
               <h3>Inherited from <span name="org.jboss.netty.channel.ChannelUpstreamHandler" class="extype">ChannelUpstreamHandler</span></h3>

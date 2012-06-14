@@ -32,7 +32,7 @@
 bytes of contents expected
 </p></div><div class="toggleContainer block">
           <span class="toggle">Linear Supertypes</span>
-          <div class="superTypes hiddenContent"><span name="org.jboss.netty.handler.codec.http.HttpResponseDecoder" class="extype">HttpResponseDecoder</span>, <span name="org.jboss.netty.handler.codec.http.HttpMessageDecoder" class="extype">HttpMessageDecoder</span>, <span name="org.jboss.netty.handler.codec.replay.ReplayingDecoder" class="extype">ReplayingDecoder</span>[<span name="org.jboss.netty.handler.codec.http.HttpMessageDecoder.State" class="extype">State</span>], <span name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="extype">SimpleChannelUpstreamHandler</span>, <span name="org.jboss.netty.channel.ChannelUpstreamHandler" class="extype">ChannelUpstreamHandler</span>, <span name="org.jboss.netty.channel.ChannelHandler" class="extype">ChannelHandler</span>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
+          <div class="superTypes hiddenContent"><span name="org.jboss.netty.handler.codec.http.HttpResponseDecoder" class="extype">HttpResponseDecoder</span>, <span name="org.jboss.netty.handler.codec.http.HttpMessageDecoder" class="extype">HttpMessageDecoder</span>, <span name="org.jboss.netty.handler.codec.replay.ReplayingDecoder" class="extype">ReplayingDecoder</span>[<span name="org.jboss.netty.handler.codec.http.HttpMessageDecoder.State" class="extype">State</span>], <span name="org.jboss.netty.handler.codec.frame.FrameDecoder" class="extype">FrameDecoder</span>, <span name="org.jboss.netty.channel.LifeCycleAwareChannelHandler" class="extype">LifeCycleAwareChannelHandler</span>, <span name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="extype">SimpleChannelUpstreamHandler</span>, <span name="org.jboss.netty.channel.ChannelUpstreamHandler" class="extype">ChannelUpstreamHandler</span>, <span name="org.jboss.netty.channel.ChannelHandler" class="extype">ChannelHandler</span>, AnyRef, <span name="scala.Any" class="extype">Any</span></div>
         </div></div>
         
 
@@ -48,7 +48,7 @@ bytes of contents expected
                 <span class="filtertype">Inherited</span>
                 <ol><li class="hideall out"><span>Hide All</span></li>
                 <li class="showall in"><span>Show all</span></li></ol>
-                <ol id="linearization"><li name="io.backchat.hookup.HookupClient.WebSocketHttpResponseDecoder" class="in"><span>WebSocketHttpResponseDecoder</span></li><li name="org.jboss.netty.handler.codec.http.HttpResponseDecoder" class="in"><span>HttpResponseDecoder</span></li><li name="org.jboss.netty.handler.codec.http.HttpMessageDecoder" class="in"><span>HttpMessageDecoder</span></li><li name="org.jboss.netty.handler.codec.replay.ReplayingDecoder" class="in"><span>ReplayingDecoder</span></li><li name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="in"><span>SimpleChannelUpstreamHandler</span></li><li name="org.jboss.netty.channel.ChannelUpstreamHandler" class="in"><span>ChannelUpstreamHandler</span></li><li name="org.jboss.netty.channel.ChannelHandler" class="in"><span>ChannelHandler</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
+                <ol id="linearization"><li name="io.backchat.hookup.HookupClient.WebSocketHttpResponseDecoder" class="in"><span>WebSocketHttpResponseDecoder</span></li><li name="org.jboss.netty.handler.codec.http.HttpResponseDecoder" class="in"><span>HttpResponseDecoder</span></li><li name="org.jboss.netty.handler.codec.http.HttpMessageDecoder" class="in"><span>HttpMessageDecoder</span></li><li name="org.jboss.netty.handler.codec.replay.ReplayingDecoder" class="in"><span>ReplayingDecoder</span></li><li name="org.jboss.netty.handler.codec.frame.FrameDecoder" class="in"><span>FrameDecoder</span></li><li name="org.jboss.netty.channel.LifeCycleAwareChannelHandler" class="in"><span>LifeCycleAwareChannelHandler</span></li><li name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="in"><span>SimpleChannelUpstreamHandler</span></li><li name="org.jboss.netty.channel.ChannelUpstreamHandler" class="in"><span>ChannelUpstreamHandler</span></li><li name="org.jboss.netty.channel.ChannelHandler" class="in"><span>ChannelHandler</span></li><li name="scala.AnyRef" class="in"><span>AnyRef</span></li><li name="scala.Any" class="in"><span>Any</span></li></ol>
               </div>
           <div id="visbl">
               <span class="filtertype">Visibility</span>
@@ -133,7 +133,7 @@ bytes of contents expected
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
-    </li><li visbl="prt" name="org.jboss.netty.handler.codec.replay.ReplayingDecoder#actualReadableBytes" data-isabs="false">
+    </li><li visbl="prt" name="org.jboss.netty.handler.codec.frame.FrameDecoder#actualReadableBytes" data-isabs="false">
       <a id="actualReadableBytes():Int"></a>
       <h4 class="signature">
       <span class="kind">def</span>
@@ -143,7 +143,35 @@ bytes of contents expected
         <span class="params">()</span><span class="result">: <span name="scala.Int" class="extype">Int</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.replay" class="extype" href="../../../org/jboss/netty/handler/codec/replay/package.html">replay</a>] </dd><dt>Definition Classes</dt><dd>ReplayingDecoder</dd></dl></div>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.frame" class="extype" href="../../../org/jboss/netty/handler/codec/frame/package.html">frame</a>] </dd><dt>Definition Classes</dt><dd>FrameDecoder</dd></dl></div>
+    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#afterAdd" data-isabs="false">
+      <a id="afterAdd(ChannelHandlerContext):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">afterAdd</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → LifeCycleAwareChannelHandler</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#afterRemove" data-isabs="false">
+      <a id="afterRemove(ChannelHandlerContext):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">afterRemove</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → LifeCycleAwareChannelHandler</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
     </li><li visbl="pub" name="scala.Any#asInstanceOf" data-isabs="false">
       <a id="asInstanceOf[T0]:T0"></a>
       <h4 class="signature">
@@ -155,6 +183,34 @@ bytes of contents expected
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>Any</dd></dl></div>
+    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#beforeAdd" data-isabs="false">
+      <a id="beforeAdd(ChannelHandlerContext):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">beforeAdd</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → LifeCycleAwareChannelHandler</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#beforeRemove" data-isabs="false">
+      <a id="beforeRemove(ChannelHandlerContext):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">beforeRemove</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → LifeCycleAwareChannelHandler</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
     </li><li visbl="pub" name="org.jboss.netty.channel.SimpleChannelUpstreamHandler#channelBound" data-isabs="false">
       <a id="channelBound(ChannelHandlerContext,ChannelStateEvent):Unit"></a>
       <h4 class="signature">
@@ -169,7 +225,7 @@ bytes of contents expected
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.replay.ReplayingDecoder#channelClosed" data-isabs="false">
+    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#channelClosed" data-isabs="false">
       <a id="channelClosed(ChannelHandlerContext,ChannelStateEvent):Unit"></a>
       <h4 class="signature">
       <span class="kind">def</span>
@@ -179,7 +235,7 @@ bytes of contents expected
         <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.ChannelStateEvent" class="extype">ChannelStateEvent</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>ReplayingDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -197,7 +253,7 @@ bytes of contents expected
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.replay.ReplayingDecoder#channelDisconnected" data-isabs="false">
+    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#channelDisconnected" data-isabs="false">
       <a id="channelDisconnected(ChannelHandlerContext,ChannelStateEvent):Unit"></a>
       <h4 class="signature">
       <span class="kind">def</span>
@@ -207,7 +263,7 @@ bytes of contents expected
         <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.ChannelStateEvent" class="extype">ChannelStateEvent</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>ReplayingDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -303,6 +359,20 @@ bytes of contents expected
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
+    </li><li visbl="prt" name="org.jboss.netty.handler.codec.replay.ReplayingDecoder#cleanup" data-isabs="false">
+      <a id="cleanup(ChannelHandlerContext,ChannelStateEvent):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">cleanup</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.ChannelStateEvent" class="extype">ChannelStateEvent</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.replay" class="extype" href="../../../org/jboss/netty/handler/codec/replay/package.html">replay</a>] </dd><dt>Definition Classes</dt><dd>ReplayingDecoder → FrameDecoder</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
     </li><li visbl="prt" name="scala.AnyRef#clone" data-isabs="false">
       <a id="clone():AnyRef"></a>
       <h4 class="signature">
@@ -353,6 +423,34 @@ bytes of contents expected
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
+    </li><li visbl="prt" name="org.jboss.netty.handler.codec.replay.ReplayingDecoder#decode" data-isabs="false">
+      <a id="decode(ChannelHandlerContext,Channel,ChannelBuffer):AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">decode</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.Channel" class="extype">Channel</span></span>, <span name="arg2">arg2: <span name="org.jboss.netty.buffer.ChannelBuffer" class="extype">ChannelBuffer</span></span>)</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.replay" class="extype" href="../../../org/jboss/netty/handler/codec/replay/package.html">replay</a>] final </dd><dt>Definition Classes</dt><dd>ReplayingDecoder → FrameDecoder</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
+    </li><li visbl="prt" name="org.jboss.netty.handler.codec.replay.ReplayingDecoder#decodeLast" data-isabs="false">
+      <a id="decodeLast(ChannelHandlerContext,Channel,ChannelBuffer):AnyRef"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">decodeLast</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.Channel" class="extype">Channel</span></span>, <span name="arg2">arg2: <span name="org.jboss.netty.buffer.ChannelBuffer" class="extype">ChannelBuffer</span></span>)</span><span class="result">: AnyRef</span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.replay" class="extype" href="../../../org/jboss/netty/handler/codec/replay/package.html">replay</a>] final </dd><dt>Definition Classes</dt><dd>ReplayingDecoder → FrameDecoder</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">()</span>
+              
+        </dd></dl></div>
     </li><li visbl="prt" name="org.jboss.netty.handler.codec.replay.ReplayingDecoder#decodeLast" data-isabs="false">
       <a id="decodeLast(ChannelHandlerContext,Channel,ChannelBuffer,State):AnyRef"></a>
       <h4 class="signature">
@@ -389,7 +487,7 @@ bytes of contents expected
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li visbl="pub" name="org.jboss.netty.handler.codec.replay.ReplayingDecoder#exceptionCaught" data-isabs="false">
+    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#exceptionCaught" data-isabs="false">
       <a id="exceptionCaught(ChannelHandlerContext,ExceptionEvent):Unit"></a>
       <h4 class="signature">
       <span class="kind">def</span>
@@ -399,7 +497,7 @@ bytes of contents expected
         <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.ExceptionEvent" class="extype">ExceptionEvent</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>ReplayingDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -464,7 +562,7 @@ bytes of contents expected
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li visbl="prt" name="org.jboss.netty.handler.codec.replay.ReplayingDecoder#internalBuffer" data-isabs="false">
+    </li><li visbl="prt" name="org.jboss.netty.handler.codec.frame.FrameDecoder#internalBuffer" data-isabs="false">
       <a id="internalBuffer():ChannelBuffer"></a>
       <h4 class="signature">
       <span class="kind">def</span>
@@ -474,7 +572,7 @@ bytes of contents expected
         <span class="params">()</span><span class="result">: <span name="org.jboss.netty.buffer.ChannelBuffer" class="extype">ChannelBuffer</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.replay" class="extype" href="../../../org/jboss/netty/handler/codec/replay/package.html">replay</a>] </dd><dt>Definition Classes</dt><dd>ReplayingDecoder</dd></dl></div>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.frame" class="extype" href="../../../org/jboss/netty/handler/codec/frame/package.html">frame</a>] </dd><dt>Definition Classes</dt><dd>FrameDecoder</dd></dl></div>
     </li><li visbl="prt" name="io.backchat.hookup.HookupClient.WebSocketHttpResponseDecoder#isContentAlwaysEmpty" data-isabs="false">
       <a id="isContentAlwaysEmpty(HttpMessage):Boolean"></a>
       <h4 class="signature">
@@ -518,7 +616,7 @@ bytes of contents expected
         <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.MessageEvent" class="extype">MessageEvent</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>ReplayingDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>ReplayingDecoder → FrameDecoder → SimpleChannelUpstreamHandler</dd><dt>Annotations</dt><dd>
                 <span class="name">@throws</span><span class="args">()</span>
               
         </dd></dl></div>
@@ -533,7 +631,7 @@ bytes of contents expected
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
-    </li><li visbl="prt" name="org.jboss.netty.handler.codec.replay.ReplayingDecoder#newCumulationBuffer" data-isabs="false">
+    </li><li visbl="prt" name="org.jboss.netty.handler.codec.frame.FrameDecoder#newCumulationBuffer" data-isabs="false">
       <a id="newCumulationBuffer(ChannelHandlerContext,Int):ChannelBuffer"></a>
       <h4 class="signature">
       <span class="kind">def</span>
@@ -543,7 +641,7 @@ bytes of contents expected
         <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="scala.Int" class="extype">Int</span></span>)</span><span class="result">: <span name="org.jboss.netty.buffer.ChannelBuffer" class="extype">ChannelBuffer</span></span>
       </span>
       </h4>
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.replay" class="extype" href="../../../org/jboss/netty/handler/codec/replay/package.html">replay</a>] </dd><dt>Definition Classes</dt><dd>ReplayingDecoder</dd></dl></div>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.frame" class="extype" href="../../../org/jboss/netty/handler/codec/frame/package.html">frame</a>] </dd><dt>Definition Classes</dt><dd>FrameDecoder</dd></dl></div>
     </li><li visbl="pub" name="scala.AnyRef#notify" data-isabs="false">
       <a id="notify():Unit"></a>
       <h4 class="signature">
@@ -566,6 +664,17 @@ bytes of contents expected
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>final </dd><dt>Definition Classes</dt><dd>AnyRef</dd></dl></div>
+    </li><li visbl="pub" name="org.jboss.netty.handler.codec.frame.FrameDecoder#replace" data-isabs="false">
+      <a id="replace(String,ChannelHandler):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">replace</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="java.lang.String" class="extype">String</span></span>, <span name="arg1">arg1: <span name="org.jboss.netty.channel.ChannelHandler" class="extype">ChannelHandler</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>FrameDecoder</dd></dl></div>
     </li><li visbl="prt" name="org.jboss.netty.handler.codec.replay.ReplayingDecoder#setState" data-isabs="false">
       <a id="setState(State):State"></a>
       <h4 class="signature">
@@ -599,6 +708,17 @@ bytes of contents expected
       </span>
       </h4>
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
+    </li><li visbl="prt" name="org.jboss.netty.handler.codec.frame.FrameDecoder#unfoldAndFireMessageReceived" data-isabs="false">
+      <a id="unfoldAndFireMessageReceived(ChannelHandlerContext,SocketAddress,Any):Unit"></a>
+      <h4 class="signature">
+      <span class="kind">def</span>
+      <span class="symbol"> 
+        <span class="name">unfoldAndFireMessageReceived</span>
+        
+        <span class="params">(<span name="arg0">arg0: <span name="org.jboss.netty.channel.ChannelHandlerContext" class="extype">ChannelHandlerContext</span></span>, <span name="arg1">arg1: <span name="java.net.SocketAddress" class="extype">SocketAddress</span></span>, <span name="arg2">arg2: <span name="scala.Any" class="extype">Any</span></span>)</span><span class="result">: <span name="scala.Unit" class="extype">Unit</span></span>
+      </span>
+      </h4>
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<a name="org.jboss.netty.handler.codec.frame" class="extype" href="../../../org/jboss/netty/handler/codec/frame/package.html">frame</a>] final </dd><dt>Definition Classes</dt><dd>FrameDecoder</dd></dl></div>
     </li><li visbl="pub" name="scala.AnyRef#wait" data-isabs="false">
       <a id="wait():Unit"></a>
       <h4 class="signature">
@@ -666,6 +786,10 @@ bytes of contents expected
               <h3>Inherited from <span name="org.jboss.netty.handler.codec.http.HttpMessageDecoder" class="extype">HttpMessageDecoder</span></h3>
             </div><div name="org.jboss.netty.handler.codec.replay.ReplayingDecoder" class="parent">
               <h3>Inherited from <span name="org.jboss.netty.handler.codec.replay.ReplayingDecoder" class="extype">ReplayingDecoder</span>[<span name="org.jboss.netty.handler.codec.http.HttpMessageDecoder.State" class="extype">State</span>]</h3>
+            </div><div name="org.jboss.netty.handler.codec.frame.FrameDecoder" class="parent">
+              <h3>Inherited from <span name="org.jboss.netty.handler.codec.frame.FrameDecoder" class="extype">FrameDecoder</span></h3>
+            </div><div name="org.jboss.netty.channel.LifeCycleAwareChannelHandler" class="parent">
+              <h3>Inherited from <span name="org.jboss.netty.channel.LifeCycleAwareChannelHandler" class="extype">LifeCycleAwareChannelHandler</span></h3>
             </div><div name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="parent">
               <h3>Inherited from <span name="org.jboss.netty.channel.SimpleChannelUpstreamHandler" class="extype">SimpleChannelUpstreamHandler</span></h3>
             </div><div name="org.jboss.netty.channel.ChannelUpstreamHandler" class="parent">
