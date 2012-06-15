@@ -96,12 +96,12 @@ class HookupClientSpec extends Specification with NoTimeConversions { def is =
     "when configured with simpleJsonProtocol" ^
       "connect to a server" ! specify("simpleJson").connectsToServerSimpleJson ^
       "exchange json messages with the server" ! specify("simpleJson").exchangesJsonMessagesSimpleJson ^ bt ^
-    "when client requests simpleJson and server is default" ^
-      "connect to a server" ! specify("jsonProtocol").pendingSpec ^
-      "exchange json messages with the server" ! specify("jsonProtocol").pendingSpec ^ bt ^
-    "when client requests jsonProtocol and server is default" ^
-      "connect to a server" ! specify("simpleJson").pendingSpec ^
-      "exchange json messages with the server" ! specify("simpleJson").pendingSpec ^
+    "when client requests simpleJson and server is jsonProtocol" ^
+      "connect to a server" ! specify("jsonProtocol").connectsToServerSimpleJson ^
+      "exchange json messages with the server" ! specify("jsonProtocol").connectsToServerSimpleJson ^ bt ^
+    "when client requests jsonProtocol and server is simpleJson" ^
+      "connect to a server" ! specify("simpleJson").connectsToServer ^
+      "exchange json messages with the server" ! specify("simpleJson").exchangesJsonMessages ^
   end
 
   implicit val system: ActorSystem = ActorSystem("HookupClientSpec")
@@ -136,9 +136,7 @@ class HookupClientSpec extends Specification with NoTimeConversions { def is =
     def exchangesJsonMessages = this {
       val latch = TestLatch()
       withWebSocket({
-        case (client, Connected) =>
-          Thread.sleep(1000L)
-          client send JObject(JField("hello", JString("world")) :: Nil)
+        case (client, Connected) => client send JObject(JField("hello", JString("world")) :: Nil)
         case (client, JsonMessage(JObject(JField("hello", JString("world")) :: Nil))) => latch.open
       }) { _ => Await.result(latch, 5 seconds) must not(throwA[TimeoutException]) }
     }
