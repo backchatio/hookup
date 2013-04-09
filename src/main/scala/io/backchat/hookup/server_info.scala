@@ -3,7 +3,7 @@ package io.backchat.hookup
 import akka.util.Timeout
 import java.io.{FileInputStream, FileNotFoundException, File}
 import com.typesafe.config.Config
-import akka.dispatch.ExecutionContext
+import scala.concurrent.ExecutionContext
 import javax.net.ssl.{KeyManagerFactory, SSLContext}
 import java.security.KeyStore
 import collection.mutable.ListBuffer

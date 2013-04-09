@@ -4,12 +4,13 @@ package examples
 import net.liftweb.json._
 import java.util.concurrent.atomic.AtomicInteger
 import java.net.URI
-import akka.util.duration._
+import scala.concurrent.duration._
 import akka.actor.{ Cancellable, ActorSystem }
 import JsonDSL._
 import java.io.File
 
 object PrintAllEventsClient {
+  import DefaultConversions._
 
   val messageCounter = new AtomicInteger(0)
   val bufferedCounter = new AtomicInteger(0)

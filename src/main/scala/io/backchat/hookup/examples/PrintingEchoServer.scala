@@ -4,7 +4,7 @@ package examples
 import net.liftweb.json._
 
 object PrintingEchoServer {
-
+  import DefaultConversions._
 
   def main(args: Array[String]) {
     /// code_ref: default_server

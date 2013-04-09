@@ -4,13 +4,21 @@ package examples
 import java.net.URI
 import net.liftweb.json.{ DefaultFormats, Formats }
 import akka.actor.ActorSystem
-import akka.util.duration._
+import scala.concurrent.duration._
 import java.util.concurrent.atomic.AtomicInteger
 import java.io.File
+
+object DefaultConversions { 
+  implicit def stringToTextMessage(s: String) = TextMessage(s)
+}
+
 
 object ChatClient {
 
   val messageCounter = new AtomicInteger(0)
+
+  import DefaultConversions._
+  //implicit def stringToTextMessage(s: String) = TextMessage(s)
 
   def main(args: Array[String]) {
 

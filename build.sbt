@@ -67,11 +67,16 @@ pomExtra <<= (pomExtra, name, description) {(pom, name, desc) => pom ++ Group(
 //
 //(excludeFilter in ScalariformKeys.format) <<= excludeFilter(_ || "*Spec.scala")
 
-seq(buildInfoSettings: _*)
+// seq(buildInfoSettings: _*)
+
+buildInfoSettings
 
 sourceGenerators in Compile <+= buildInfo
 
-buildInfoKeys := Seq[Scoped](name, version, scalaVersion, sbtVersion)
-// buildInfoKeys := Seq[Scoped](name, version, scalaVersion, sbtVersion)
+buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion)
+
+// buildInfoPackage := "io.backchat.hookup"
+
+// buildInfoPackage := organization
 
 buildInfoPackage <<= organization

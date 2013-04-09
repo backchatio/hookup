@@ -11,7 +11,7 @@ import org.jboss.netty.handler.codec.http.{Cookie, HttpMessage, HttpHeaders, Htt
 import scala.collection.JavaConversions._
 import scala.reflect.BeanProperty
 import org.joda.time.DateTime
-import akka.util.Duration
+import scala.concurrent.duration.Duration
 
 /**
  * Rich HttpMessage

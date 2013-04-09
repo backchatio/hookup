@@ -5,6 +5,8 @@ import net.liftweb.json._
 
 object ChatServer {
 
+  import DefaultConversions._
+
   def main(args: Array[String]) {
     val server = HookupServer(ServerInfo("ChatServer", port = 8127)){
       new HookupServerClient {
