@@ -155,7 +155,8 @@ object HookupClient {
     val wireFormat = new AtomicReference[WireFormat](settings.defaultProtocol)
 
     def isConnected =
-      channel != null && channel.isConnected && _isConnected.isCompleted && _isConnected.future.value.get == Right(Success)
+      channel != null && channel.isConnected && _isConnected.isCompleted && _isConnected.future.value.get == scala.util.Success(io.backchat.hookup.Success)
+    //  && _isConnected.future.value.get == Right(Success)
 
     private def configureBootstrap() {
       val self = this

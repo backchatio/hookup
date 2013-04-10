@@ -29,6 +29,8 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
   "A Server with a subprotocols configuration" ! serverWithSubprotocols ^
   "A Server with a flash policy configuration" ! serverWithFlashPolicy ^ end
 
+  import scala.concurrent.ExecutionContext.Implicits.global
+
   def serverWithPing = {
     /// code_ref: server_with_ping
     implicit val jsonFormats: Formats = DefaultFormats

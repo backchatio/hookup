@@ -57,8 +57,11 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
     val allProtos = DefaultProtocols ++ protocols
 
     class WsClient extends HookupServerClient {
+      val success: scala.util.Try[HookupServerClient] = scala.util.Success(this)
       def receive = {
-        case Connected => client.complete(Right(this))
+        // case Connected => client.complete(Right(this))
+        // case Connected => client.complete(scala.util.Success[HookupServerClient](this))
+        case Connected => client.complete(success)
         case TextMessage(text) => {
           messages :+= text
         }
@@ -139,7 +142,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
         case TextMessage(text) => rcvd = text
       }) { _ =>
         l.await(3, TimeUnit.SECONDS) must beTrue and {
-          client.onSuccess({ case c => c ! toSend })
+          client.future.onSuccess({ case c => c ! toSend })
           rcvd must be_==(toSend.content).eventually
         }
       }
@@ -186,7 +189,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
         case JsonMessage(text) => rcvd = text
       }) { c =>
         l.await(3, TimeUnit.SECONDS) must beTrue and {
-          client.onSuccess({ case c => c ! toSend })
+          client.future.onSuccess({ case c => c ! toSend })
           rcvd must be_==(toSend).eventually
         }
       }
@@ -201,7 +204,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
         case Disconnected(_) =>
       }) { c =>
         latch.await(3, TimeUnit.SECONDS) must beTrue and {
-          client.onSuccess({case c => c.disconnect() })
+          client.future.onSuccess({case c => c.disconnect() })
           disconnectionLatch.await(2, TimeUnit.SECONDS) must beTrue and (c.isConnected must beFalse.eventually)
         }
       }
@@ -228,7 +231,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
       withClient({
         case _ =>
        }) { _ =>
-        client.onSuccess({ case c => c ! toSend.needsAck(within = 5 seconds) })
+        client.future.onSuccess({ case c => c ! toSend.needsAck(within = 5 seconds) })
         ackRequest.await(3, TimeUnit.SECONDS) must beTrue
       }
     }

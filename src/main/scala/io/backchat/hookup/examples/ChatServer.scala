@@ -7,7 +7,7 @@ object ChatServer {
 
   import DefaultConversions._
 
-  def main(args: Array[String]) {
+  def makeServer() = {
     val server = HookupServer(ServerInfo("ChatServer", port = 8127)){
       new HookupServerClient {
         def receive = {
@@ -20,9 +20,14 @@ object ChatServer {
           case TextMessage(text) ⇒
             println("broadcasting: " + text + " from " + id)
             this >< text
+          case m: JsonMessage ⇒
+            println("JsonMessage(" + pretty(render(m.content)) + ")")
         }
       }
     }
     server.start
+    server
   }
+
+  def main(args: Array[String]) { makeServer }
 }

@@ -23,7 +23,8 @@ object HookupBuild extends Build {
       "commons-io" % "commons-io" % "2.1",
       "com.typesafe.akka" %% "akka-actor" % "2.1.2" % "compile",
       "com.typesafe.akka" %% "akka-testkit" % "2.1.2" % "test",
-      "org.specs2" %% "specs2" % "1.14" % "test",
+      // "org.specs2" %% "specs2" % "1.14" % "test",
+      "org.specs2" %% "specs2" % "1.12.3" % "test",
       "junit" % "junit" % "4.10" % "test",
       "joda-time" % "joda-time" % "2.1"
     ),

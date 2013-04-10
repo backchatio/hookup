@@ -5,6 +5,7 @@ import org.specs2.Specification
 import org.specs2.time.NoTimeConversions
 import net.liftweb.json.DefaultFormats
 import org.specs2.execute.Result
+import org.specs2.execute.AsResult
 import java.net.{ServerSocket, URI}
 import akka.testkit._
 import akka.actor.ActorSystem
@@ -120,6 +121,7 @@ class HookupClientSpec extends Specification with NoTimeConversions { def is =
     val server = HookupClientSpecification.newServer(serverAddress, defaultProtocol)
 
     def around[T <% Result](t: => T) = {
+    // def around[T: AsResult](t: =>T) = {
       server.start
       val r = t
       server.stop
