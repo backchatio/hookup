@@ -1,8 +1,8 @@
 package io.backchat.hookup
 
-import akka.util.duration._
+import scala.concurrent.duration._
 import net.liftweb.json.JsonAST.JValue
-import akka.util.Duration
+import akka.util.Timeout
 
 /**
  * A marker trait for inbound messages
@@ -23,10 +23,10 @@ trait Ackable { self: OutboundMessage ⇒
   /**
    * Request that this message will be acked upon receipt by the server.
    *
-   * @param within An [[akka.util.Duration]] representing the timeout for the ack
+   * @param within An [[scala.concurrent.duration.Duration]] representing the timeout for the ack
    * @return A [[io.backchat.hookup.OutboundMessage]] with this message wrapped in a [[io.backchat.hookup.NeedsAck]] envelope
    */
-  def needsAck(within: Duration = 1 second): OutboundMessage = NeedsAck(this, within)
+  def needsAck(within: Timeout = 1 second): OutboundMessage = NeedsAck(this, within)
 }
 
 /**
@@ -80,9 +80,9 @@ case class BinaryMessage(content: Array[Byte]) extends ProtocolMessage[Array[Byt
  * A message envelope to request acking for an outbound message
  *
  * @param message The [[io.backchat.hookup.Ackable]] message to be acknowledged
- * @param timeout An [[akka.util.Duration]] specifying the timeout for the operation
+ * @param timeout An [[scala.concurrent.duration.Duration]] specifying the timeout for the operation
  */
-private[hookup] case class NeedsAck(message: Ackable, timeout: Duration = 1 second) extends OutboundMessage
+private[hookup] case class NeedsAck(message: Ackable, timeout: Timeout = 1 second) extends OutboundMessage
 
 /**
  * An Inbound message for an ack operation, this is an implementation detail and not visible to the library user

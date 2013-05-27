@@ -1,7 +1,7 @@
 package io.backchat.hookup
 
 import net.liftweb.json._
-import akka.util.duration._
+import scala.concurrent.duration._
 
 /**
  * The interface trait for a wire format.
@@ -170,7 +170,7 @@ object JsonProtocolWireFormat {
         case m: TextMessage ⇒ compact(render(contentFrom(m)))
         case m: JsonMessage ⇒ compact(render(contentFrom(m)))
         case NeedsAck(msg, timeout) ⇒
-          compact(render(("type" -> "needs_ack") ~ ("timeout" -> timeout.toMillis) ~ ("content" -> contentFrom(msg))))
+          compact(render(("type" -> "needs_ack") ~ ("timeout" -> timeout.duration.toMillis) ~ ("content" -> contentFrom(msg))))
         case x ⇒ sys.error(x.getClass.getName + " is an unsupported message type")
       }
     }

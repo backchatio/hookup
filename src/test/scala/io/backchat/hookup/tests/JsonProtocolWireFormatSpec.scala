@@ -4,7 +4,7 @@ package tests
 import org.specs2.Specification
 import net.liftweb.json._
 import JsonDSL._
-import akka.util.duration._
+import scala.concurrent.duration._
 import org.specs2.time.NoTimeConversions
 
 class JsonProtocolWireFormatSpec extends Specification with NoTimeConversions { def is =
