@@ -1,6 +1,6 @@
 package io.backchat.hookup
 
-import akka.dispatch.Future
+import scala.concurrent.Future
 
 /**
  * A broadcast channel represents a connection
@@ -21,13 +21,13 @@ trait BroadcastChannelLike {
   /**
    * Send a message over the current connection
    * @param message A [[io.backchat.hookup.OutboundMessage]] message
-   * @return An [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
+   * @return An [[scala.concurrent.Future]] of [[io.backchat.hookup.OperationResult]]
    */
   def send(message: OutboundMessage): Future[OperationResult]
 
   /**
    * Disconnect from the socket, perform closing handshake if necessary
-   * @return An [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
+   * @return An [[scala.concurrent.Future]] of [[io.backchat.hookup.OperationResult]]
    */
   def disconnect(): Future[OperationResult]
 }

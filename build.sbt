@@ -71,7 +71,7 @@ seq(buildInfoSettings: _*)
 
 sourceGenerators in Compile <+= buildInfo
 
-buildInfoKeys := Seq[Scoped](name, version, scalaVersion, sbtVersion)
+buildInfoKeys := Seq[sbtbuildinfo.Plugin.BuildInfoKey.Entry[_]](name, version, scalaVersion, sbtVersion)
 // buildInfoKeys := Seq[Scoped](name, version, scalaVersion, sbtVersion)
 
 buildInfoPackage <<= organization

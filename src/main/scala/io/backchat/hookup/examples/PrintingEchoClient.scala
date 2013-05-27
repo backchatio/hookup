@@ -4,7 +4,7 @@ package examples
 import java.net.URI
 import net.liftweb.json.{ DefaultFormats, Formats }
 import akka.actor.ActorSystem
-import akka.util.duration._
+import scala.concurrent.duration._
 import java.util.concurrent.atomic.AtomicInteger
 import java.io.File
 

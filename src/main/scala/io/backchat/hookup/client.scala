@@ -8,15 +8,15 @@ import org.jboss.netty.handler.codec.http._
 import collection.JavaConverters._
 import websocketx._
 import org.jboss.netty.buffer.ChannelBuffers
-import akka.util.duration._
-import akka.dispatch.{ ExecutionContext, Await, Promise, Future }
-import akka.jsr166y.ForkJoinPool
+import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Await, Promise, Future }
+import scala.concurrent.forkjoin.ForkJoinPool
 import java.lang.Thread.UncaughtExceptionHandler
 import org.jboss.netty.handler.timeout.{ IdleStateAwareChannelHandler, IdleStateEvent, IdleState, IdleStateHandler }
 import org.jboss.netty.logging.{ InternalLogger, InternalLoggerFactory }
 import io.backchat.hookup.HookupServer.MessageAckingHandler
 import org.jboss.netty.util.{ Timeout ⇒ NettyTimeout, TimerTask, HashedWheelTimer, CharsetUtil }
-import akka.util.{ Duration, Timeout }
+import scala.concurrent.duration.{ Duration }
 import java.net.{ ConnectException, InetSocketAddress, URI }
 import java.nio.channels.ClosedChannelException
 import net.liftweb.json.JsonAST.JValue
@@ -25,6 +25,9 @@ import java.io.{Closeable, File}
 import java.util.concurrent.{ConcurrentSkipListSet, TimeUnit, Executors}
 import reflect.BeanProperty
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference, AtomicLong}
+import akka.util.Timeout
+//import org.jboss.netty.util.Timeout
+import scala.util._
 
 /**
  * @see [[io.backchat.hookup.HookupClient]]
@@ -148,8 +151,17 @@ object HookupClient {
     val settings = client.settings
     val wireFormat = new AtomicReference[WireFormat](settings.defaultProtocol)
 
-    def isConnected =
-      channel != null && channel.isConnected && _isConnected.isCompleted && _isConnected.value.get == Right(Success)
+    def isConnected = {
+      val c: Boolean = _isConnected.future.value match {
+        case Some(x) => x match {
+          case Failure(x) => false
+          case _ => true
+        }
+        case None => false
+      }
+
+      channel != null && channel.isConnected && _isConnected.isCompleted && c
+    }
 
     private def configureBootstrap() {
       val self = this
@@ -193,7 +205,7 @@ object HookupClient {
       handshaker = new WebSocketClientHandshakerFactory().newHandshaker(tgt, client.settings.version, protos.mkString(","), false, client.settings.initialHeaders.asJava)
       isClosing = false
       val self = this
-      if (isConnected) Promise.successful(Success)
+      if (isConnected) Promise.successful(io.backchat.hookup.Success).future
       else {
         val fut = bootstrap.connect(new InetSocketAddress(client.settings.uri.getHost, client.settings.uri.getPort))
         fut.addListener(new ChannelFutureListener {
@@ -208,7 +220,7 @@ object HookupClient {
             throttle = client.settings.throttle
             channel = fut.getChannel
             handshaker.handshake(channel).toAkkaFuture
-          case x ⇒ Promise.successful(x)
+          case x ⇒ Promise.successful(x).future
         }
 
         try {
@@ -216,13 +228,13 @@ object HookupClient {
           val fut = af flatMap { _ ⇒
             isReconnecting = false
 
-            _isConnected
+            _isConnected.future
           }
 
           buffer foreach (_.open())
           Await.ready(af, 5 seconds)
         } catch {
-          case ex ⇒ {
+          case ex: Throwable ⇒ {
             logger.error("Couldn't connect, killing all")
             reconnect()
           }
@@ -251,8 +263,8 @@ object HookupClient {
         if (throttle != NoThrottle)
           timer.newTimeout(task(promise, theDelay, thunk), theDelay.toMillis, TimeUnit.MILLISECONDS)
         else promise.success(Cancelled)
-        promise
-      } else Promise.successful(Cancelled)
+        promise.future
+      } else Promise.successful(Cancelled).future
     }
 
     private def task(promise: Promise[OperationResult], theDelay: Duration, thunk: ⇒ Future[OperationResult]): TimerTask = {
@@ -262,8 +274,9 @@ object HookupClient {
           if (!timeout.isCancelled) {
             val rr = thunk
             rr onComplete {
-              case Left(ex) ⇒ delay(thunk)
-              case Right(x) ⇒ promise.success(x)
+              case Failure(ex) ⇒ delay(thunk)
+              case _ => promise.future
+//              case Success(x) ⇒ promise.future
             }
           } else promise.success(Cancelled)
         }
@@ -295,7 +308,7 @@ object HookupClient {
                     client.receive lift Disconnected(None)
                   }
                   _isConnected = Promise[OperationResult]()
-                  disconnected.success(Success)
+                  disconnected.success(io.backchat.hookup.Success)
                 }
               })
             }
@@ -306,7 +319,7 @@ object HookupClient {
               buffer foreach (_.close())
               client.receive lift Disconnected(None)
               _isConnected = Promise[OperationResult]()
-              disconnected.success(Success)
+              disconnected.success(io.backchat.hookup.Success)
             }
           })
         }
@@ -315,10 +328,10 @@ object HookupClient {
           buffer foreach (_.close())
           client.receive lift Disconnected(None)
         }
-        disconnected.success(Success)
+        disconnected.success(io.backchat.hookup.Success)
       }
 
-      disconnected onComplete {
+      disconnected.future onComplete {
         case _ ⇒ {
           _isConnected = Promise[OperationResult]()
           try {
@@ -334,14 +347,14 @@ object HookupClient {
               thread.join()
             }
           } catch {
-            case e ⇒ logger.error("error while closing the connection", e)
+            case e: Throwable ⇒ logger.error("error while closing the connection", e)
           } finally {
-            if (!closing.isCompleted) closing.success(Success)
+            if (!closing.isCompleted) closing.success(io.backchat.hookup.Success)
           }
         }
       }
 
-      closing
+      closing.future
     }
 
     def id = if (channel == null) 0 else channel.id
@@ -356,7 +369,7 @@ object HookupClient {
         }
         if (buffer.isEmpty && !isReconnecting) // This is only for the first connect as it may take a bit longer than advertised
           memoryBuffer.write(message)(wireFormat.get)
-        Promise.successful(Success)
+        Promise.successful(io.backchat.hookup.Success).future
       }
     }
 
@@ -367,11 +380,11 @@ object HookupClient {
         memoryBuffer.drain(channel.send(_))(executionContext, wireFormat.get())
         buffer foreach { b ⇒
           b.drain(channel.send(_))(executionContext, wireFormat.get())
-          _isConnected.success(Success)
+          _isConnected.success(io.backchat.hookup.Success)
           client.receive lift Connected
         }
         if (buffer.isEmpty) {
-          _isConnected.success(Success)
+          _isConnected.success(io.backchat.hookup.Success)
           client.receive lift Connected
         }
       }
@@ -473,7 +486,7 @@ trait Connectable { self: BroadcastChannelLike ⇒
 
   /**
    * Connect to the server
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
   def connect(protocols: String*): Future[OperationResult]
 }
@@ -485,7 +498,7 @@ trait Reconnectable {
 
   /**
    * Reconnect to the server
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
   def reconnect(): Future[OperationResult]
 }
@@ -584,7 +597,7 @@ trait HookupClient extends HookupClientLike with Connectable with Reconnectable 
 
   /**
    * The execution context for futures within this client.
-   * @return The [[akka.dispatch.ExecutionContext]]
+   * @return The [[scala.concurrent.ExecutionContext]]
    */
   implicit protected lazy val executionContext: ExecutionContext = settings.executionContext
 
@@ -608,28 +621,28 @@ trait HookupClient extends HookupClientLike with Connectable with Reconnectable 
    * Send a message to the server.
    *
    * @param message The [[io.backchat.hookup.OutboundMessage]] to send
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
   final def !(message: OutboundMessage) = send(message)
 
   /**
    * Connect to the server.
    *
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
   final def connect(protocols: String*): Future[OperationResult] = channel.connect(protocols:_*)
 
   /**
    * Reconnect to the server.
    *
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
   def reconnect(): Future[OperationResult] = channel.reconnect()
 
   /**
    * Disconnect from the server.
    *
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
   final def disconnect(): Future[OperationResult] = channel.disconnect()
 
@@ -642,7 +655,7 @@ trait HookupClient extends HookupClientLike with Connectable with Reconnectable 
    * Send a message to the server.
    *
    * @param message The [[io.backchat.hookup.OutboundMessage]] to send
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
   final def send(message: OutboundMessage): Future[OperationResult] = channel.send(message)
 
@@ -717,7 +730,7 @@ trait WebSocketListener {
    * The callback method for when an error has occured
    *
    * @param client The client that received the message
-   * @param error The message it received the throwable if any, otherwise null
+   * @param reason The message it received the throwable if any, otherwise null
    */
   def onError(client: HookupClient, reason: Throwable): Unit = ()
 
@@ -733,7 +746,7 @@ trait WebSocketListener {
    * The callback method for when a json message has failed to be acknowledged.
    *
    * @param client The client that received the message
-   * @param text The message it received
+   * @param json The message it received
    */
   def onJsonAckFailed(client: HookupClient, json: String): Unit = ()
 }
@@ -749,23 +762,23 @@ trait JavaHelpers extends WebSocketListener { self: HookupClient =>
    * Send a text message. If the message is a json string it will still be turned into a json message
    *
    * @param message The message to send.
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
   def send(message: String): Future[OperationResult] = channel.send(message)
 
   /**
    * Send a json message.
    *
-   * @param message The message to send.
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @param json The message to send.
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
   def send(json: JValue): Future[OperationResult] = channel.send(json)
 
   /**
    * Send a json message. If the message isn't a json string it will throw a [[net.liftweb.json.JsonParser.ParseException]]
    *
-   * @param message The message to send.
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @param json The message to send.
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
   def sendJson(json: String): Future[OperationResult] = channel.send(JsonParser.parse(json))
 
@@ -773,27 +786,27 @@ trait JavaHelpers extends WebSocketListener { self: HookupClient =>
    * Send a text message which expects an Ack. If the message is a json string it will still be turned into a json message
    *
    * @param message The message to send.
-   * @param timeout the [[akka.util.Duration]] as timeout for the ack operation
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @param timeout the [[akka.util.Timeout]] as timeout for the ack operation
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
-  def sendAcked(message: String, timeout: Duration): Future[OperationResult] = channel.send(message.needsAck(timeout))
+  def sendAcked(message: String, timeout: Timeout): Future[OperationResult] = channel.send(message.needsAck(timeout))
   /**
    * Send a json message which expects an Ack. If the message isn't a json string it will throw a [[net.liftweb.json.JsonParser.ParseException]]
    *
    * @param message The message to send.
-   * @param timeout the [[akka.util.Duration]] as timeout for the ack operation
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @param timeout the [[scala.concurrent.duration]] as timeout for the ack operation
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
-  def sendAcked(message: JValue, timeout: Duration): Future[OperationResult] = channel.send(message.needsAck(timeout))
+  def sendAcked(message: JValue, timeout: Timeout): Future[OperationResult] = channel.send(message.needsAck(timeout))
 
   /**
    * Send a text message which expects an Ack. If the message is a json string it will still be turned into a json message
    *
-   * @param message The message to send.
-   * @param timeout the [[akka.util.Duration]] as timeout for the ack operation
-   * @return A [[akka.dispatch.Future]] with the [[io.backchat.hookup.OperationResult]]
+   * @param json The message to send.
+   * @param timeout the [[scala.concurrent.duration]] as timeout for the ack operation
+   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
-  def sendJsonAcked(json: String, timeout: Duration): Future[OperationResult] = channel.send(parse(json).needsAck(timeout))
+  def sendJsonAcked(json: String, timeout: Timeout): Future[OperationResult] = channel.send(parse(json).needsAck(timeout))
 
   private[this] val listeners = new ConcurrentSkipListSet[WebSocketListener]()
 

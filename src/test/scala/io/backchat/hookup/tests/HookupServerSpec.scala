@@ -3,8 +3,8 @@ package tests
 
 import org.specs2.Specification
 import org.specs2.specification.{Step, Fragments, After}
-import akka.util.duration._
-import akka.dispatch.{Await, ExecutionContext, Promise}
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, Promise}
 import org.specs2.time.NoTimeConversions
 import org.specs2.execute.Result
 import java.net.{URI, ServerSocket}
@@ -15,6 +15,7 @@ import java.io.File
 import akka.testkit._
 import java.util.concurrent._
 import examples.NoopWireformat
+import scala.util.Success
 
 class HookupServerSpec extends Specification with NoTimeConversions { def is = sequential ^
   "A HookupServer should" ^
@@ -58,7 +59,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
 
     class WsClient extends HookupServerClient {
       def receive = {
-        case Connected => client.complete(Right(this))
+        case Connected => client.complete(Success(this))
         case TextMessage(text) => {
           messages :+= text
         }
@@ -139,7 +140,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
         case TextMessage(text) => rcvd = text
       }) { _ =>
         l.await(3, TimeUnit.SECONDS) must beTrue and {
-          client.onSuccess({ case c => c ! toSend })
+          client.future.onSuccess({ case c => c ! toSend })
           rcvd must be_==(toSend.content).eventually
         }
       }
@@ -186,7 +187,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
         case JsonMessage(text) => rcvd = text
       }) { c =>
         l.await(3, TimeUnit.SECONDS) must beTrue and {
-          client.onSuccess({ case c => c ! toSend })
+          client.future.onSuccess({ case c => c ! toSend })
           rcvd must be_==(toSend).eventually
         }
       }
@@ -201,7 +202,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
         case Disconnected(_) =>
       }) { c =>
         latch.await(3, TimeUnit.SECONDS) must beTrue and {
-          client.onSuccess({case c => c.disconnect() })
+          client.future.onSuccess({case c => c.disconnect() })
           disconnectionLatch.await(2, TimeUnit.SECONDS) must beTrue and (c.isConnected must beFalse.eventually)
         }
       }
@@ -228,7 +229,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
       withClient({
         case _ =>
        }) { _ =>
-        client.onSuccess({ case c => c ! toSend.needsAck(within = 5 seconds) })
+        client.future.onSuccess({ case c => c ! toSend.needsAck(within = 5 seconds) })
         ackRequest.await(3, TimeUnit.SECONDS) must beTrue
       }
     }
