@@ -120,10 +120,9 @@ class HookupClientSpec extends Specification with NoTimeConversions { def is =
 
     val server = HookupClientSpecification.newServer(serverAddress, defaultProtocol)
 
-    def around[T <% Result](t: => T) = {
-    // def around[T: AsResult](t: =>T) = {
+    def around[T: AsResult](t: =>T) = {
       server.start
-      val r = t
+      val r = AsResult(t)
       server.stop
       r
     }
