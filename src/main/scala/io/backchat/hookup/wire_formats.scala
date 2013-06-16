@@ -1,7 +1,7 @@
 package io.backchat.hookup
 
 import net.liftweb.json._
-import akka.util.duration._
+import scala.concurrent.duration._
 
 /**
  * The interface trait for a wire format.

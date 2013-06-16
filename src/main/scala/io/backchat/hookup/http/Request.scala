@@ -7,7 +7,7 @@ import org.jboss.netty.channel.Channel
 import org.jboss.netty.handler.codec.http.{DefaultHttpRequest, DefaultHttpResponse, HttpMessage,
   HttpMethod, HttpRequest, HttpVersion, QueryStringEncoder}
 import scala.collection.JavaConversions._
-import scala.reflect.BeanProperty
+import beans.BeanProperty
 
 
 /**

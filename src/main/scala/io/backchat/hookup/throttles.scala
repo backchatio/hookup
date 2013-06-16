@@ -1,7 +1,7 @@
 package io.backchat.hookup
 
-import akka.util.Duration
-import akka.util.duration._
+import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 
 /**
  * The interface for an immutable backoff schedule
@@ -10,14 +10,14 @@ trait Throttle {
   /**
    * The delay to wait until the next operation can occur
    *
-   * @return A [[akka.util.Duration]]
+   * @return A [[scala.concurrent.duration.Duration]]
    */
   def delay: Duration
 
   /**
    * The maximum value the delay can have
    *
-   * @return A [[akka.util.Duration]]
+   * @return A [[scala.concurrent.duration.Duration]]
    */
   def maxWait: Duration
 
@@ -54,8 +54,8 @@ case object NoThrottle extends Throttle {
  * Represents a back off strategy that will retry forever when the maximum wait has been reached
  * From then on it will continue to use the max wait as delay.
  *
- * @param delay An [[akka.util.Duration]] indicating how long to wait for the next operation can occur
- * @param maxWait An [[akka.util.Duration]] indicating the maximum value a `delay` can have
+ * @param delay An [[scala.concurrent.duration.Duration]] indicating how long to wait for the next operation can occur
+ * @param maxWait An [[scala.concurrent.duration.Duration]] indicating the maximum value a `delay` can have
  */
 case class IndefiniteThrottle(delay: Duration, maxWait: Duration) extends Throttle {
 
@@ -68,8 +68,8 @@ case class IndefiniteThrottle(delay: Duration, maxWait: Duration) extends Thrott
  * Represents a back off strategy that will retry for `maxTimes` when the maximum wait has been reached
  * When it can't connect within the `maxTimes` a `maxValue` can occur it will return a [[io.backchat.hookup.NoThrottle]] strategy
  *
- * @param delay An [[akka.util.Duration]] indicating how long to wait for the next operation can occur
- * @param maxWait An [[akka.util.Duration]] indicating the maximum value a `delay` can have
+ * @param delay An [[scala.concurrent.duration.Duration]] indicating how long to wait for the next operation can occur
+ * @param maxWait An [[scala.concurrent.duration.Duration]] indicating the maximum value a `delay` can have
  * @param maxTimes A [[scala.Int]] representing the maximum amount of time a maxWait can be repeated
  */
 case class MaxTimesThrottle(delay: Duration, maxWait: Duration, maxTimes: Int = 1) extends Throttle {

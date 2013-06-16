@@ -1,13 +1,13 @@
 package io.backchat
 
-import akka.dispatch.{ ExecutionContext, Promise, Future }
+import scala.concurrent.{ ExecutionContext, Promise, Future }
 import org.jboss.netty.channel.{ Channel, ChannelFutureListener, ChannelFuture }
 import net.liftweb.json.JsonAST.JValue
-import akka.util.Duration
+import scala.concurrent.duration.Duration
 import java.util.concurrent.TimeUnit
 import org.jboss.netty.logging.{Slf4JLoggerFactory, InternalLoggerFactory}
 import net.liftweb.json.DefaultFormats
-import reflect.BeanProperty
+import beans.BeanProperty
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.jboss.netty.util.CharsetUtil
@@ -75,13 +75,13 @@ package object hookup {
   }
 
   /**
-   * An implicit conversion from a [[org.jboss.netty.channel.ChannelFuture]] to an [[akka.dispatch.Future]]
+   * An implicit conversion from a [[org.jboss.netty.channel.ChannelFuture]] to an [[scala.concurrent.Future]]
    * @param fut The [[org.jboss.netty.channel.ChannelFuture]]
-   * @return A [[akka.dispatch.Future]]
+   * @return A [[scala.concurrent.Future]]
    */
   implicit def channelFutureToAkkaFuture(fut: ChannelFuture) = new {
 
-    def toAkkaFuture(implicit context: ExecutionContext): Future[OperationResult] = {
+    def toAkkaFuture(implicit context: ExecutionContext): Promise[OperationResult] = {
       val res = Promise[OperationResult]()
       fut.addListener(new ChannelFutureListener {
         def operationComplete(future: ChannelFuture) {
@@ -99,14 +99,6 @@ package object hookup {
   }
 
   /**
-   * Implicit conversion from a regular string to a [[io.backchat.hookup.TextMessage]]
-   *
-   * @param content The string content of the message
-   * @return A [[io.backchat.hookup.TextMessage]]
-   */
-  implicit def string2TextMessage(content: String): OutboundMessage with Ackable = TextMessage(content)
-
-  /**
    * Implicit conversion from a lift-json jvalue to a [[io.backchat.hookup.JsonMessage]]
    *
    * @param content The string content of the message
@@ -121,8 +113,8 @@ package object hookup {
 
   private[hookup] implicit def nettyChannel2BroadcastChannel(ch: Channel)(implicit executionContext: ExecutionContext): BroadcastChannel =
     new { val id: Int = ch.getId } with BroadcastChannel {
-      def send(msg: OutboundMessage) = ch.write(msg).toAkkaFuture
-      def disconnect() = ch.close().toAkkaFuture
+      def send(msg: OutboundMessage) = ch.write(msg).toAkkaFuture.future
+      def disconnect() = ch.close().toAkkaFuture.future
     }
 
 }

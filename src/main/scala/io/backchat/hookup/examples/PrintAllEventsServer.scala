@@ -4,6 +4,7 @@ package examples
 import net.liftweb.json._
 
 object PrintAllEventsServer {
+  import DefaultConversions._
 
   def main(args: Array[String]) {
 

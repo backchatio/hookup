@@ -3,14 +3,14 @@ package examples
 
 import org.specs2.Specification
 import org.specs2.time.NoTimeConversions
-import akka.util.duration._
+import scala.concurrent.duration._
 import akka.testkit._
 import net.liftweb.json.{Formats, DefaultFormats}
 import akka.util.Timeout
 import java.net.{InetSocketAddress, SocketAddress, ServerSocket, Socket}
 import java.io.{BufferedReader, PrintWriter, InputStreamReader}
 import java.util.concurrent.{TimeUnit, CountDownLatch, TimeoutException}
-import akka.dispatch.{Future, Await}
+import scala.concurrent.{Future, Await}
 
 
 class NoopWireformat(val name: String, val supportsAck: Boolean = false) extends WireFormat {
@@ -28,6 +28,8 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
   "A Server with a ssl configuration" ! serverWithSslSupport ^
   "A Server with a subprotocols configuration" ! serverWithSubprotocols ^
   "A Server with a flash policy configuration" ! serverWithFlashPolicy ^ end
+
+  import scala.concurrent.ExecutionContext.Implicits.global
 
   def serverWithPing = {
     /// code_ref: server_with_ping
@@ -81,7 +83,7 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
       }
       /// end_code_ref
     } catch {
-      case _ =>
+      case _: Throwable =>
     }
     success
   }

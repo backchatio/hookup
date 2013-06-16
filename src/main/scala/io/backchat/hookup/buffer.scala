@@ -3,7 +3,7 @@ package io.backchat.hookup
 import java.io._
 import java.util.concurrent.ConcurrentLinkedQueue
 import collection.mutable
-import akka.dispatch.{ Promise, ExecutionContext, Future }
+import scala.concurrent.{ Promise, ExecutionContext, Future }
 import net.liftweb.json.Formats
 import collection.JavaConverters._
 import java.util.Queue
@@ -65,7 +65,7 @@ class MemoryBuffer(memoryBuffer: Queue[String] = new ConcurrentLinkedQueue[Strin
       if (msg.nonBlank)
         futures += readLine(wireFormat.parseOutMessage(msg))
     }
-    if (futures.isEmpty) Promise.successful(Success) else Future.sequence(futures.toList).map(ResultList(_))
+    if (futures.isEmpty) Promise.successful(Success).future else Future.sequence(futures.toList).map(ResultList(_))
   }
 }
 //
@@ -130,7 +130,7 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
           memoryBuffer.offer(msg)
       }
     } catch {
-      case e =>
+      case e: Throwable =>
         memoryBuffer.offer(msg)
         throw e
     }
@@ -143,11 +143,11 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
 
   /**
    * Drain the buffer using the `readLine` function to process each message in the buffer.
-   * This method works with [[akka.dispatch.Future]] objects and needs an [[akka.dispatch.ExecutionContext]] in scope
+   * This method works with [[scala.concurrent.Future]] objects and needs an [[akka.dispatch.ExecutionContext]] in scope
    *
-   * @param readLine A function that takes a [[io.backchat.hookup.OutboundMessage]] and produces a [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
+   * @param readLine A function that takes a [[io.backchat.hookup.OutboundMessage]] and produces a [[scala.concurrent.Future]] of [[io.backchat.hookup.OperationResult]]
    * @param executionContext An [[akka.dispatch.ExecutionContext]]
-   * @return A [[akka.dispatch.Future]] of [[io.backchat.hookup.OperationResult]]
+   * @return A [[scala.concurrent.Future]] of [[io.backchat.hookup.OperationResult]]
    */
   def drain(readLine: (OutboundMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext, wireFormat: WireFormat): Future[OperationResult] = synchronized {
     var futures = mutable.ListBuffer[Future[OperationResult]]()
@@ -171,13 +171,13 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
         if (msg.nonBlank)
           futures += readLine(wireFormat.parseOutMessage(msg))
       }
-      val res = if (futures.isEmpty) Promise.successful(Success) else Future.sequence(futures.toList).map(ResultList(_))
+      val res = if (futures.isEmpty) Promise.successful(Success).future else Future.sequence(futures.toList).map(ResultList(_))
       append = false
       res
     } catch {
-      case e ⇒
+      case e: Throwable ⇒
         e.printStackTrace()
-        Promise.failed(e)
+        Promise.failed(e).future
     } finally {
       if (input != null) {
         input.close()

@@ -5,7 +5,9 @@ import net.liftweb.json._
 
 object ChatServer {
 
-  def main(args: Array[String]) {
+  import DefaultConversions._
+
+  def makeServer() = {
     val server = HookupServer(ServerInfo("ChatServer", port = 8127)){
       new HookupServerClient {
         def receive = {
@@ -18,9 +20,14 @@ object ChatServer {
           case TextMessage(text) ⇒
             println("broadcasting: " + text + " from " + id)
             this >< text
+          case m: JsonMessage ⇒
+            println("JsonMessage(" + pretty(render(m.content)) + ")")
         }
       }
     }
     server.start
+    server
   }
+
+  def main(args: Array[String]) { makeServer }
 }
