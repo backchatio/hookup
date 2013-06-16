@@ -66,7 +66,6 @@ class MemoryBuffer(memoryBuffer: Queue[String] = new ConcurrentLinkedQueue[Strin
         futures += readLine(wireFormat.parseOutMessage(msg))
     }
     if (futures.isEmpty) Promise.successful(Success).future else Future.sequence(futures.toList).map(ResultList(_))
-    //if (futures.isEmpty) Promise.successful(Success) else Future.sequence(futures.toList).map(ResultList(_))
   }
 }
 //

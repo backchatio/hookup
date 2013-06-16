@@ -1,4 +1,5 @@
 package io.backchat.hookup
+
 import net.liftweb.json._
 import scala.concurrent.duration._
 

@@ -81,7 +81,6 @@ package object hookup {
    */
   implicit def channelFutureToAkkaFuture(fut: ChannelFuture) = new {
 
-    // def toAkkaFuture(implicit context: ExecutionContext): Future[OperationResult] = {
     def toAkkaFuture(implicit context: ExecutionContext): Promise[OperationResult] = {
       val res = Promise[OperationResult]()
       fut.addListener(new ChannelFutureListener {
@@ -98,14 +97,6 @@ package object hookup {
       res
     }
   }
-
-  /**
-   * Implicit conversion from a regular string to a [[io.backchat.hookup.TextMessage]]
-   *
-   * @param content The string content of the message
-   * @return A [[io.backchat.hookup.TextMessage]]
-   */
-
 
   /**
    * Implicit conversion from a lift-json jvalue to a [[io.backchat.hookup.JsonMessage]]

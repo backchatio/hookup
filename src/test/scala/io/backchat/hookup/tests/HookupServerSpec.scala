@@ -15,6 +15,7 @@ import java.io.File
 import akka.testkit._
 import java.util.concurrent._
 import examples.NoopWireformat
+import scala.util.Success
 
 class HookupServerSpec extends Specification with NoTimeConversions { def is = sequential ^
   "A HookupServer should" ^
@@ -57,11 +58,8 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
     val allProtos = DefaultProtocols ++ protocols
 
     class WsClient extends HookupServerClient {
-      val success: scala.util.Try[HookupServerClient] = scala.util.Success(this)
       def receive = {
-        // case Connected => client.complete(Right(this))
-        // case Connected => client.complete(scala.util.Success[HookupServerClient](this))
-        case Connected => client.complete(success)
+        case Connected => client.complete(Success(this))
         case TextMessage(text) => {
           messages :+= text
         }
