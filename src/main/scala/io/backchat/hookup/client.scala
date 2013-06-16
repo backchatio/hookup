@@ -23,7 +23,7 @@ import net.liftweb.json.JsonAST.JValue
 import net.liftweb.json.{JsonParser, DefaultFormats, Formats, parse, render, compact}
 import java.io.{Closeable, File}
 import java.util.concurrent.{ConcurrentSkipListSet, TimeUnit, Executors}
-import reflect.BeanProperty
+import beans.BeanProperty
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference, AtomicLong}
 import akka.util.Timeout
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -232,7 +232,7 @@ object HookupClient {
           val t = Await.result(af, 5 seconds)
           Promise.successful(t).future
         } catch {
-          case ex ⇒ {
+          case ex: Throwable ⇒ {
             logger.error("Couldn't connect, killing all")
             reconnect()
           }
@@ -347,7 +347,7 @@ object HookupClient {
               thread.join()
             }
           } catch {
-            case e ⇒ logger.error("error while closing the connection", e)
+            case e: Throwable ⇒ logger.error("error while closing the connection", e)
           } finally {
             if (!closing.isCompleted) closing.success(Success)
           }

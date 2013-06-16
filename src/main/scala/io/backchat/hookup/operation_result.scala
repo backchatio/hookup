@@ -1,6 +1,6 @@
 package io.backchat.hookup
 
-import reflect.BeanProperty
+import beans.BeanProperty
 import collection.JavaConverters._
 
 /**

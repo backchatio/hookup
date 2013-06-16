@@ -7,7 +7,7 @@ import scala.concurrent.duration.Duration
 import java.util.concurrent.TimeUnit
 import org.jboss.netty.logging.{Slf4JLoggerFactory, InternalLoggerFactory}
 import net.liftweb.json.DefaultFormats
-import reflect.BeanProperty
+import beans.BeanProperty
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
 import org.jboss.netty.util.CharsetUtil

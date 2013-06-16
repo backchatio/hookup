@@ -14,16 +14,11 @@ object HookupBuild extends Build {
     compileOrder := CompileOrder.ScalaThenJava,
     libraryDependencies ++= Seq(
       "io.netty" % "netty" % "3.6.6.Final",
-      //"org.scala-tools.time" % "time_2.9.1" % "0.5",
-      //"org.scalaj" % "scalaj-time_2.10.1" % "0.7-SNAPSHOT",
-      "org.scalaj" % "scalaj-time_2.10.0-M7" % "0.6",
-      // "org.scala-tools.time" %% "time" % "0.7-SNAPSHOT",
-      //2.10.0-M7"
+      "com.github.nscala-time" %% "nscala-time" % "0.4.2",
       "net.liftweb" %% "lift-json" % "2.5" % "compile",
       "commons-io" % "commons-io" % "2.4",
       "com.typesafe.akka" %% "akka-actor" % "2.1.4" % "compile",
       "com.typesafe.akka" %% "akka-testkit" % "2.1.4" % "test",
-      // "org.specs2" %% "specs2" % "1.14" % "test",
       "org.specs2" %% "specs2" % "1.14" % "test",
       "junit" % "junit" % "4.11" % "test",
       "joda-time" % "joda-time" % "2.2"

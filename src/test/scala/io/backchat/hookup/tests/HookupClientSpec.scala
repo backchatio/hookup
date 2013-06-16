@@ -83,7 +83,7 @@ trait HookupClientSpecification  {
       try {
         Await.ready(client.disconnect(), 2 seconds)
         clientExecutor.shutdownNow()
-      } catch { case e => e.printStackTrace() }
+      } catch { case e: Throwable => e.printStackTrace() }
     }
   }
 

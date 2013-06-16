@@ -83,7 +83,7 @@ class ServerConfigurationsExample extends Specification with NoTimeConversions {
       }
       /// end_code_ref
     } catch {
-      case _ =>
+      case _: Throwable =>
     }
     success
   }
