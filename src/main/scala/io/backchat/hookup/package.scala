@@ -2,11 +2,10 @@ package io.backchat
 
 import scala.concurrent.{ ExecutionContext, Promise, Future }
 import org.jboss.netty.channel.{ Channel, ChannelFutureListener, ChannelFuture }
-import net.liftweb.json.JsonAST.JValue
+import org.json4s._
 import scala.concurrent.duration.Duration
 import java.util.concurrent.TimeUnit
 import org.jboss.netty.logging.{Slf4JLoggerFactory, InternalLoggerFactory}
-import net.liftweb.json.DefaultFormats
 import beans.BeanProperty
 import org.joda.time.DateTimeZone
 import org.joda.time.format.DateTimeFormat
@@ -99,7 +98,7 @@ package object hookup {
   }
 
   /**
-   * Implicit conversion from a lift-json jvalue to a [[io.backchat.hookup.JsonMessage]]
+   * Implicit conversion from a json4s jvalue to a [[io.backchat.hookup.JsonMessage]]
    *
    * @param content The string content of the message
    * @return A [[io.backchat.hookup.JsonMessage]]

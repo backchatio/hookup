@@ -1,6 +1,7 @@
 package io.backchat.hookup
 
-import net.liftweb.json._
+import org.json4s._
+import jackson.JsonMethods._
 import scala.concurrent.duration._
 
 /**
@@ -52,7 +53,7 @@ trait WireFormat {
  * It looks at the first character in the message and if it thinks it's JSON it will try to parse it as JSON
  * otherwise it creates a text message
  *
- * @param formats the [[net.liftweb.json.Formats]] for lift-json
+ * @param formats the [[org.json4s.Formats]] for json4s
  */
 class SimpleJsonWireFormat(implicit formats: Formats) extends WireFormat {
 
@@ -71,7 +72,7 @@ class SimpleJsonWireFormat(implicit formats: Formats) extends WireFormat {
 
   def render(message: OutboundMessage) = message match {
     case TextMessage(text) => text
-    case JsonMessage(json) => compact(JsonAST.render(json))
+    case JsonMessage(json) => compact(json)
     case _ => ""
   }
 }
@@ -188,7 +189,7 @@ object JsonProtocolWireFormat {
  * This wireformat knows about acking and the related protocol messages.
  * it uses a json object to transfer meaning everything has a property name.
  *
- * @param formats  the [[net.liftweb.json.Formats]] for lift-json
+ * @param formats  the [[org.json4s.Formats]] for json4s
  */
 class JsonProtocolWireFormat(implicit formats: Formats) extends WireFormat {
   val name = "jsonProtocol"

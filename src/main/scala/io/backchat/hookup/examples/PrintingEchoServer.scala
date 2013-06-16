@@ -1,7 +1,7 @@
 package io.backchat.hookup
 package examples
 
-import net.liftweb.json._
+import org.json4s._
 
 object PrintingEchoServer {
   import DefaultConversions._

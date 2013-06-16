@@ -16,8 +16,9 @@ import java.net.{ SocketAddress, InetSocketAddress }
 import scala.collection.JavaConverters._
 import collection.mutable.ListBuffer
 import org.jboss.netty.handler.timeout.IdleStateHandler
-import net.liftweb.json._
+import org.json4s._
 import JsonDSL._
+import org.json4s.jackson.JsonMethods._
 import java.util.concurrent.{ ConcurrentHashMap, ConcurrentLinkedQueue, TimeUnit, Executors }
 import akka.util.Timeout
 import org.jboss.netty.buffer.ChannelBuffers
@@ -703,7 +704,7 @@ object HookupServer {
       while (expectedAcks.put(id, exp) != null) { // spin until we've updated
 
       }
-      ctx.getChannel.write(new TextWebSocketFrame(compact(render(msg))))
+      ctx.getChannel.write(new TextWebSocketFrame(compact(msg)))
       id
     }
 

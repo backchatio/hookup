@@ -2,7 +2,7 @@ package io.backchat.hookup
 package tests
 
 import org.specs2.Specification
-import net.liftweb.json._
+import org.json4s._
 import JsonDSL._
 import scala.concurrent.duration._
 import org.specs2.time.NoTimeConversions

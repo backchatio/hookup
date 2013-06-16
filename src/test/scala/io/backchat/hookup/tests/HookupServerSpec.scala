@@ -9,7 +9,7 @@ import org.specs2.time.NoTimeConversions
 import org.specs2.execute.Result
 import java.net.{URI, ServerSocket}
 import akka.util.Timeout
-import net.liftweb.json._
+import org.json4s._
 import JsonDSL._
 import java.io.File
 import akka.testkit._

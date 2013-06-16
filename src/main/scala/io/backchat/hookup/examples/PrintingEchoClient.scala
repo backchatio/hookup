@@ -2,7 +2,7 @@ package io.backchat.hookup
 package examples
 
 import java.net.URI
-import net.liftweb.json.{ DefaultFormats, Formats }
+import org.json4s.{ DefaultFormats, Formats }
 import akka.actor.ActorSystem
 import scala.concurrent.duration._
 import java.util.concurrent.atomic.AtomicInteger

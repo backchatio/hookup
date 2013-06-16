@@ -5,7 +5,7 @@ import org.specs2.time.NoTimeConversions
 import org.specs2.Specification
 import java.io.File
 import org.apache.commons.io.{FilenameUtils, FileUtils}
-import net.liftweb.json.DefaultFormats
+import org.json4s._
 import scala.io.Source
 import collection.JavaConverters._
 import org.specs2.specification.{Fragments, Step}

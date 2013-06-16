@@ -5,7 +5,7 @@ import org.specs2.Specification
 import org.specs2.time.NoTimeConversions
 import scala.concurrent.duration._
 import akka.testkit._
-import net.liftweb.json.{Formats, DefaultFormats}
+import org.json4s.{Formats, DefaultFormats}
 import akka.util.Timeout
 import java.net.{InetSocketAddress, SocketAddress, ServerSocket, Socket}
 import java.io.{BufferedReader, PrintWriter, InputStreamReader}

@@ -19,8 +19,8 @@ import org.jboss.netty.util.{ Timeout ⇒ NettyTimeout, TimerTask, HashedWheelTi
 import scala.concurrent.duration.Duration
 import java.net.{ ConnectException, InetSocketAddress, URI }
 import java.nio.channels.ClosedChannelException
-import net.liftweb.json.JsonAST.JValue
-import net.liftweb.json.{JsonParser, DefaultFormats, Formats, parse, render, compact}
+import org.json4s._
+import org.json4s.jackson.JsonMethods._
 import java.io.{Closeable, File}
 import java.util.concurrent.{ConcurrentSkipListSet, TimeUnit, Executors}
 import beans.BeanProperty
@@ -601,13 +601,13 @@ trait HookupClient extends HookupClientLike with Connectable with Reconnectable 
 
   /**
    * The execution context for futures within this client.
-   * @return The [[akka.dispatch.ExecutionContext]]
+   * @return The [[scala.concurrent.ExecutionContext]]
    */
   implicit protected lazy val executionContext: ExecutionContext = settings.executionContext
 
 //  /**
-//   * The lift-json formats to use when serializing json values.
-//   * @return The [[net.liftweb.json.Formats]]
+//   * The json4s formats to use when serializing json values.
+//   * @return The [[org.json4s.Formats]]
 //   */
 //  implicit protected def jsonFormats: Formats = DefaultFormats
 //
@@ -736,7 +736,7 @@ trait WebSocketListener {
    * The callback method for when an error has occured
    *
    * @param client The client that received the message
-   * @param error The message it received the throwable if any, otherwise null
+   * @param reason The message it received the throwable if any, otherwise null
    */
   def onError(client: HookupClient, reason: Throwable): Unit = ()
 
@@ -752,7 +752,7 @@ trait WebSocketListener {
    * The callback method for when a json message has failed to be acknowledged.
    *
    * @param client The client that received the message
-   * @param text The message it received
+   * @param json The message it received
    */
   def onJsonAckFailed(client: HookupClient, json: String): Unit = ()
 }
@@ -774,19 +774,19 @@ trait JavaHelpers extends WebSocketListener { self: HookupClient =>
 
   /**
    * Send a json message.
-   *
-   * @param message The message to send.
+  json
+   * @param json The message to send.
    * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
   def send(json: JValue): Future[OperationResult] = channel.send(json)
 
   /**
-   * Send a json message. If the message isn't a json string it will throw a [[net.liftweb.json.JsonParser.ParseException]]
+   * Send a json message. If the message isn't a json string it will throw a [[org.json4s.ParserUtil.ParseException]]
    *
-   * @param message The message to send.
+   * @param json The message to send.
    * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */
-  def sendJson(json: String): Future[OperationResult] = channel.send(JsonParser.parse(json))
+  def sendJson(json: String): Future[OperationResult] = channel.send(parse(json))
 
   /**
    * Send a text message which expects an Ack. If the message is a json string it will still be turned into a json message
@@ -801,7 +801,7 @@ trait JavaHelpers extends WebSocketListener { self: HookupClient =>
   }
     // channel.send(message.needsAck(timeout))
   /**
-   * Send a json message which expects an Ack. If the message isn't a json string it will throw a [[net.liftweb.json.JsonParser.ParseException]]
+   * Send a json message which expects an Ack. If the message isn't a json string it will throw a [[org.json4s.ParserUtil.ParseException]]
    *
    * @param message The message to send.
    * @param timeout the [[scala.concurrent.duration.Duration]] as timeout for the ack operation
@@ -812,7 +812,7 @@ trait JavaHelpers extends WebSocketListener { self: HookupClient =>
   /**
    * Send a text message which expects an Ack. If the message is a json string it will still be turned into a json message
    *
-   * @param message The message to send.
+   * @param json The message to send.
    * @param timeout the [[scala.concurrent.duration.Duration]] as timeout for the ack operation
    * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
    */

@@ -2,7 +2,7 @@ package io.backchat.hookup
 package examples
 
 
-import net.liftweb.json._
+import org.json4s._
 import java.util.concurrent.{ConcurrentSkipListSet, ConcurrentHashMap}
 import collection.JavaConverters._
 

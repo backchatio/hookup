@@ -3,8 +3,9 @@ package examples
 
 import java.net.URI
 import scala.concurrent.duration._
-import net.liftweb.json._
+import org.json4s._
 import JsonDSL._
+import org.json4s.jackson.JsonMethods._
 import java.util.concurrent.atomic.AtomicInteger
 import akka.actor.ActorSystem
 

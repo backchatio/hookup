@@ -4,7 +4,7 @@ import java.io._
 import java.util.concurrent.ConcurrentLinkedQueue
 import collection.mutable
 import scala.concurrent.{ Promise, ExecutionContext, Future }
-import net.liftweb.json.Formats
+import org.json4s._
 import collection.JavaConverters._
 import java.util.Queue
 import collection.mutable.{ Queue ⇒ ScalaQueue }
@@ -143,10 +143,10 @@ class FileBuffer private[hookup] (file: File, writeToFile: Boolean, memoryBuffer
 
   /**
    * Drain the buffer using the `readLine` function to process each message in the buffer.
-   * This method works with [[scala.concurrent.Future]] objects and needs an [[akka.dispatch.ExecutionContext]] in scope
+   * This method works with [[scala.concurrent.Future]] objects and needs an [[scala.concurrent.ExecutionContext]] in scope
    *
    * @param readLine A function that takes a [[io.backchat.hookup.OutboundMessage]] and produces a [[scala.concurrent.Future]] of [[io.backchat.hookup.OperationResult]]
-   * @param executionContext An [[akka.dispatch.ExecutionContext]]
+   * @param executionContext An [[scala.concurrent.ExecutionContext]]
    * @return A [[scala.concurrent.Future]] of [[io.backchat.hookup.OperationResult]]
    */
   def drain(readLine: (OutboundMessage ⇒ Future[OperationResult]))(implicit executionContext: ExecutionContext, wireFormat: WireFormat): Future[OperationResult] = synchronized {

@@ -3,13 +3,12 @@ package tests
 
 import org.specs2.Specification
 import org.specs2.time.NoTimeConversions
-import net.liftweb.json.DefaultFormats
+import org.json4s._
 import org.specs2.execute.Result
 import org.specs2.execute.AsResult
 import java.net.{ServerSocket, URI}
 import akka.testkit._
 import akka.actor.ActorSystem
-import net.liftweb.json.JsonAST.{JField, JString, JObject}
 import scala.concurrent.duration._
 import org.specs2.specification.{Around, Step, Fragments}
 import scala.concurrent.{ExecutionContext, Await}

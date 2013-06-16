@@ -1,7 +1,8 @@
 package io.backchat.hookup
 package examples
 
-import net.liftweb.json._
+import org.json4s._
+import org.json4s.jackson.JsonMethods._
 
 object ChatServer {
 

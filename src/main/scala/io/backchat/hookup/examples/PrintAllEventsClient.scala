@@ -1,13 +1,14 @@
 package io.backchat.hookup
 package examples
 
-import net.liftweb.json._
+import org.json4s._
 import java.util.concurrent.atomic.AtomicInteger
 import java.net.URI
 import scala.concurrent.duration._
 import akka.actor.{ Cancellable, ActorSystem }
 import JsonDSL._
 import java.io.File
+import org.json4s.jackson.JsonMethods._
 
 object PrintAllEventsClient {
   import DefaultConversions._
