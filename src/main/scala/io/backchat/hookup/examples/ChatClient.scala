@@ -52,5 +52,5 @@ object ChatClient {
     client
   }
 
-  def main(args: Array[String]) = makeClient(args)
+  def main(args: Array[String]) { makeClient(args) }
 }
