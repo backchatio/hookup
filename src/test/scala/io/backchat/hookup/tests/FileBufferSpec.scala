@@ -53,7 +53,7 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
     buff.close()
     val lines = Source.fromFile(logPath).getLines().toList map wireFormat.parseOutMessage
     FileUtils.deleteQuietly(new File("./test-work2"))
-    lines must haveTheSameElementsAs(List(exp1, exp2))
+    lines must containTheSameElementsAs(List(exp1, exp2))
   }
 
   def writesToMemory = {
@@ -68,7 +68,7 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
     val lst = queue.asScala.toList
     buff.close()
     FileUtils.deleteDirectory(new File("./test-work3"))
-    lst must haveTheSameElementsAs(List(wireFormat.render(exp1), wireFormat.render(exp2)))
+    lst must containTheSameElementsAs(List(wireFormat.render(exp1), wireFormat.render(exp2)))
   }
 
   def drainsBuffers = {
@@ -88,7 +88,7 @@ class FileBufferSpec extends Specification with NoTimeConversions { def is =
     }, 5 seconds)
     buff.close()
     FileUtils.deleteQuietly(new File("./test-work4"))
-    lines must haveTheSameElementsAs(List(exp1, exp2))
+    lines must containTheSameElementsAs(List(exp1, exp2))
   }
 
   def handlesConcurrentLoads = {

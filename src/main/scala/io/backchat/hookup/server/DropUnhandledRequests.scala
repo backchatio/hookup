@@ -2,7 +2,6 @@ package io.backchat.hookup.server
 
 import org.jboss.netty.channel.{ChannelFutureListener, MessageEvent, ChannelHandlerContext, SimpleChannelUpstreamHandler}
 import org.jboss.netty.handler.codec.http.{DefaultHttpResponse, HttpResponse, HttpResponseStatus, HttpRequest}
-import io.backchat.hookup.http.Status
 import org.jboss.netty.handler.codec.http.HttpVersion._
 import org.jboss.netty.handler.codec.http.HttpHeaders.Names._
 import org.jboss.netty.buffer.ChannelBuffers
@@ -11,7 +10,7 @@ import org.jboss.netty.util.CharsetUtil
 class DropUnhandledRequests extends SimpleChannelUpstreamHandler {
 
   override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) = e.getMessage match {
-    case p: HttpRequest ⇒ sendError(ctx, Status.NotFound)
+    case p: HttpRequest ⇒ sendError(ctx, HttpResponseStatus.NOT_FOUND)
     case _              ⇒ ctx.sendUpstream(e)
   }
 

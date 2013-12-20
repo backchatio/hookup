@@ -14,13 +14,13 @@ var EVENT_NAMES = {
   connected: "open",
   receive: "message",
   disconnected: "close"
-}
+};
 
-DISCONNECTED=0
-DISCONNECTING=1
-RECONNECTING=2
-CONNECTING=3
-CONNECTED=4
+DISCONNECTED=0;
+DISCONNECTING=1;
+RECONNECTING=2;
+CONNECTING=3;
+CONNECTED=4;
 /**
  * possible values: open, reconnecting, ack_failed, data, error, disconnect.
  * @name HookupClient#on 
@@ -69,12 +69,12 @@ CONNECTED=4
 var HookupClient = function (options) {
   events.EventEmitter.call(this);
   if (typeof options === 'string') {
-    options = { uri: options }
+    options = { uri: options };
   }
   if (!options.uri || options.uri.trim().length == 0) throw new Error('`uri` option is required.');
   this.uri = options.uri;
   this._uri = Uri.parse(this.uri.replace(/^http/i, 'ws'));
-  if (!this._uri.host || !((this._uri.protocol||"").match(/^ws/))) throw new Error("Invalid uri supplied.")
+  if (!this._uri.host || !((this._uri.protocol||"").match(/^ws/))) throw new Error("Invalid uri supplied.");
   delete options['uri'];
   
   this.reconnectSchedule = options.reconnectSchedule || RECONNECT_SCHEDULE;
@@ -106,14 +106,14 @@ util.inherits(HookupClient, events.EventEmitter);
  * @returns {Number[]} The minimum and maximum wait for a reconnection attempt
  * @constant
  */
-HookupClient.RECONNECT_SCHEDULE = RECONNECT_SCHEDULE
+HookupClient.RECONNECT_SCHEDULE = RECONNECT_SCHEDULE;
 /**
  * The default path for the file buffer to write to.
  *
  * @returns {String} The path to the file.
  * @constant
  */
-HookupClient.BUFFER_PATH = BUFFER_PATH
+HookupClient.BUFFER_PATH = BUFFER_PATH;
 
 _.extend(HookupClient.prototype, /** @lends HookupClient.prototype */ {
   /**

@@ -22,9 +22,9 @@ object FlashPolicyHandler {
     def decode(ctx: ChannelHandlerContext, channel: Channel, buffer: ChannelBuffer) = {
       if (buffer.readableBytes > 1) {
 
-        val magic1 = buffer.getUnsignedByte(buffer.readerIndex());
-        val magic2 = buffer.getUnsignedByte(buffer.readerIndex() + 1);
-        val isFlashPolicyRequest = (magic1 == '<' && magic2 == 'p');
+        val magic1 = buffer.getUnsignedByte(buffer.readerIndex())
+        val magic2 = buffer.getUnsignedByte(buffer.readerIndex() + 1)
+        val isFlashPolicyRequest = magic1 == '<' && magic2 == 'p'
 
         if (isFlashPolicyRequest) {
           // Discard everything
@@ -46,7 +46,7 @@ object FlashPolicyHandler {
 
     private def removeAllPipelineHandlers(pipe: ChannelPipeline) {
       while (pipe.getFirst != null) {
-        pipe.removeFirst();
+        pipe.removeFirst()
       }
     }
   }

@@ -1,6 +1,5 @@
 package io.backchat.hookup
 
-import http.{Status, Version}
 import org.jboss.netty.bootstrap.ServerBootstrap
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory
 import org.jboss.netty.channel._
@@ -561,7 +560,7 @@ object HookupServer {
       } catch {
         case e: WebSocketHandshakeException =>
           if (logger.isDebugEnabled) logger.debug("Problem handshaking.", e)
-          val res = new DefaultHttpResponse(Version.Http11, Status.SwitchingProtocols)
+          val res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.SWITCHING_PROTOCOLS)
           res.setStatus(HttpResponseStatus.UPGRADE_REQUIRED)
           res.setHeader(Names.SEC_WEBSOCKET_VERSION, WebSocketVersion.V13.toHttpHeaderValue)
           res.setHeader(Names.SEC_WEBSOCKET_PROTOCOL, protos)
@@ -620,8 +619,10 @@ object HookupServer {
    * @param timeout a [[org.jboss.netty.util.Timeout]]
    */
   private class WebSocketCancellable(timeout: NettyTimeout) extends Cancellable {
-    def cancel() {
+    def cancel() = {
+      val res = !isCancelled
       timeout.cancel()
+      res
     }
 
     def isCancelled = timeout.isCancelled

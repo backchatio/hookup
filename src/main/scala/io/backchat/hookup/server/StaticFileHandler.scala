@@ -12,7 +12,6 @@ import java.io.{UnsupportedEncodingException, FileNotFoundException, RandomAcces
 import java.net.URLDecoder
 import javax.activation.MimetypesFileTypeMap
 import org.joda.time.DateTime
-import http.{Status, Version}
 
 object StaticFileHandler {
   // Many people would put a cache in but to me that is just a horrifying thought.
@@ -23,7 +22,7 @@ object StaticFileHandler {
     try {
       val raf = new RandomAccessFile(file, "r")
       val length = raf.length()
-      val resp = new DefaultHttpResponse(Version.Http11, Status.Ok)
+      val resp = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
       setDateHeader(resp)
       setCacheHeaders(resp, file, contentType)
       val ch = ctx.getChannel
@@ -67,7 +66,7 @@ object StaticFileHandler {
   }
 
   def sendError(ctx: ChannelHandlerContext, status: HttpResponseStatus) {
-    val response = new DefaultHttpResponse(Version.Http11, status)
+    val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status)
     response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
     response.setContent(ChannelBuffers.copiedBuffer("Failure: " + status.toString + "\r\n", Utf8 ))
 
@@ -76,7 +75,7 @@ object StaticFileHandler {
   }
 
   def sendNotModified(ctx: ChannelHandlerContext) {
-    val response = new DefaultHttpResponse(Version.Http11, Status.NotModified)
+    val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED)
     setDateHeader(response)
 
     // Close the connection as soon as the error message is sent.
@@ -100,15 +99,15 @@ class StaticFileHandler(publicDirectory: String) extends SimpleChannelUpstreamHa
   override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
     e.getMessage match {
       case request: HttpRequest if request.getMethod != HttpMethod.GET =>
-        StaticFileHandler.sendError(ctx, Status.MethodNotAllowed)
+        StaticFileHandler.sendError(ctx, HttpResponseStatus.METHOD_NOT_ALLOWED)
       case request: HttpRequest => {
         val path = sanitizeUri(request.getUri)
         if (path == null) {
-          StaticFileHandler.sendError(ctx, Status.Forbidden)
+          StaticFileHandler.sendError(ctx, HttpResponseStatus.FORBIDDEN)
         } else {
           val file = new File(path)
-          if (file.isHidden || !file.exists()) StaticFileHandler.sendError(ctx, Status.NotFound)
-          else if (!file.isFile) StaticFileHandler.sendError(ctx, Status.Forbidden)
+          if (file.isHidden || !file.exists()) StaticFileHandler.sendError(ctx, HttpResponseStatus.NOT_FOUND)
+          else if (!file.isFile) StaticFileHandler.sendError(ctx, HttpResponseStatus.FORBIDDEN)
           else {
             if (isModified(request, file)) {
               StaticFileHandler.sendNotModified(ctx)
@@ -124,10 +123,10 @@ class StaticFileHandler(publicDirectory: String) extends SimpleChannelUpstreamHa
   @throws(classOf[Exception])
   override def exceptionCaught(ctx: ChannelHandlerContext, e: ExceptionEvent) {
     e.getCause match {
-      case ex: TooLongFrameException => StaticFileHandler.sendError(ctx, Status.BadRequest)
+      case ex: TooLongFrameException => StaticFileHandler.sendError(ctx, HttpResponseStatus.BAD_REQUEST)
       case ex =>
         ex.printStackTrace()
-        if (e.getChannel.isConnected) StaticFileHandler.sendError(ctx, Status.InternalServerError)
+        if (e.getChannel.isConnected) StaticFileHandler.sendError(ctx, HttpResponseStatus.INTERNAL_SERVER_ERROR)
     }
   }
 

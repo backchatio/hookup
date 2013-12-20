@@ -1,6 +1,5 @@
 package io.backchat.hookup
 
-import http.Status
 import org.jboss.netty.bootstrap.ClientBootstrap
 import org.jboss.netty.channel._
 import socket.nio.NioClientSocketChannelFactory
@@ -63,7 +62,7 @@ object HookupClient {
           throw new WebSocketException("Unexpected HttpResponse (status=" + resp.getStatus + ", content="
             + resp.getContent.toString(CharsetUtil.UTF_8) + ")")
         case resp: HttpResponse ⇒
-          if (resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL) != null && resp.getStatus == Status.UpgradeRequired) {
+          if (resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL) != null && resp.getStatus == HttpResponseStatus.UPGRADE_REQUIRED) {
             // TODO: add better handling of this so the people know what is going wrong
             logger.warn("The server only supports [%s] as protocols." format resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL))
             expectChunk.compareAndSet(false, true)
@@ -764,13 +763,6 @@ trait WebSocketListener {
  */
 trait JavaHelpers extends WebSocketListener { self: HookupClient =>
 
-  /**
-   * Send a text message. If the message is a json string it will still be turned into a json message
-   *
-   * @param message The message to send.
-   * @return A [[scala.concurrent.Future]] with the [[io.backchat.hookup.OperationResult]]
-   */
-  // def send(message: String): Future[OperationResult] = channel.send(TextMessage(message))
 
   /**
    * Send a json message.
