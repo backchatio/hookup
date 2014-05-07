@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference, AtomicLong}
 import akka.util.Timeout
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.ExecutionContext
-import org.jboss.netty.channel.socket.ClientSocketChannelFactory
 
 /**
  * @see [[io.backchat.hookup.HookupClient]]
@@ -145,7 +144,7 @@ object HookupClient {
       new URI(normalized.getScheme, normalized.getAuthority, "/", normalized.getQuery, normalized.getFragment)
     } else normalized
 
-    private[this] val bootstrap = new ClientBootstrap(client.settings.clientSocketChannelFactory)
+    private[this] val bootstrap = new ClientBootstrap(HookupClientHost.clientSocketChannelFactory)
     private[this] var handshaker: WebSocketClientHandshaker = null
     private[this] val timer = new HashedWheelTimer()
     private[this] var channel: Channel = null
@@ -340,7 +339,6 @@ object HookupClient {
               val thread = new Thread {
                 override def run = {
                   timer.stop.asScala foreach (_.cancel())
-                  bootstrap.releaseExternalResources()
                 }
               }
               thread.setDaemon(false)
@@ -390,7 +388,11 @@ object HookupClient {
         }
       }
     }
+  }
 
+  object HookupClientHost {
+    private lazy val clientSocketChannelFactory =
+      new NioClientSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool())
   }
 
   /**
@@ -551,10 +553,7 @@ case class HookupClientConfig(
   @BeanProperty
   throttle: Throttle = NoThrottle,
   @BeanProperty
-  executionContext: ExecutionContext = HookupClient.executionContext,
-  @BeanProperty
-  clientSocketChannelFactory: ClientSocketChannelFactory =
-    new NioClientSocketChannelFactory(Executors.newCachedThreadPool, Executors.newCachedThreadPool))
+  executionContext: ExecutionContext = HookupClient.executionContext)
 
 /**
  * The Hookup client provides a client for the hookup server, it doesn't lock you in to using a specific message format.
