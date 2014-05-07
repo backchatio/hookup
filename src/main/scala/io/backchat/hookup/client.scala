@@ -136,14 +136,15 @@ object HookupClient {
    */
   private final class HookupClientHost(val client: HookupClient)(implicit executionContext: ExecutionContext) extends HookupClientLike with BroadcastChannel with Connectable with Reconnectable {
 
+    import HookupClientHost._
+
     private[this] val normalized = client.settings.uri.normalize()
     private[this] val tgt = if (normalized.getPath == null || normalized.getPath.trim().isEmpty) {
       new URI(normalized.getScheme, normalized.getAuthority, "/", normalized.getQuery, normalized.getFragment)
     } else normalized
 
-    private[this] val bootstrap = new ClientBootstrap(HookupClientHost.clientSocketChannelFactory)
+    private[this] val bootstrap = new ClientBootstrap(clientSocketChannelFactory)
     private[this] var handshaker: WebSocketClientHandshaker = null
-    private[this] val timer = new HashedWheelTimer()
     private[this] var channel: Channel = null
     private[this] var _isConnected: Promise[OperationResult] = Promise[OperationResult]()
     private[this] val buffer = client.settings.buffer
@@ -329,25 +330,7 @@ object HookupClient {
       }
 
       disconnected.future onComplete {
-        case _ ⇒ {
-          _isConnected = Promise[OperationResult]()
-          try {
-            if (!isReconnecting && bootstrap != null) {
-              val thread = new Thread {
-                override def run = {
-                  timer.stop.asScala foreach (_.cancel())
-                }
-              }
-              thread.setDaemon(false)
-              thread.start()
-              thread.join()
-            }
-          } catch {
-            case e: Throwable ⇒ logger.error("error while closing the connection", e)
-          } finally {
-            if (!closing.isCompleted) closing.success(Success)
-          }
-        }
+        _ ⇒  if (!closing.isCompleted) closing.success(Success)
       }
 
       closing.future
@@ -390,6 +373,8 @@ object HookupClient {
   object HookupClientHost {
     private lazy val clientSocketChannelFactory =
       new NioClientSocketChannelFactory(Executors.newCachedThreadPool(), Executors.newCachedThreadPool())
+
+    private lazy val timer = new HashedWheelTimer
   }
 
   /**
