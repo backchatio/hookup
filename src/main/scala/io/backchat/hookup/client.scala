@@ -9,9 +9,7 @@ import collection.JavaConverters._
 import websocketx._
 import org.jboss.netty.buffer.ChannelBuffers
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Await, Promise, Future }
-import scala.concurrent.forkjoin.ForkJoinPool
-import java.lang.Thread.UncaughtExceptionHandler
+import scala.concurrent.{ Await, Promise, Future }
 import org.jboss.netty.handler.timeout.{ IdleStateAwareChannelHandler, IdleStateEvent, IdleState, IdleStateHandler }
 import org.jboss.netty.logging.{ InternalLogger, InternalLoggerFactory }
 import io.backchat.hookup.HookupServer.MessageAckingHandler
@@ -21,12 +19,11 @@ import java.net.{ ConnectException, InetSocketAddress, URI }
 import java.nio.channels.ClosedChannelException
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import java.io.{Closeable, File}
+import java.io.Closeable
 import java.util.concurrent.{ConcurrentSkipListSet, TimeUnit, Executors}
 import beans.BeanProperty
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference, AtomicLong}
 import akka.util.Timeout
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.ExecutionContext
 
 /**
