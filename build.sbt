@@ -7,7 +7,7 @@ organization := "io.backchat.hookup"
 
 name := "hookup"
 
-version := "0.2.5-SNAPSHOT"
+version := "0.3.0-SNAPSHOT"
 
 scalaVersion := "2.11.2"
 
