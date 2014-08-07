@@ -9,19 +9,20 @@ name := "hookup"
 
 version := "0.2.5-SNAPSHOT"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.11.2"
 
-//crossScalaVersions := Seq("2.9.1", "2.9.1-1", "2.9.2"),
+crossScalaVersions := Seq("2.10.3")
+
 compileOrder := CompileOrder.ScalaThenJava
 
 libraryDependencies ++= Seq(
   "io.netty" % "netty" % "3.8.0.Final",
-  "com.github.nscala-time" %% "nscala-time" % "0.6.0",
-  "org.json4s" %% "json4s-jackson" % "3.2.6" % "compile",
+  "com.github.nscala-time" %% "nscala-time" % "1.2.0",
+  "org.json4s" %% "json4s-jackson" % "3.2.10" % "compile",
   "commons-io" % "commons-io" % "2.4",
-  "com.typesafe.akka" %% "akka-actor" % "2.2.3" % "compile",
-  "com.typesafe.akka" %% "akka-testkit" % "2.2.3" % "test",
-  "org.specs2" %% "specs2" % "2.3.4" % "test",
+  "com.typesafe.akka" %% "akka-actor" % "2.3.4" % "compile",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.4" % "test",
+  "org.specs2" %% "specs2" % "2.4" % "test",
   "junit" % "junit" % "4.11" % "test",
   "joda-time" % "joda-time" % "2.3"
 )
