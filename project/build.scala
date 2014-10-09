@@ -14,7 +14,7 @@ object HookupBuild extends Build {
     libraryDependencies ++= Seq(
       "io.netty" % "netty" % "3.6.6.Final",
       "com.github.nscala-time" %% "nscala-time" % "0.4.2",
-      "org.json4s" %% "json4s-jackson" % "3.2.4" % "compile",
+      "org.json4s" %% "json4s-jackson" % "3.2.10" % "compile",
       "commons-io" % "commons-io" % "2.4",
       "com.typesafe.akka" %% "akka-actor" % "2.1.4" % "compile",
       "com.typesafe.akka" %% "akka-testkit" % "2.1.4" % "test",
