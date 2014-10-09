@@ -7,7 +7,7 @@ object HookupBuild extends Build {
   val projectSettings = Defaults.defaultSettings ++ Seq(
     organization := "io.backchat.hookup",
     name := "hookup",
-    version := "0.4.0",
+    version := "0.4.1-SNAPSHOT",
     scalaVersion := "2.10.4",
     //crossScalaVersions := Seq("2.9.1", "2.9.1-1", "2.9.2"),
     compileOrder := CompileOrder.ScalaThenJava,
