@@ -7,11 +7,11 @@ organization := "io.backchat.hookup"
 
 name := "hookup"
 
-version := "0.3.0-SNAPSHOT"
+version := "0.3.0"
 
-scalaVersion := "2.11.2"
+scalaVersion := "2.11.5"
 
-crossScalaVersions := Seq("2.10.3")
+crossScalaVersions := Seq("2.10.4")
 
 compileOrder := CompileOrder.ScalaThenJava
 
