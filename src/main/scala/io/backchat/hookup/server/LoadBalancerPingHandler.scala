@@ -20,10 +20,10 @@ class LoadBalancerPing(path: String) extends SimpleChannelUpstreamHandler {
       case r: HttpRequest if r.getUri.toLowerCase.startsWith(path) =>
         val res = new DefaultHttpResponse(HTTP_1_1, OK)
         val content = ChannelBuffers.copiedBuffer("pong", Utf8)
-        res.setHeader(Names.CONTENT_TYPE, "text/plain; charset=utf-8")
-        res.setHeader(Names.EXPIRES, new DateTime().toString(HttpDateFormat))
-        res.setHeader(Names.CACHE_CONTROL, "no-cache, must-revalidate")
-        res.setHeader(Names.PRAGMA, "no-cache")
+        res.headers.set(Names.CONTENT_TYPE, "text/plain; charset=utf-8")
+        res.headers.set(Names.EXPIRES, new DateTime().toString(HttpDateFormat))
+        res.headers.set(Names.CACHE_CONTROL, "no-cache, must-revalidate")
+        res.headers.set(Names.PRAGMA, "no-cache")
 
         res.setContent(content)
         ctx.getChannel.write(res).addListener(ChannelFutureListener.CLOSE)

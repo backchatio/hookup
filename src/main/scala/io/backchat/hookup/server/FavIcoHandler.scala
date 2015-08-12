@@ -22,7 +22,7 @@ class Favico(favico: Option[File] = None) extends SimpleChannelUpstreamHandler {
         } else {
           val status = HttpResponseStatus.NOT_FOUND
           val response: HttpResponse = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status)
-          response.setHeader(CONTENT_TYPE, "text/plain; charset=UTF-8")
+          response.headers.set(CONTENT_TYPE, "text/plain; charset=UTF-8")
           response.setContent(ChannelBuffers.copiedBuffer("Failure: "+status.toString+"\r\n", Utf8))
           ctx.getChannel.write(response).addListener(ChannelFutureListener.CLOSE)
         }

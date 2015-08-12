@@ -16,7 +16,7 @@ crossScalaVersions := Seq("2.10.4")
 compileOrder := CompileOrder.ScalaThenJava
 
 libraryDependencies ++= Seq(
-  "io.netty" % "netty" % "3.8.0.Final",
+  "io.netty" % "netty" % "3.10.4.Final",
   "com.github.nscala-time" %% "nscala-time" % "1.2.0",
   "org.json4s" %% "json4s-jackson" % "3.2.10" % "compile",
   "commons-io" % "commons-io" % "2.4",
