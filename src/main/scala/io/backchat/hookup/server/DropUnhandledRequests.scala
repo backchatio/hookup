@@ -16,7 +16,7 @@ class DropUnhandledRequests extends SimpleChannelUpstreamHandler {
 
   protected def sendError(ctx: ChannelHandlerContext, status: HttpResponseStatus) {
     val response: HttpResponse = new DefaultHttpResponse(HTTP_1_1, status)
-    response.setHeader(CONTENT_TYPE, "text/plain; charset=UTF-8")
+    response.headers.set(CONTENT_TYPE, "text/plain; charset=UTF-8")
     response.setContent(ChannelBuffers.copiedBuffer("Failure: "+status.toString+"\r\n", CharsetUtil.UTF_8))
     ctx.getChannel.write(response).addListener(ChannelFutureListener.CLOSE)
   }

@@ -54,20 +54,20 @@ object StaticFileHandler {
   private val mimes = new MimetypesFileTypeMap(getClass.getResourceAsStream("/mime.types"))
 
   private def setDateHeader(response: HttpResponse) {
-    response.setHeader(HttpHeaders.Names.DATE, (new DateTime).toString(HttpDateFormat))
+    response.headers.set(HttpHeaders.Names.DATE, (new DateTime).toString(HttpDateFormat))
   }
 
   private def setCacheHeaders(response: HttpResponse, fileToCache: File, contentType: Option[String]) {
-    response.setHeader(HttpHeaders.Names.CONTENT_TYPE, contentType getOrElse mimes.getContentType(fileToCache))
-    response.setHeader(HttpHeaders.Names.EXPIRES, (new DateTime).toString(HttpDateFormat))
-    response.setHeader(HttpHeaders.Names.CACHE_CONTROL, "private, max-age=" + HttpCacheSeconds)
-    response.setHeader(HttpHeaders.Names.LAST_MODIFIED, new DateTime(fileToCache.lastModified()).toString(HttpDateFormat))
+    response.headers.set(HttpHeaders.Names.CONTENT_TYPE, contentType getOrElse mimes.getContentType(fileToCache))
+    response.headers.set(HttpHeaders.Names.EXPIRES, (new DateTime).toString(HttpDateFormat))
+    response.headers.set(HttpHeaders.Names.CACHE_CONTROL, "private, max-age=" + HttpCacheSeconds)
+    response.headers.set(HttpHeaders.Names.LAST_MODIFIED, new DateTime(fileToCache.lastModified()).toString(HttpDateFormat))
     HttpHeaders.setContentLength(response, fileToCache.length())
   }
 
   def sendError(ctx: ChannelHandlerContext, status: HttpResponseStatus) {
     val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status)
-    response.setHeader(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
+    response.headers.set(HttpHeaders.Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
     response.setContent(ChannelBuffers.copiedBuffer("Failure: " + status.toString + "\r\n", Utf8 ))
 
     // Close the connection as soon as the error message is sent.
@@ -86,7 +86,7 @@ object StaticFileHandler {
 class StaticFileHandler(publicDirectory: String) extends SimpleChannelUpstreamHandler {
 
   private def isModified(request: HttpRequest, file: File) = {
-    val ifModifiedSince = request.getHeader(HttpHeaders.Names.IF_MODIFIED_SINCE)
+    val ifModifiedSince = request.headers.get(HttpHeaders.Names.IF_MODIFIED_SINCE)
     if (ifModifiedSince != null && ifModifiedSince.trim.nonEmpty) {
       val date = HttpDateFormat.parseDateTime(ifModifiedSince)
       val ifModifiedDateSeconds = date.getMillis / 1000

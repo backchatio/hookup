@@ -452,8 +452,8 @@ object HookupServer {
     }
 
     private def isSubProto(req: HttpRequest) =
-      req.getHeader(Names.SEC_WEBSOCKET_PROTOCOL) != null && subProtocols.contains(spFromReq(req))
-    private def spFromReq(req: HttpRequest) = req.getHeader(Names.SEC_WEBSOCKET_PROTOCOL).toString
+      req.headers.get(Names.SEC_WEBSOCKET_PROTOCOL) != null && subProtocols.contains(spFromReq(req))
+    private def spFromReq(req: HttpRequest) = req.headers.get(Names.SEC_WEBSOCKET_PROTOCOL).toString
 
     override def writeRequested(ctx: ChannelHandlerContext, e: MessageEvent) {
       e.getMessage match {
@@ -481,7 +481,7 @@ object HookupServer {
       e.getMessage match {
         case request: HttpRequest if HttpHeaders.is100ContinueExpected(request) ⇒
           Channels.write(ctx, Channels.future(ctx.getChannel), OneHundredContinueResponse, e.getRemoteAddress)
-          request.removeHeader(HttpHeaders.Names.EXPECT)
+          request.headers.remove(HttpHeaders.Names.EXPECT)
           ctx.sendUpstream(e)
 
         case httpRequest: HttpRequest if isWebSocketUpgrade(httpRequest) ⇒ handleUpgrade(ctx, httpRequest)
@@ -537,8 +537,8 @@ object HookupServer {
     }
 
     private def isWebSocketUpgrade(httpRequest: HttpRequest): Boolean = {
-      val connHdr = httpRequest.getHeaders(Names.CONNECTION).asScala
-      val upgrHdr = httpRequest.getHeader(Names.UPGRADE).blankOption
+      val connHdr = httpRequest.headers.getAll(Names.CONNECTION).asScala
+      val upgrHdr = httpRequest.headers.get(Names.UPGRADE).blankOption
       val connectionHeaderMatches = connHdr.nonEmpty && connHdr.exists(_.equalsIgnoreCase(Values.UPGRADE))
       val upgradeHeaderMatches = upgrHdr.isDefined && upgrHdr.forall(_.equalsIgnoreCase(Values.WEBSOCKET))
       connectionHeaderMatches && upgradeHeaderMatches
@@ -562,24 +562,24 @@ object HookupServer {
           if (logger.isDebugEnabled) logger.debug("Problem handshaking.", e)
           val res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.SWITCHING_PROTOCOLS)
           res.setStatus(HttpResponseStatus.UPGRADE_REQUIRED)
-          res.setHeader(Names.SEC_WEBSOCKET_VERSION, WebSocketVersion.V13.toHttpHeaderValue)
-          res.setHeader(Names.SEC_WEBSOCKET_PROTOCOL, protos)
+          res.headers.set(Names.SEC_WEBSOCKET_VERSION, WebSocketVersion.V13.toHttpHeaderValue)
+          res.headers.set(Names.SEC_WEBSOCKET_PROTOCOL, protos)
           ctx.getChannel.write(res).addListener(ChannelFutureListener.CLOSE)
       }
     }
 
     private def isHttps(req: HttpRequest) = {
-      val h1 = Option(req.getHeader("REQUEST_URI")).filter(_.trim.nonEmpty)
-      val h2 = Option(req.getHeader("X-Forwarded-Proto")).filter(_.trim.nonEmpty)
+      val h1 = Option(req.headers.get("REQUEST_URI")).filter(_.trim.nonEmpty)
+      val h2 = Option(req.headers.get("X-Forwarded-Proto")).filter(_.trim.nonEmpty)
       (h1.isDefined && h1.forall(_.toUpperCase(ENGLISH).startsWith("HTTPS"))) ||
         (h2.isDefined && h2.forall(_.toUpperCase(ENGLISH) startsWith "HTTPS"))
     }
 
     private def websocketLocation(req: HttpRequest) = {
       if (isHttps(req))
-        "wss://" + req.getHeader(Names.HOST) + "/"
+        "wss://" + req.headers.get(Names.HOST) + "/"
       else
-        "ws://" + req.getHeader(Names.HOST) + "/"
+        "ws://" + req.headers.get(Names.HOST) + "/"
     }
   }
 
