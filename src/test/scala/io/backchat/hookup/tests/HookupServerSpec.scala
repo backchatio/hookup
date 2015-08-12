@@ -2,7 +2,8 @@ package io.backchat.hookup
 package tests
 
 import org.specs2.Specification
-import org.specs2.specification.{Step, Fragments, After}
+import org.specs2.specification.{AfterAll, After}
+import org.specs2.specification.core.Fragments
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Promise}
 import org.specs2.time.NoTimeConversions
@@ -17,7 +18,7 @@ import java.util.concurrent._
 import examples.NoopWireformat
 import scala.util.Success
 
-class HookupServerSpec extends Specification with NoTimeConversions { def is = sequential ^
+class HookupServerSpec extends Specification with AfterAll { def is = sequential ^
   "A HookupServer should" ^
     "fails connecting when none of the protocols match" ! hookupServerContext(protos:_*).failsWithWrongSubProtocols ^ bt^
     "accept connections" ^ t ^
@@ -40,7 +41,7 @@ class HookupServerSpec extends Specification with NoTimeConversions { def is = s
 
   implicit val executionContext = ExecutionContext.fromExecutorService(Executors.newCachedThreadPool())
 
-  override def map(fs: => Fragments) = super.map(fs) ^ Step(executionContext.shutdown())
+  def afterAll() {  executionContext.shutdown() }
 
 
   case class hookupServerContext(protocols: WireFormat*) extends After {

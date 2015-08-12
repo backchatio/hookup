@@ -2,6 +2,7 @@ package io.backchat.hookup
 package tests
 
 import org.specs2.Specification
+import org.specs2.specification.{Around, AfterAll}
 import org.specs2.time.NoTimeConversions
 import org.json4s._
 import org.specs2.execute.Result
@@ -10,7 +11,7 @@ import java.net.{ServerSocket, URI}
 import akka.testkit._
 import akka.actor.ActorSystem
 import scala.concurrent.duration._
-import org.specs2.specification.{Around, Step, Fragments}
+import org.specs2.specification.core.Fragments
 import scala.concurrent.{ExecutionContext, Await}
 import scala.concurrent.forkjoin.ForkJoinPool
 import java.lang.Thread.UncaughtExceptionHandler
@@ -88,7 +89,7 @@ trait HookupClientSpecification  {
 
 }
 
-class HookupClientSpec extends Specification with NoTimeConversions { def is =
+class HookupClientSpec extends Specification with AfterAll { def is =
   "A WebSocketClient should" ^
     "when configured with jsonProtocol" ^
       "connect to a server" ! specify("jsonProtocol").connectsToServer ^
@@ -106,12 +107,12 @@ class HookupClientSpec extends Specification with NoTimeConversions { def is =
 
   implicit val system: ActorSystem = ActorSystem("HookupClientSpec")
 
-  def stopActorSystem = {
+  def stopActorSystem() = {
     system.shutdown()
     system.awaitTermination(5 seconds)
   }
 
-  override def map(fs: => Fragments) = super.map(fs) ^ Step(stopActorSystem)
+  def afterAll() { stopActorSystem() }
 
   def specify(proto: String) = new ClientSpecContext(proto)
 

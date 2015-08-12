@@ -8,20 +8,21 @@ version := "0.4.2-SNAPSHOT"
 
 scalaVersion := "2.10.5"
 
-crossScalaVersions := Seq("2.10.5", "2.11.5")
+crossScalaVersions := Seq("2.10.5", "2.11.7")
 
 compileOrder := CompileOrder.ScalaThenJava
 
 libraryDependencies ++= Seq(
   "io.netty" % "netty" % "3.10.4.Final",
-  "com.github.nscala-time" %% "nscala-time" % "1.4.0",
-  "org.json4s" %% "json4s-jackson" % "3.2.10" % "compile",
+  "com.github.nscala-time" %% "nscala-time" % "1.8.0",
+  "org.json4s" %% "json4s-jackson" % "3.2.11" % "compile",
   "commons-io" % "commons-io" % "2.4",
-  "com.typesafe.akka" %% "akka-actor" % "2.1.4" % "compile",
-  "com.typesafe.akka" %% "akka-testkit" % "2.1.4" % "test",
-  "org.specs2" %% "specs2" % "1.14" % "test",
+  "com.typesafe.akka" %% "akka-actor" % "2.3.12" % "compile",
+  "com.typesafe.akka" %% "akka-testkit" % "2.3.12" % "test",
+  "org.specs2" %% "specs2-core" % "3.6.4" % "test",
+  "org.specs2" %% "specs2-junit" % "3.6.4" % "test",
   "junit" % "junit" % "4.11" % "test",
-  "joda-time" % "joda-time" % "2.2"
+  "joda-time" % "joda-time" % "2.8.2"
 )
 
 scalacOptions ++= Seq(
@@ -29,6 +30,7 @@ scalacOptions ++= Seq(
   "-deprecation",
   "-unchecked",
   "-Xcheckinit",
+  "-Yrangepos",
   "-encoding", "utf8")
 
 parallelExecution in Test := false
