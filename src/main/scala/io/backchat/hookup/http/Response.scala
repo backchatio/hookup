@@ -1,7 +1,6 @@
 package io.backchat.hookup.http
 
-import org.jboss.netty.handler.codec.http.{DefaultHttpResponse, HttpRequest, HttpResponse,
-  HttpResponseStatus, HttpVersion}
+import org.jboss.netty.handler.codec.http._
 
 
 /**
@@ -26,6 +25,8 @@ abstract class Response extends Message with HttpResponseProxy {
 
 class MockResponse extends Response {
   val httpResponse = new DefaultHttpResponse(Version.Http11, Status.Ok)
+
+  override def headers(): HttpHeaders = httpResponse.headers()
 }
 
 
@@ -43,6 +44,8 @@ object Response {
   def apply(httpResponseArg: HttpResponse): Response =
     new Response {
       final val httpResponse = httpResponseArg
+
+      override def headers(): HttpHeaders = httpResponse.headers()
     }
 
   /** Create Response from HttpRequest. */
@@ -50,5 +53,7 @@ object Response {
     new Response {
       final val httpResponse =
         new DefaultHttpResponse(httpRequest.getProtocolVersion, Status.Ok)
-  }
+
+      override def headers(): HttpHeaders = httpResponse.headers()
+    }
 }

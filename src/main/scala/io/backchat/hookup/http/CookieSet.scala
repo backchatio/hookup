@@ -1,8 +1,9 @@
 package io.backchat.hookup.http
 
-import org.jboss.netty.handler.codec.http.{Cookie, CookieDecoder, CookieEncoder, HttpHeaders, HttpRequest}
+import org.jboss.netty.handler.codec.http.{HttpHeaders, HttpRequest}
+import org.jboss.netty.handler.codec.http.cookie.{Cookie, ServerCookieDecoder, ServerCookieEncoder}
 import scala.collection.mutable
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 
 /**
@@ -28,17 +29,17 @@ class CookieSet(message: Message) extends
       HttpHeaders.Names.SET_COOKIE
 
   private[this] val cookies: mutable.Set[CookieWrapper] = {
-    val decoder = new CookieDecoder
-    mutable.Set[CookieWrapper]() ++
-      message.getHeaders(cookieHeaderName).map { cookieHeader =>
-        try {
-          decoder.decode(cookieHeader) map { c => new CookieWrapper(c) } toList
-        } catch {
-          case e: IllegalArgumentException =>
-            _isValid = false
-            Nil
-        }
-      }.flatten
+    val decoder = new ServerCookieDecoder
+    val res = Option(message.headers.get(cookieHeaderName)) map { cookieHeader =>
+      try {
+        (decoder.decode(cookieHeader).asScala map { c => new CookieWrapper(c) }).toSet
+      } catch {
+        case e: IllegalArgumentException =>
+          _isValid = false
+          Set.empty[CookieWrapper]
+      }
+    }
+    mutable.Set[CookieWrapper]() ++ res.getOrElse(mutable.Set.empty)
   }
 
   /** Check if there was a parse error.  Invalid cookies are ignored. */
@@ -65,13 +66,12 @@ class CookieSet(message: Message) extends
 
   protected def rewriteCookieHeaders() {
     // Clear all cookies - there may be more than one with this name.
-    message.removeHeader(cookieHeaderName)
+    message.headers.remove(cookieHeaderName)
 
     // Add cookies back again
     cookies foreach { cookie =>
-      val cookieEncoder = new CookieEncoder(message.isResponse)
-      cookieEncoder.addCookie(cookie.cookie)
-      message.addHeader(cookieHeaderName, cookieEncoder.encode())
+      val cookieEncoder = new ServerCookieEncoder()
+      message.headers.add(cookieHeaderName, cookieEncoder.encode(cookie.cookie))
     }
   }
 
@@ -80,9 +80,9 @@ class CookieSet(message: Message) extends
     override def equals(obj: Any): Boolean = {
       obj match {
         case other: CookieWrapper =>
-          cookie.getName   == other.cookie.getName &&
-          cookie.getPath   == other.cookie.getPath &&
-          cookie.getDomain == other.cookie.getDomain
+          cookie.name   == other.cookie.name &&
+          cookie.path   == other.cookie.path &&
+          cookie.domain == other.cookie.domain
         case _ =>
           throw new IllegalArgumentException // shouldn't happen
       }

@@ -4,8 +4,7 @@ package http
 import java.net.{InetAddress, InetSocketAddress}
 import java.util.{AbstractMap, List => JList, Map => JMap, Set => JSet}
 import org.jboss.netty.channel.Channel
-import org.jboss.netty.handler.codec.http.{DefaultHttpRequest, DefaultHttpResponse, HttpMessage,
-  HttpMethod, HttpRequest, HttpVersion, QueryStringEncoder}
+import org.jboss.netty.handler.codec.http._
 import scala.collection.JavaConversions._
 import beans.BeanProperty
 
@@ -177,6 +176,8 @@ object Request {
       val httpRequest = httpRequestArg
       override val httpMessage = httpRequestArg
       lazy val remoteSocketAddress = channel.getRemoteAddress.asInstanceOf[InetSocketAddress]
+
+      override def headers(): HttpHeaders = httpRequest.headers()
     }
 
   // for testing
@@ -184,6 +185,7 @@ object Request {
     lazy val httpRequest: HttpRequest = new DefaultHttpRequest(Version.Http11, Method.Get, "/")
     override val httpMessage: HttpMessage = httpRequest
     lazy val remoteSocketAddress = new InetSocketAddress("127.0.0.1", 12345)
+    override def headers(): HttpHeaders = httpRequest.headers()
 
     // Create a MockRequest with a specific IP
     def withIp(ip: String) =

@@ -60,16 +60,16 @@ object HookupClient {
           throw new WebSocketException("Unexpected HttpResponse (status=" + resp.getStatus + ", content="
             + resp.getContent.toString(CharsetUtil.UTF_8) + ")")
         case resp: HttpResponse ⇒
-          if (resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL) != null && resp.getStatus == Status.UpgradeRequired) {
+          if (resp.headers.get(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL) != null && resp.getStatus == Status.UpgradeRequired) {
             // TODO: add better handling of this so the people know what is going wrong
-            logger.warn("The server only supports [%s] as protocols." format resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL))
+            logger.warn("The server only supports [%s] as protocols." format resp.headers.get(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL))
             expectChunk.compareAndSet(false, true)
             host.disconnect()
           } else {
             handshaker.finishHandshake(ctx.getChannel, resp)
             // Netty doesn't implement the sub protocols for all handshakers,
             // otherwise handshaker.getActualSubProtocol would have been great
-            resp.getHeader(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL).blankOption foreach { p =>
+            resp.headers.get(HttpHeaders.Names.SEC_WEBSOCKET_PROTOCOL).blankOption foreach { p =>
               host.settings.protocols.find(_.name == p) foreach { wf =>
                 host.wireFormat.set(wf)
                 Channels.fireMessageReceived(ctx, SelectedWireFormat(wf))

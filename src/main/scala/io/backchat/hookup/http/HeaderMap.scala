@@ -18,37 +18,37 @@ class HeaderMap(httpMessage: HttpMessage)
   def seq: Map[String, String] = Map.empty ++ iterator
 
   def get(key: String): Option[String] =
-    Option(httpMessage.getHeader(key))
+    Option(httpMessage.headers.get(key))
 
   def getAll(key: String): Iterable[String] =
-    httpMessage.getHeaders(key)
+    httpMessage.headers.getAll(key)
 
   def iterator: Iterator[(String, String)] =
-    httpMessage.getHeaders.toIterator map { entry =>
+    httpMessage.headers.entries().toIterator map { entry =>
       (entry.getKey, entry.getValue)
     }
 
   override def keys: Iterable[String] =
-    httpMessage.getHeaderNames
+    httpMessage.headers().names()
 
   override def contains(key: String): Boolean =
-    httpMessage.containsHeader(key)
+    httpMessage.headers.contains(key)
 
   /** Add a header but don't replace existing header(s). */
   def add(k: String, v: String) = {
-    httpMessage.addHeader(k, v)
+    httpMessage.headers.add(k, v)
     this
   }
 
   /** Add a header and do replace existing header(s). */
   def += (kv: (String, String)) = {
-    httpMessage.setHeader(kv._1, kv._2)
+    httpMessage.headers.set(kv._1, kv._2)
     this
   }
 
   /** Remove header(s). */
   def -= (key: String) = {
-    httpMessage.removeHeader(key)
+    httpMessage.headers.remove(key)
     this
   }
 

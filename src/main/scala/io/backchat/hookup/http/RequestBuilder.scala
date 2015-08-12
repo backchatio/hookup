@@ -261,7 +261,7 @@ class RequestBuilder[HasUrl] private[http](
     val req = new DefaultHttpRequest(config.version, method, resource)
     config.headers.foreach { case (k,vs) =>
       vs.foreach { v =>
-        req.addHeader(k, v)
+        req.headers.add(k, v)
       }
     }
     req
