@@ -25,6 +25,8 @@ import beans.BeanProperty
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference, AtomicLong}
 import akka.util.Timeout
 import scala.concurrent.ExecutionContext
+import javax.net.ssl.SSLContext
+import org.jboss.netty.handler.ssl.SslHandler
 
 /**
  * @see [[io.backchat.hookup.HookupClient]]
@@ -162,6 +164,13 @@ object HookupClient {
       bootstrap.setPipelineFactory(new ChannelPipelineFactory {
         def getPipeline = {
           val pipeline = Channels.pipeline()
+
+          settings.sslContext.foreach { sslContext =>
+            val sslEngine = sslContext.createSSLEngine
+            sslEngine.setUseClientMode(true)
+            pipeline.addLast("ssl", new SslHandler(sslEngine))
+          }
+
           pipeline.addLast("timeouts", new IdleStateHandler(timer, ping, 0, 0))
           pipeline.addLast("pingpong", new PingPongHandler(logger))
           if (client.settings.version == WebSocketVersion.V00)
@@ -516,6 +525,7 @@ trait HookupClientLike extends BroadcastChannelLike {
  * @param buffer The buffer to use when the connection to the server is lost.
  * @param throttle The throttle to use as reconnection schedule.
  * @param executionContext The execution context for futures.
+ * @param sslContext The optional [[javax.net.ssl.SSLContext]] implementation used in case of SSL encrypted socket connection.
  */
 case class HookupClientConfig(
   @BeanProperty
@@ -535,7 +545,9 @@ case class HookupClientConfig(
   @BeanProperty
   throttle: Throttle = NoThrottle,
   @BeanProperty
-  executionContext: ExecutionContext = HookupClient.executionContext)
+  executionContext: ExecutionContext = HookupClient.executionContext,
+  @BeanProperty
+  sslContext: Option[SSLContext] = None)
 
 /**
  * The Hookup client provides a client for the hookup server, it doesn't lock you in to using a specific message format.
