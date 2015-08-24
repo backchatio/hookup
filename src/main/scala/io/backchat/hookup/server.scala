@@ -676,7 +676,6 @@ object HookupServer {
         case m: Ack if wireFormat.get != null && !wireFormat.get.supportsAck ⇒
           logger.warn("Trying to ack over a wire format that doesn't support acking, ack message dropped.")
         case NeedsAck(m, timeout) if wireFormat.get != null && wireFormat.get.supportsAck ⇒
-          // TODO: revisit Timeout
           val id = createAck(ctx, m, akka.util.Timeout(timeout.length, TimeUnit.MILLISECONDS))
           if (raiseEvents) Channels.fireMessageReceived(ctx, AckRequest(m, id))
         case NeedsAck(m, timeout) if wireFormat.get != null && !wireFormat.get.supportsAck ⇒
