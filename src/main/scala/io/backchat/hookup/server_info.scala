@@ -1,5 +1,7 @@
 package io.backchat.hookup
 
+import java.util.concurrent.TimeUnit
+
 import akka.util.Timeout
 import java.io.{FileInputStream, FileNotFoundException, File}
 import com.typesafe.config.Config
@@ -146,7 +148,7 @@ object ServerInfo {
     }
 
     if (config.hasPath("pingTimeout"))
-      caps += Ping(Timeout(config.getMilliseconds("pingTimeout")))
+      caps += Ping(Timeout(config.getLong("pingTimeout"), TimeUnit.MILLISECONDS))
 
     if (config.hasPath("flashPolicy")) {
       val domain = if (config.hasPath("flashPolicy.domain")) config.getString("flashPolicy.domain") else "*"

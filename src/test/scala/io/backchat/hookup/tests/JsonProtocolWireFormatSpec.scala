@@ -7,7 +7,7 @@ import JsonDSL._
 import scala.concurrent.duration._
 import org.specs2.time.NoTimeConversions
 
-class JsonProtocolWireFormatSpec extends Specification with NoTimeConversions { def is =
+class JsonProtocolWireFormatSpec extends Specification { def is =
   "A JsonProtocolWireFormat should" ^
     testWireFormat("text", textMessage, text, text) ^
     testWireFormat("json", jsonMessage, json, json) ^

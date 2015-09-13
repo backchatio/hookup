@@ -21,7 +21,7 @@ class NoopWireformat(val name: String, val supportsAck: Boolean = false) extends
 
   def render(message: OutboundMessage) = null
 }
-class ServerConfigurationsExample extends Specification with NoTimeConversions { def is =
+class ServerConfigurationsExample extends Specification { def is =
   "A Server with a ping configuration" ! serverWithPing ^
   "A Server with a content compression configuration" ! serverWithContentCompression ^
   "A Server with a max frame configuration" ! serverWithMaxFrame ^
